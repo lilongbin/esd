@@ -1,0 +1,488 @@
+面向对象
+初始化对象
+构造函数
+
+
+1. 面向对象
+	万物皆对象;
+1.1 面向对象举例
+	老师.问问题(学生) {
+		学生回答问题
+	}
+	程序就是一组对象相互的发消息;
+	每个对象都有它自己的或者由其他对象构成的存储区;
+	每一个对象都有一个类型;//根据类型分配空间
+	相同类型的对象都能接收相同的消息;
+	一个特定类型的所有对象都能接收相同的消息;
+1.2 现实世界和虚拟世界
+	计算机世界用类型和类型中的特征创建对象,编译器负责把对象和行为联系起来,行为(方法)存放在代码区,所有对象共享行为(方法);
+	在C++中对象的类型称为类(class),类代表了某一批对象的共性和特性;
+	类是对象的抽象,而对象是类的具体实例(instance);
+	可以说类是对象的模板,是用来定义对象的一种抽象类型;
+	类是抽象的,不占用内存;而对象是具体的,占用存储空间;
+
+2. 划分一个类型
+	把现实中对象描述清楚,只要把握这组对象的特征和行为;
+	C++中可以使用结构体来描述一个类别的对象;
+	类是对象的类型;实际上类是一种广义的数据类型,对象是广义的变量;
+2.1 使用结构体设计一个Dog类
+	特征
+		string dogno;
+		string name;
+		int weight;
+		int age;
+	行为
+		void play();
+		void fun();
+/*
+ * 类与对象的模拟
+ */
+#include <iostream>
+#include <string>
+using namespace std;
+struct Dog {
+	//特征(属性)
+	string dogno; //只保存一个指向字符串首地址的指针;
+	string name; //大小为4字节,64位为8字节;
+	int weight;
+	int age;
+	//行为(方法)
+	void play() {
+		cout << name << "逗你开心" << endl;
+	}
+   	void show() {
+		cout << name << ":" << age << "月" << weight << "Kg" << endl;
+	}
+	void fun() {
+		cout << name << "在看家" << endl;
+	}
+};
+int main() {
+	Dog dog1; //创建结构体变量;
+	dog1.name = "wangcai";
+	dog1.age = 2;
+	dog1.weight = 10;
+	dog1.dogno = "bj001";
+	cout << sizeof(Dog) << endl;	//16
+	cout << sizeof(dog1) << endl;	//16
+	dog1.play();
+	dog1.show();
+	dog1.fun();
+}
+
+2.2 使用结构体设计一个时间类
+	设计这个类型的特征和行为;
+	特征(属性):
+		hour	min		sec
+	行为(方法):
+		设置时间;void setMyTime(int h = 0, int m = 0, int s = 0);
+		显示时间;void showMyTime();
+		每一秒变化一次,增加一秒;void dida();
+		时间运行,每一秒变化一次;void run();
+	可以到路径/usr/include/c++/下查看库文件
+/*
+ * 使用结构体设计时间类
+ */
+#include <iostream>
+#include <unistd.h>
+#include <cstdio>
+using namespace std;
+struct Timer {
+	//特征
+	int hour;
+	int min;
+	int sec;
+	//行为
+	void settime(int h = 0, int m = 0, int s = 0) {
+		hour = h;
+		min = m;
+		sec = s;
+	}
+   	void showtime() {
+		//cout << hour << ":"<< min << ":" << sec << endl;
+		printf("%02d:%02d:%02d\r", hour, min, sec);	//回头显示
+		fflush(stdout);	//刷缓冲
+	}
+	//时间走一秒
+	void dida() {
+		sec++;
+		if (!(sec % 60)) {
+			sec = 0;
+			min++;
+			if (!(min % 60)) {
+				min = 0;
+				hour++;
+				hour %= 24;
+			}
+		}
+	}
+	void run() {
+		//跑起来
+		while (1) {
+			//sleep(1);
+			time_t t = time(NULL);
+			while (t == time(NULL)) ;	//等效于sleep(1);
+			dida();
+			showtime();
+		}
+	}
+};
+int main() {
+	Timer mytime;
+	mytime.settime(23, 59, 50);
+	mytime.run();
+}
+
+3. 使用class描述一个类型的行为和特征
+	类是用户定义的数据类型;是数据类型的扩展;
+	在类中声明的变量和函数称为类的成员;
+	变量称为数据成员,也叫成员变量,即属性;
+	函数称为成员函数,也称为方法;
+	可以用类来声明变量(也称为实例),每一个实例都是类的一个对象;
+	定义类的实例可以称为类的实例化;
+	struct -----> class
+	用struct定义类,所有的成员默认为公开;public
+	用class定义类,所有的成员默认为私有;private
+	私有的只可以在类内访问,公开的可以在类内和类外访问;
+	protected保护权限可以在类内和子类中访问;
+	在定义权限的前面加private/public关键字和冒号,权限控制一直到下一个权限关键字出现;
+/*
+ * 用class描述类的行为和特征
+ */
+#include <iostream>
+#include <unistd.h>
+#include <cstdio>
+using namespace std;
+class Timer {
+	//权限关键字后面加冒号，修饰到下一个权限出现
+	private:
+		//特征
+		int hour;
+		int min;
+		int sec;
+		//行为
+	public:
+		void settime(int h = 0, int m = 0, int s = 0) {
+			hour = h;
+			min = m;
+			sec = s;
+		}
+   	private:
+		void showtime() {
+			//cout << hour << ":"<< min << ":" << sec << endl;
+			printf("%02d:%02d:%02d\r", hour, min, sec);	//回头显示
+			fflush(stdout);	//刷缓冲
+		}
+		//时间走一秒
+		void dida() {
+			sec++;
+			if (!(sec % 60)) {
+				sec = 0;
+				min++;
+				if (!(min % 60)) {
+					min = 0;
+					hour++;
+					hour %= 24;
+				}
+			}
+		}
+	//private:
+	public:
+		void run() {
+			while (1) {
+				//sleep(1);
+				time_t t = time(NULL);
+				while (t == time(NULL)) ;	//等效于sleep(1);
+				dida();
+				showtime();
+			}
+		}
+};
+int main() {
+	Timer mytime;
+	mytime.settime(23, 59, 50);
+	mytime.run();
+}
+
+4. 如何初始化对象
+4.1 构造函数
+	构造函数和类型名重名;
+	没有返回值和返回值类型;
+	只在建立对象的时候被自动调用一次;
+	调用构造函数的主要目的是初始化对象;
+注意
+	如果一个类没有定义任何构造函数,则系统会自动分配一个无参构造函数//默认是公开的;
+	如果提供了一个构造函数,则系统(编译器)会自动覆盖默认的构造函数//默认是私有的;
+/*
+ * 构造函数
+ */
+#include <iostream>
+#include <unistd.h>
+#include <cstdio>
+using namespace std;
+class Timer {
+	public:
+		//自定义的构造函数默认是私有的
+		Timer() {
+			//初始化成员变量
+			hour = 23;
+			min = 59;
+			sec = 50;
+			cout << "我是构造函数,我怕谁" << endl;
+		}
+	private:
+		//特征
+		int hour;
+		int min;
+		int sec;
+		//行为
+	public:
+		void settime(int h = 0, int m = 0, int s = 0) {
+			hour = h;
+			min = m;
+			sec = s;
+		}
+	private:
+		void showtime() {
+			//cout << hour << ":"<< min << ":" << sec << endl;
+			printf("%02d:%02d:%02d\r", hour, min, sec);	//回头显示
+			fflush(stdout);	//刷缓冲
+		}
+		//时间走一秒
+		void dida() {
+			sec++;
+			if (!(sec % 60)) {
+				sec = 0;
+				min++;
+				if (!(min % 60)) {
+					min = 0;
+					hour++;
+					hour %= 24;
+				}
+			}
+		}
+	//private:
+	public:
+		void run() {
+			while (1) {
+				//sleep(1);
+				time_t t = time(NULL);
+				while (t == time(NULL)) ;	//等效于sleep(1);
+				dida();
+				showtime();
+			}
+		}
+};
+int main() {
+	//在栈区构建对象,自动调用1次构造函数
+	Timer mytime;
+	//用类构建一个对象,构造函数被自动调用一次；
+	//Timer是类mmytime是一个对象;
+	//mytime.settime(23,59,50);
+	mytime.run();
+}
+
+4.2 一个对象的创建过程
+	1,编译器根据类型大小分配内存空间;
+	2,普通的成员变量不做任何处理,但如果成员变量也是自定义的类型(class),就构建它;
+	3,调用构造函数;
+	构造函数的调用顺序是先调用父类的无参构造,再执行自身的初始化参数列表,再调用自己的构造函数;
+4.3 构造函数的重载
+	构造函数也是函数,拥有重载的特征;
+	重载的构造函数在构造对象时根据参数自动选择;
+/*
+ * 构造函数重载
+ */
+#include <iostream>
+using namespace std;
+class A {
+	public:
+		//构造函数重载
+		A() {
+			cout << "A()" << endl;
+		}
+		A(int a) {
+			cout << "A(int): " << a << endl;
+		}
+		A(int a, double b) {
+			cout << "A(int, double): " << a << ", " << b << endl;
+		}
+};
+int main() {
+	A var_a; //创建了一个对象
+	A var_b(1); //创建了一个对象
+	A var_c(2); //创建了一个对象
+	A var_d(1, 2.5); //创建了一个对象
+	A *var_e = new A();	//在堆区创建
+	A *var_f = new A(1);
+	delete var_e;
+	delete var_f;
+	//A var_c(); //错误,不会创建对象,与A var_a不同;
+	//A var_c(); //编译器会理解为函数声明;不会创建对象
+}
+	利用参数默认值可以简化构造函数;
+		构造函数也拥有函数参数默认值的特性;
+		使用默认值可以减少构造函数的个数;
+/*
+ * 构造函数参数默认值
+ */
+#include <iostream>
+using namespace std;
+class A {
+	public:
+		//构造函数也拥有函数参数默认值的特性
+		//使用默认值可以减少构造函数的个数
+		A(int a = 0, double b = 0) {
+			cout << "A(int, double): " << a << ", " << b << endl;
+		}
+};
+int main() {
+	A *var_a = new A();	//在堆区创建
+	A *var_b = new A(1);
+	delete var_a;
+	delete var_b;
+}
+
+4.3 构造函数的初始化参数列表
+	如果类的成员变量是const或引用类型必须有初值,使用初始化参数列表是不二选择;所以才引入了初始化参数列表;
+	初始化参数列表可以在构造函数调用之前执行初始化工作;
+	用法:
+	在构造函数参数列表之后,实现体之前,且以冒号开头;
+#include <iostream>
+using namespace std;
+class A {
+	const int a; //const修饰的变量只能在定义时初始化;
+	int &b; //定义引用必须初始化;
+	//const或引用类型成员,需要在构造函数调用之前初始化参数列表；
+	public:
+	//构造函数的初始化参数列表放在构造函数参数列表之后,实现体之前,以冒号开头;
+	A(int pa, int pb):a(pa), b(pb) {
+		//参数要保证生命期
+		//pb是普通变量,用完就消失,所以后面b的值没有保留创建时传入的值;b的初始化时非法的;
+		//a = pa; //const变量不可再赋值;
+		//b = pb;
+	}
+   	void show() {
+		cout << a << "," << b << endl;
+	}
+};
+int main() {
+	int x = 100, y = 200;
+	A a(100, 200);
+	a.show(); //100, 200
+	A b(300, 500);
+	a.show(); //100, 500;a.show()的结果受到干扰
+}
+/*
+ * 构造函数的初始化参数列表
+ */
+#include <iostream>
+using namespace std;
+class A {
+	const int a;
+	int &b;
+	//const或引用类型成员,需要在构造函数调用之前初始化参数列表；
+	public:
+	//构造函数的初始化参数列表
+	//放在构造函数参数列表之后,实现体之前,以冒号开头；
+	A(int pa, int &pb):a(pa), b(pb) {
+		//定义pb为引用类型可解决b的值消失的问题;
+		//参数要保证生命期
+		//b是引用类型,所以参数列表中pb也要定义为引用类型;
+	}
+   	void show() {
+		cout << a << ", " << b << endl;
+	}
+};
+int main() {
+	int x = 100, y = 200;
+	A a(x, y);
+	a.show();
+	int x1 = 300, y1 = 500;
+	A b(x1, y1);
+	a.show();		//构造函数只在创建对象的时候自动调用一次
+	b.show();
+}
+
+4.4 实践中类的声明和定义是分开的
+	类分成头文件和实现两部分;
+	1.编写头文件
+		头文件用来定义类型,声明全局变量,声明函数;
+		如果函数的参数有默认值需要在头文件中指定;
+		还要防止头文件在一个实现文件中被重复包含;
+		在头文件中可以声明全局变量int i;C语言中认为是声明,C++中认为是定义(分配存储空间);可以重复声明,但不可以重复定义;所以在全局变量声明前面加extern关键字可以明确告诉每个编译器是声明;
+	2.编译头文件;g++ -c 可以找到一些基本的语法错误;
+	3.编写实现文件;
+		函数和全局变量在专门的文件中实现;
+		类型实现在自己的实现文件中;
+			包含头文件
+			去掉函数的参数默认值
+			在每个函数名前加上	类名::
+	4.编译实现文件;
+	5.测试实现文件;
+/*
+ * 类的声明mytime.h
+ */
+#ifndef __MYTIME_H__ //防止被一个cpp文件重复包含;被多个文件包含没关系;
+#define __MYTIME_H__
+//int g_var;//在C语言中会当全局变量处理,且没有分配空间;
+//int g_var=10;//C语言中不赋值叫声明,赋值就是定义;C中全局变量可以重复声明;
+//C++中分配存储空间的就叫定义,没有分配空间的叫声明;
+extern int g_var;//加extern就是声明,可以重复包含头文件,因为可以重复声明;
+//不加extern不同的编译器处理方式会有差异
+class Mytime {
+	int hour;
+	int min;
+	int sec;
+	public:
+	//构造函数
+	//如果指定默认值,一定要在头文件中指定
+	Mytime(int h = 0, int m = 0, int s = 0);
+	void show();
+	void dida();
+	void run();
+};
+#endif //__MYTIME.H__
+/*
+ * 类的实现mytime.cpp
+ */
+#include "mytime.h"
+#include <cstdio>
+#include <unistd.h>
+//把mytime.h头文件中的实现函数拷贝过来
+//带初始化参数列表的构造函数
+Mytime::Mytime(int h, int m, int s):hour(h), min(m), sec(s) {
+}
+void Mytime::show() {
+	printf("%02d:%02d:%02d\r", hour, min, sec);
+	fflush(stdout);
+}
+void Mytime::dida() {
+	if (++sec == 60) {
+		sec = 0;
+		if (++min == 60) {
+			min = 0;
+			if (++hour == 24) {
+				hour = 0;
+			}
+		}
+	}
+}
+void Mytime::run() {
+	while (1) {
+		sleep(1);
+		dida();
+		show();
+	}
+}
+/*
+ * 类测试testmytime.cpp
+ */
+#include "mytime.h"
+#include <iostream>
+using namespace std;
+int main() {
+	Mytime mytime;
+	mytime.run();
+}
+

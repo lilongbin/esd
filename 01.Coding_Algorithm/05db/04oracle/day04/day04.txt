@@ -1,0 +1,280 @@
+数据库的约束
+序列/索引/视图
+分页技术
+
+
+=======day04===============================================
+1 数据库的约束(constraint)
+1.1 约束的种类
+	主键	primary key
+			这个字段对应的值必须是唯一的,并且非空;一张表中只能有一个主键;
+
+	唯一	unique
+			这个字段的值不能重复,可以是NULL值;
+			
+	非空	not null
+			这个字段的值不能是NULL值;只能是列级非空,不能是联合非空;
+
+	检查	check
+			这个字段中的值必须符合检查条件;检查条件自定义;
+		
+	外键	references(引用)
+	
+			froeign key
+			on delete cascade/*当删除的时候级联删除*/
+			on delete set null/*当删除的时候级联清空*/
+				
+1.2 约束的实现方式
+	列级约束:在定义表的某一列时,直接对这一列加约束限制;
+	表级约束:在定义完表的所有列之后,在选择某些列加约束限制;
+	一个字段可以加两个约束(如可以加一个唯一再加一个非空),但不可以加两个级别的约束(不可以既加表级约束又加列级约束);
+1.3 主键的列级约束
+	drop table testcolumncons1;
+	create table testcolumncons1(
+			id		number primary key,
+			name	varchar2(30)				
+	);
+	insert into testcolumncons1 values(1,'test');
+	insert into testcolumncons1 values(1,'test');
+	ORA-00001: unique constraint (CSD1312.SYS_C0026599) violated
+	如果不给约束提供名字,则系统会自动为约束分配一个唯一的约束名,但不便于维护;
+1.4 主键的列级约束 并给约束起名字
+	constraint关键字可以给约束起别名;
+	表名_字段名_类型
+	drop table testcolumncons1;
+	create table testcolumncons1(
+		id		number constraint testcolumncons1_id_pk primary key,
+		name	varchar2(30)				
+	);
+	insert into testcolumncons1 values(1,'test');
+	insert into testcolumncons1 values(1,'test');
+	ORA-00001: unique constraint (CSD1312.TESTCOLUMNCONS1_ID_PK) violated
+1.5 检查的列级约束 
+	建立一张新表
+	id		number  设置成主键
+	fname	varchar2(30) 设置成唯一
+	sname	varchar2(30) 设置成非空
+	salary	number	检查条件salary>4500
+	drop  table testcolumncons1;
+	create table testcolumncons1(
+		id		number constraint testcolumncons1_id_pk primary key,
+		fname	varchar2(30) constraint testcolumncons1_fname_uk unique,
+		sname	varchar2(30)	constraint testcolumncons1_sname_nn not null	,
+		salary	number constraint testcolumncons1_salary_ck check (salary>4500)
+	);
+	insert into testcolumncons1 values(1,'taoge','zhuxi',18000);
+	insert into testcolumncons1 values(2,'taoge2','zhuxi',800);
+1.6 主键的表级约束
+	drop  table testtablecons1;
+	create table testtablecons1(
+		id		number,
+		name	varchar2(30),
+		constraint testtablecons_id_pk primary key(id)
+	);
+	insert into testtablecons1 values(1,'test1');
+	insert into testtablecons1 values(1,'test1');
+	ORA-00001: unique constraint (CSD1312.TESTTABLECONS_ID_PK) violated
+1.7 使用表级约束建立一张表
+	id		number	primary key
+	fname	varchar2(30)  unique
+	sname	varchar2(30)
+	salary	number	check(salary>9999)
+	表级约束的优势在于可以对多个字段做联合约束
+	drop  table testtablecons1;
+	create table testtablecons1(
+		id		number,
+		fname	varchar2(30),
+		sname	varchar2(30) constraint testtablecons1_sname_nn not null,
+		salary	number,
+		constraint testtablecons1_id_pk primary key(id),
+		constraint testtablecons1_fname_uk unique(fname),
+		constraint testtablecons1_salary_ck check(salary>9999)
+	);
+	insert into testtablecons1 values(1,'test1','test1',10000);	
+	非空没有表级约束的实际需要;
+1.8 外键约束
+1.8.1 概念
+	涉及到两张表,一张称之为父表(主表),另一张叫子表(从表);
+	定义了外键的表就是子表;外键字段的取值受限于父表中字段的取值;
+	外键要么取父表字段对应的值,要么取NULL值;
+1.8.2 实现外键
+1.8.2.1 建立表
+	先建立父表后建立子表;
+	除非不先考虑主外键关系,先放入数据后再建立主外键关系;
+	create table parent100(
+		id	number constraint parent100_id_pk primary key,
+		name	varchar2(30)
+	);
+	create table child100(
+		id	number constraint child100_id_pk primary key,
+		salary	number,
+		fid	number constraint child100_id_fk references parent100(id)
+	);
+1.8.2.2 插入数据
+	一般是先插入父表数据,再向子表中插入数据,除非子表的外键值设置成NULL值;
+	insert into child100 values(1,7897,1);
+	ORA-02291: integrity constraint (CSD1312.CHILD100_ID_FK) violated - parent key not found
+	insert into child100 values(1,7897,NULL);
+	insert into parent100 values(2,'test2');
+	insert into child100 values(2,7897,2);
+	commit;
+1.8.2.3 修改数据和删除数据
+	把一个父表中和子表关联的数据修改;
+	删除数据:先删除子表中的数据,后删除父表中的数据;除非父表中的数据没有关联的子表数据;
+	delete from child100 where id = 2;
+	delete from parent100 where id = 2;
+	ORA-02292: integrity constraint (CSD1312.CHILD100_ID_FK) violated - child record found
+1.8.2.4 删除表
+	删除表时一般先删除子表后删除父表
+	除非使用以下方式
+		drop table 表名 cascade constraints;//先断开主外键关系
+		drop table parent100;
+		ORA-02449: unique/primary keys in table referenced by foreign keys
+		drop table parent100 cascade constraints;
+1.8.3 使用外键约束建立两张表
+	一个部门中有多个员工,一个员工只能属于一个部门;插入两个部门的数据,员工表中第一个部门有2个员工,第二个部门有三个员工
+	mydept100//部门表
+		id		number primary key
+		name	varchar2(30)
+	myemp100//员工表
+		id		number primary key
+		name	varchar2(30)
+		dept_id		number (外键)
+		drop table mydept100;
+		create table mydept100(
+			id number constraint mydept100_id_pk primary key,
+			name varchar2(30)				
+		);
+		insert into mydept100 values(1,'dept1');
+		insert into mydept100 values(2,'dept2');
+		commit;
+		drop table myemp100;
+		create table myemp100(
+			id number constraint myemp100_id_pk primary key,
+			name varchar2(30),
+			dept_id number 
+				constraint myemp100_dept_id_fk 
+					references mydept100(id)
+		);
+		/*外键的列级约束*/
+		-------------------------------------------------------------------------------------------
+		drop table myemp100;
+		create table myemp100(
+			id number constraint myemp100_id_pk primary key,
+			name varchar2(30),
+			dept_id number,
+			constraint myemp100_dept_id_fk 
+				foreign key (dept_id)
+					references mydept100(id)
+		);
+		/*外键的表级约束*/
+		------------------------------------------------------------------------------------------
+		drop table myemp100;
+		create table myemp100(
+			id number constraint myemp100_id_pk primary key,
+			name varchar2(30),
+			dept_id number,
+			constraint myemp100_dept_id_fk 
+				foreign key (dept_id)
+					references mydept100(id) 
+						on delete cascade
+		);
+		/*当删除的时候级联删除*/
+		------------------------------------------------------------------------------------------
+		drop table myemp100;
+		create table myemp100(
+			id number constraint myemp100_id_pk primary key,
+			name varchar2(30),
+			dept_id number,
+			constraint myemp100_dept_id_fk 
+				foreign key (dept_id)
+					references mydept100(id) 
+						on delete set null
+		);
+		/*当删除的时候级联置空*/
+		insert into myemp100 values(1,'emp1',1);
+		insert into myemp100 values(2,'emp2',1);
+		insert into myemp100 values(3,'emp3',2);
+		insert into myemp100 values(4,'emp4',2);
+		insert into myemp100 values(5,'emp5',2);
+		commit;
+		
+2 数据库中的其他对象
+2.1 序列sequence
+2.1.1 作用
+	用来生成数字作为主键的值
+2.1.2 语法
+	create sequence 序列名;
+2.1.3 使用
+	insert into 表名 values(序列名.nextval,字段值);
+	create table testseq100(
+			id number primary key,
+			name varchar2(30)
+	);
+	create sequence testseq100_id;
+	insert into testseq100 values(testseq100_id.nextval,'test');
+	insert into testseq100 values(testseq100_id.nextval,'test'||testseq100_id.currval);
+	insert into testseq100 values(testseq100_id.nextval,'test'||testseq100_id.nextval);
+	一条语句中只能执行一次nextvalue
+user_sequences表中放了用户序列
+user_tables存放用户表
+select max_value from user_sequences where sequence_name ='TESTSEQ100_ID';
+	删除序列
+	drop sequence 序列名;
+2.2 索引index
+2.2.1 作用
+	索引就是通过消耗掉系统的大量空间和时间,来换取查询的速度;
+2.2.2 语法
+	系统会对主键和唯一键自动建立唯一性索引;
+	create index  索引名 on 表名(字段名);
+	set timing on;//统计任务消耗的时间
+	create table testmyindex as 
+		select id,first_name,salary from s_emp;
+	创建索引
+	create index  testmyindex_fname on testmyindex(first_name);
+	删除索引
+	drop index testmyindex_fname;
+2.3 视图view
+2.3.1 本质
+	视图的本质就是一条sql语句;相对于视图对应的数据,视图的空间可以忽略不计;
+2.3.2 语法
+	create or replace view myview as
+		select id,first_name,salary from s_emp;//需要权限
+	能对同一份物理数据做不同的表现;
+	能简化查询;
+	select * from (select id,dirst_name,salary from s_emp) where id > 10;
+	等效于
+	select * from myview where id>10;
+	删除视图
+	drop view 视图名;
+3 分页技术
+	在oracle中用rownum	行号//伪列
+	sqlserver中用top n
+	sql中用limit m,n
+		select id,first_name,salary from s_emp;
+		select rownum,first_name,salary from s_emp;
+		select rownum,first_name,salary from s_emp
+			where rownum <= 11;
+	显示第2页数据
+		select rownum,first_name,salary from s_emp
+			where rownum < 23 and rownum > 11;//无结果
+		select * from (select rownum r,first_name,salary from s_emp
+			where rownum < 23) where r > 11;
+		----------------------------------------------------
+		按照工资排序每页显示11条,显示第二页数据
+		select * 
+			from (select rownum r,id,first_name,salary 
+					from (select id,first_name,salary 
+							from s_emp 
+								where 1=1 
+									order by salary) 
+							where rownum < 2*11+1) 
+				where r>(2-1)*11;
+		----------------------------------------------------
+		最内层负责先排序;
+		第二层负责给数据编号和起别名;
+		最外层负责去除rownum的特性;
+		----------------------------------------------------
+作业:
+	按照工资排序显示第3页数据,显示id,rownum,first_name,salary
+

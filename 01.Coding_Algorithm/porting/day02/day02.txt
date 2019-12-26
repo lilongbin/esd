@@ -1,0 +1,288 @@
+不同的硬件平台
+裸板:所有的代码都要自己来实现
+操作系统:使用大量API以及库函数
+
+为TPAD部署系统
+引导程序u-boot
+Linux内核
+文件系统
+
+1.移植代码
+2.部署系统
+
+引导程序u-boot
+硬件相关 cpu board cw210.h
+硬件无关
+
+链接脚本
+Makefile
+u-boot.lds
+start.S
+  lowlevel_init.S
+     看门狗
+     初始化系统时钟
+     初始化内存
+     初始化串口
+     初始化Nand Flash
+  uboot代码整体的搬移  0xc3e00000
+
+uboot代码为什么能够在非链接地址上运行?
+只要保证在IRAM的代码是位置无关码
+b 
+bl
+PC(new)=PC(当前地址)(+/-) 32M
+
+447         ldr     pc, _start_armboot
+通过阅读u-boot.dis
+pc=0xc3e026b4
+绝对跳转
+
+start.S
+1.关中断,设置CPU的模式
+2.lowleve_init函数做底层初始化(看门狗,时钟,内存,串口,Nand Flash)
+3.u-boot的搬移->0x23e00000
+4.开启MMU   0x23e00000--->0xc3e00000
+5.初始化栈
+6.清空BSS段
+7.绝对跳转指令ldr  pc, _start_armboot(0xc3e026b4)
+   IRAM跳转到内存中运行(运行在链接地址)
+
+start_armboot就是第二阶段的代码
+C语言代码
+source insight
+将u-boot_CW210_1.3.4_20120628.tar.bz2共享到xp
+在xp下解压缩
+建立工程
+
+board.c文件
+start_armboot函数
+293 typedef  int  (init_fnc_t) (void);
+//定义了一个名为函数类型,函数参数void,返回值是int
+
+366 for (init_fnc_ptr = init_sequence; *init_fnc_ptr; ++init_fnc_ptr) {
+		if ((*init_fnc_ptr)() != 0) {
+			hang ();
+		}
+	}
+
+typedef	struct	global_data {
+	bd_t	*bd;
+  ........
+} gd_t;
+//定义u-boot全局信息
+
+typedef struct bd_info {
+    .......
+    ulong	        bi_arch_number;	/* unique id for this board */
+    ulong	        bi_boot_params;	/* where this board expects params */
+    struct				/* RAM configuration */
+    {
+	ulong start;
+	ulong size;
+    } bi_dram[CONFIG_NR_DRAM_BANKS];
+} bd_t;
+//定义的开发板信息
+
+
+#define DECLARE_GLOBAL_DATA_PTR    
+ register volatile 
+ gd_t   *gd 
+ asm ("r8")
+将gd变量(地址)放在了CPU内部的r8寄存器
+gd变量(地址)所指向内容还是在内存中
+快
+
+arm-linux-gcc -g  -Os   -fno-strict-aliasing  -fno-common 
+-ffixed-r8   -msoft-float  -D__KERNEL__ -DTEXT_BASE=0xc3e00000
+
+int board_init(void)
+{
+	DECLARE_GLOBAL_DATA_PTR;
+#ifdef CONFIG_DRIVER_SMC911X
+	smc9115_pre_init();
+#endif
+//代码是否运行取决于宏是否被定义
+#ifdef CONFIG_DRIVER_DM9000
+	dm9000_pre_init();//DM9000网卡的初始化
+#endif
+
+	gd->bd->bi_arch_number = MACH_TYPE;
+//存放是board的ID号,在启动内核时,会被传递给内核
+	gd->bd->bi_boot_params = (PHYS_SDRAM_1+0x100);
+//uboot传递给内核的参数所在的地址
+	return 0;
+}
+
+int dram_init(void)
+{
+	DECLARE_GLOBAL_DATA_PTR;
+
+	gd->bd->bi_dram[0].start = PHYS_SDRAM_1;
+	                                              0x20000000
+	gd->bd->bi_dram[0].size = PHYS_SDRAM_1_SIZE;
+                                                              0x20000000  (512M)
+
+#if defined(PHYS_SDRAM_2)
+	gd->bd->bi_dram[1].start = PHYS_SDRAM_2;
+                                                              0x40000000
+	gd->bd->bi_dram[1].size = PHYS_SDRAM_2_SIZE;
+	                                              0x20000000(512M)
+#endif
+
+	return 0;
+}
+通过for循环,将init_sequence数组中的函数序列一一执行,这些函数进一步初始化
+硬件信息. 
+包括:DM9000  TPAD的ID号  启动参数的地址  .....  内存的信息
+main_loop
+
+u-boot:两种模式:
+自启动模式:
+下载更新模式:
+tarena # print bootcmd
+boocmd:保存启动命令
+bootcmd="tftp 50008000 zImage;
+                    加载内核文件zImage到内存50008000地址
+                    bootm 50008000"
+                    到50008000地址去执行内核文件zImage
+
+判断环境变量bootdelay  bootcmd
+在bootdelay秒内,判断串口是否有输入:
+1.有,通过敲击空格键,进入了下载更新模式(命令行模式):
+   tarena# 
+   在该提示符下可以执行键盘输入的命令
+2.没有,没有任何键按下,则进入uboot的自启动模式,启动内核
+   如何启动内核?
+   uboot代码会去获取一个环境变量,bootcmd环境变量,该环境变量中存放了
+自启动内核的相关命令,接着执行这些命令,启动内核
+   bootcmd="tftp 50008000 zImage;  bootm 50008000"                 
+           
+   bootcmd="tftp 50008000 zImage;
+                    加载内核文件zImage(Ubuntu下/tftpboot)到内存50008000地址
+                    bootm 50008000"
+                    到50008000地址去执行内核文件zImage
+
+uboot命令:
+1.printenv(print):查看当前环境的环境变量
+     print   bootcmd
+2.setenv:设置环境变量
+     setenv  bootdelay   10
+     setenv  bootcmd   nand   read  50008000  500000 500000; bootm 50008000
+3.saveenv(save):保存环境变量
+4.tftp:通过tftp服务下载Ubuntu服务器下的程序到TPAD的内存中
+        tftp   50008000   led.bin
+5.go:执行内存中的二进制代码
+        go   50008000
+6.bootm:启动内存中的操作系统镜像文件zImage
+        tftp  50008000 zImage  /   nand read 50008000  500000  500000
+        bootm    50008000
+ 7.nand命令
+   nand  erase:擦Nand Flash
+        nand   erase   500000   500000
+   nand   write:写Nand Flash
+        nand  write   50008000   500000   500000
+   nand   read:读Nand Flash
+        nand  read    50008000   500000   500000
+
+uboot代码中命令都是如何定义?
+U_BOOT_CMD宏
+struct cmd_tbl_s {
+	char		*name;	//命令名字
+	int		maxargs;	//命令最大的参数个数
+	int		repeatable;//重复的次数			 
+	int		(*cmd)(struct cmd_tbl_s *, int, int, char *[]);
+                                            //命令对应的处理函数
+	char		*usage;		 
+                                             //用法信息	 
+#ifdef	CFG_LONGHELP
+	char		*help;		 
+	                               //帮助信息                
+#endif
+};
+
+#define Struct_Section  
+__attribute__ ((unused,section (".u_boot_cmd")))
+__attribute__是GNU C对标准C的扩展,可以用来设置变量的属性/函数的属性/
+类型的属性
+用此属性修饰的变量,在链接过程中被链接至.u_boot_cmd段中(在u-boot.lds)
+#define  BANK_SIZE   0x20000000
+
+#define U_BOOT_CMD(name,maxargs,rep,cmd,usage,help)  \
+cmd_tbl_t  __u_boot_cmd_go   Struct_Section 
+= {#name, maxargs, rep, cmd, usage, help}
+
+U_BOOT_CMD(
+	reset, 1, 0,	do_reset,
+	"reset   - Perform RESET of the CPU\n",
+	NULL
+);
+
+cmd_tbl_t  __u_boot_cmd_reset  __attribute__ ((unused,section (".u_boot_cmd"))) 
+= {reset, 1, 0,	do_reset,
+    "reset   - Perform RESET of the CPU\n",
+    NULL}
+
+bootm  50008000
+do_bootm->do_bootm_linux
+theKernel (0, machid, bd->bi_boot_params);
+                      板ID号    uboot传递给内核的启动参数的地址
+启动内核
+
+uboot整个启动内核的过程:
+1.start.S->前8K代码在CPU内部IRAM中执行,位置无关
+2.lowlevel_init.S->关闭看门狗/时钟/内存/串口/nand Flash
+3.start.S->将整个uboot拷贝到内存中,为其运行在0xc3e00000做准备,
+开启MMU,建栈,清BSS段,使用伪指令ldr pc, _start_armboot跳转至
+uboot的第二阶段(c语言)
+4.start_armboot,执行了初始化函数列表,board_init  dram_init等等
+5.main_loop->获取bootdelay bootcmd环境变量
+6.执行bootcmd环境变量中的自启动命令tftp  bootm
+7.bootm命令-->do_bootm函数->do_bootm_linux
+   ->theKernel(0, 2456, 0x20000100)
+                        r0  r1      r2
+bootargs 很重要
+
+配置u-boot
+   make  CW210_config
+编译u-boot
+   make
+   u-boot.bin
+
+烧写系统:
+   u-boot.bin
+   zImage
+设置环境变量   bootcmd   bootargs (ttySAC0) 
+不用Windows TFTP
+用Ubuntu下TFTP服务
+Ubuntu:192.168.1.8
+板子:192.168.1.6
+XP:192.168.1.60
+桥接网卡:选择连接TPAD的网卡
+
+拨码开关:
+Nand Flash启动:iROM->Nand Flash
+                             start.S
+USB启动:IROM->USB
+            x210.bin  0xd0020010 初始化硬件
+            u-boot.bin   0x23e00000  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

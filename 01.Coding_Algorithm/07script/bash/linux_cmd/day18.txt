@@ -1,0 +1,41 @@
+18.01 chroot命令
+切换操作系统
+ # mount -t ext3 /dev/sdb1 /mnt 
+ # chroot /mnt/
+
+18.02 lastb命令
+用于显示用户异常的登录列表
+ # lastb
+ # lastb root 
+
+18.03 last命令
+用于显示最近的登录列表,默认读取/var/log/wtmp
+ # last
+
+18.04 lastlog命令
+用于显示系统中用户最后一次的登录情况
+ # lastlog
+ # lastlog -u root
+
+18.05 logsave命令
+用于运行给定的指令,并将指令的运行信息保存到指令的日志文件
+ # logsave /tpm/mylog fdisk -l
+信息被输出到标准输出的同时并保存到日志文件
+
+18.06 logwatch命令
+可定制和可插入式的日志监控系统,通过遍历给定时间范围内的日志文件产生日志报告
+ # logwatch --service sshd --print --range today
+
+
+18.07 logrotate命令
+日志轮转工具
+ # vim /etc/logrotate.conf 配置文件
+ # logrotate -f /etc/logrotate.conf  立即执行
+ 一般是由crond等待特定的时间到达后执行
+
+18.08 sudo命令
+可以使用指定用户的身份执行指定的指令
+首先需要使用root用户编辑sudoers文件
+ # visudo
+ # sudo /sbin/fdisk -l
+

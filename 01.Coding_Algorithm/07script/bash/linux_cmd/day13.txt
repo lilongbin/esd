@@ -1,0 +1,134 @@
+13.01 at命令
+用于指定在某个时间点执行某项任务
+ # at 23:00
+at> cp /etc/passwd /root
+at> 按Ctrl+d交互结束
+或
+ # vim worklist
+ # at -f worklist 03:10
+
+13.02 atq命令
+用于查询由at命令创建的待执行的任务
+ # atq
+
+13.03 atrm命令
+用于删除由at或batch提交的待执行任务
+ # atq
+ # atrm 1
+
+13.04 batch命令
+用于在指定时间执行任务,如果系统很忙将不执行
+ # batch 3:30
+at> tar -zcvf file.tar.gz file
+at> Ctrl+d交互结束
+或
+ # vim worklist
+ # batch -f workfile 4:30
+ # atq 查询
+
+13.05 crontab命令
+用于提交和管理用于周期性工作的任务
+ # vim mycron
+------------------
+  10 03 * * * tar -zcvf file.tar.gz file
+------------------
+ # crontab mycron 提交
+ # crontab -l  查看
+或使用
+ # crontab -e
+
+13.06 init命令
+可以在Linux中切换运行等级,
+ # init 5 切换到第5等级
+ # init 6 重启
+
+13.07 killall命令
+可以按照进程的名称结束所有的进程
+ # killall vim
+ # killall -l 列出所有支持的信号种类
+
+13.08 nice命令
+用于调用其他指令并给其指定一个调度优先级
+ # nice -n 6 find / -name passwd > out.txt
+优先级从-20到19,值越大优先级越低
+
+13.09 nohup命令
+run a command immune to hangups, with output to a non-tty
+ # nohup find / -name shadow &
+ 退出shell时nohup会让没有执行完毕的find指令继续执行
+
+13.10 pkill命令
+可以按照进程的名称结束结束进程
+ # pkill vim
+
+13.11 pstree命令
+以树形图显示进程的层次关系
+ # pstree
+
+13.12 ps命令
+用于显示进程的状态信息
+ # ps
+ # ps -ef 输出系统的所有进程
+
+13.13 renice命令
+用于调整正在运行的进程的优先级
+ # ps -ef |grep vim
+ # renice +7 3141
+
+
+13.14 skill命令
+用于向选定的进程发送信息
+ # ps -ef | grep vim
+ # skill 3141
+
+13.15 watch命令
+以周期的方式执行某一条指令
+ # watch -d ls -l 可以实时监控一些状态的变化
+Ctrl+c退出watch指令
+
+
+13.16 w命令
+用于显示当前系统已经登录的用户列表以及用户正在进程的操作
+ # w
+21:48:22 up  3:21,  3 users,  load average: 0.09, 0.38, 0.33
+USER     TTY      FROM    LOGIN@  IDLE   JCPU   PCPU WHAT
+longbin  tty1     :0      18:27   3:21m  3:16   0.08s pam: gdm-passwo
+longbin  pts/0    :0.0    19:21   19.00s  0.11s  0.06s vim day13.txt
+longbin  pts/1    :0.0    19:40   0.00s  0.22s 54.16s gnome-terminal
+
+13.17 telinit命令
+用于切换当前系统的运行等级
+ # runlevel
+N 5
+ # telinit 3  实际是init命令的符号连接
+
+13.18 runlevel命令
+用于显示Linux当前的运行等级
+ # renlevel
+N 5
+
+13.19 service命令
+其实是一个脚本程序,用于控制Linux的服务的启停
+ # service atd status
+ # service atd start
+{start|stop|restart|condstart|status}
+ # ls /etc/init.d/ 可以控制该目录下的服务
+
+13.20 ipcs命令
+用于显示Linux中进程间通信的状态,包括共享内存,消息队列和信号集
+ # ipcs
+
+13.21 pgrep命令
+可以基于名称查找进程号
+ # pgrep bash
+
+13.22 pidof命令
+用于查找指定名称的进程id号
+ # pidof vim
+
+13.23 pmap命令
+用于显示进程的映射关系
+ # pmap -d 1000
+ # pmap -x 1000
+
+

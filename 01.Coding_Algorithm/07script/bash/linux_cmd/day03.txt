@@ -1,0 +1,266 @@
+3.01 cat命令
+ 通常用来显示文本文件的内容
+ 一般用来查看比较短的文本文件,因为其缓冲区有限
+-s选项可以用来合并文件中多余的空行,多个空行将被压缩为一个空行;
+-n选项可以显示行号
+-b选项可以跳过空行的编号,显示非空行的行号;
+cat不加任何参数可以用来赋值标准输入到标准输出;
+
+3.02 more命令
+可以用来分屏查看文本文件的内容
+当文件的内容查过一屏时可以分屏查看,最后一行会显示more的提示显示;
+回车键会向后滚动一行,空格滚动一屏;
+在more中还支持搜索功能,与vim中的搜索用法一致;
+按q键自动退出more
+可以在某些命令后加管道符号和more命令,可以对命令的结果分屏显示;
+
+3.03 less命令
+用于分屏显示文本文件内容
+相对与more命令less功能更加强大
+回车键会向后滚动一行,空格滚动一屏;
+还可以用上下左右键查看,more不能回滚;
+同样支持搜索操作
+more显示完文件内容后会自动退出;less不会,需要使用q键
+在查看的过程中还可以调用其他shell指令,同vim的底行模式
+
+3.04 grep命令
+是一种长匹配指令,可以匹配我们输入的文本,并在文件中搜索含有匹配的行
+ # grep "root" /ets/passwd
+匹配模式中支持正则表达式
+ # grep -n "fs$" /proc/filesystem	//搜索以fs结尾的行
+
+3.05 head命令
+用于显示文件的头部内容,默认显示文件前10行内容
+ # head /etc/httpd/conf/httpd.conf
+-n选项可以指定显示的行数
+对于显示一些超大型文件的头部内容很重要
+可以显示多个文件的头部内容
+
+3.06 tail命令
+用来显示给定文本文件的尾部内容,默认显示尾部10行内容
+ # tail filename
+-n选项可以指定显示内容的行数
+-f可以动态跟随文件尾部的变化,经常用该选项监控系统的日志文件;
+
+3.07 wc命令
+用于统计文本文件中的行数,单词数和字节数;
+ # wc /etc/passwd
+		44 72 2102 /etc/passwd
+ # wc -l /etc/passwd	//单独统计文件的行数
+ # ps -ef |grep gnome |wc -l	//统计当前系统有多少个含有gnome进程
+ # wc
+然后输入一部分内容,按Ctrl+d时会统计我们刚输入的文字信息
+
+3.08 uniq命令
+用于过滤文件中的重复行,并没有改变文件内容
+要求要过滤的文本是已经排序过的
+首先使用sort命令排序,然后再使用uniq命令#sort file | uniq
+-c选项可以统计重复行出现的次数
+
+3.09 cut命令
+用于显示文本文件中指定的列
+ # cut -f 1 -d " " /etc/fstab	//以空格为分割,显示第1部分
+ # cut -c -15 /proc/net/arp	//显示每列前面的15个字符即IP地址
+
+3.10 sort命令
+用来对文本排序
+ # sort file
+仅仅将file中的内容排序输出,并没有改变file的内容
+-o选项可以输出到指定的文件
+ # sort file -o result
+也可以使用重定向的功能把排序结果保存到文件中
+
+3.11 join命令
+用于合并给定文件中的相同字段,要求文件是被排序过的
+ # cat math
+Tom	90
+Jim	91
+ # cat english
+Jim	95
+Tom	96
+ # sort math > math.sorted
+ # sort english > english.sorted
+ # join math.sorted english.sorted
+Jim	91	95
+Tom	90	96
+ 
+3.12 split命令
+用于将给定的文件分割成若干个小的文件
+ # split acess_log
+会生成很多小文件,每个文件默认是1000行
+-l选项可以指定分割的文件大小的行数
+
+3.13 unexpand命令
+用于将文件中多余的空格字符转换成制表符
+ # cat test.txt
+liuli                        zhangsan
+ # unexpand -t 10 test.txt
+liuli	zhangsan
+-t将指定个数的空白转换成一个Tab键
+
+3.14 tr命令
+是字符处理工具,用于替换和删除给定文本中的单个字符,不是字符串处理工具
+ # tr dev xyz < /etc/fstab	//将d替换为x,将e替换为y,v替换为z
+sed命令可以替换字符串
+ # tr a-z A-Z < /etc/hosts	//将小写字符替换为大写字符
+ # tr -d angi < "zhangsanlisiwangwu"		//将angi对应的字符删除
+zhslswwu
+ # echo $PATH
+/opt/arm-2009q3/bin:/usr/lib/qt4/bin:/usr/lib/qt-3.3/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:/home/beangr/bin
+ # echo $PATH | tr ":" "\n"	//将结果中的:替换为换行符
+/opt/arm-2009q3/bin
+/usr/lib/qt4/bin:/usr/lib/qt-3.3/bin
+/usr/local/bin
+/usr/bin
+/bin
+/usr/local/sbin
+/usr/sbin
+/sbin
+/home/beangr/bin
+
+3.15 tee命令
+用于从标准输入读取数据,将其保存到指定的文件并输出到标准输出
+ # cat /etc/fstab | tee file1 file2 file3
+/* 正常输出到标准输出的同时保存到file1,file2,file3 */
+
+3.16 tac命令
+用于以行为单位,反序显示文本的内容
+tac是cat的反指令
+
+3.17 spell命令
+是Linux中拼写检查命令,可以对文件中的文本以单词为单位进行拼写检查,并将拼写错误的单词打印出来
+ # spell file
+
+3.18 paste命令
+用于多个文本文件的合并,以列为单位
+ # cat t1.txt
+name	math	java
+Tom		100		70
+jim		80		88
+ # cat t2.txt
+C++
+90
+89
+ # paste t1.txt t2.txt
+name	math	java	C++
+Tom		100		70		90
+jim		80		88		89
+如果需要将结果保存到文件,需要使用重定向
+
+3.19 diff命令
+用于比较两个文件不同的地方
+ # diff file1 file2
+diff命令常用来生成补丁文件
+ # diff -Nur file1 file2 >a.patch
+
+3.20 cmp命令
+用于比较两个文件的类型,可以是任何类型的文件
+会显示出从哪个地方开始不同
+ # cmp file1 file2
+ # cmp /bin/ls /bin/mail
+ # cmp file1 file1	//比较两个相同的文件,没有输出
+
+3.21 look命令
+用于显示文件中以指定字符串开头的行,要求文本文件是有序的
+ # cat t1.txt
+name	math	java
+zhang	100		70
+lisi	70		88
+wang	100		70
+zhang	100		70
+ # sort t1.txt > t1.txt.sorted
+ # look zhang t1.txt
+zhang	100	70
+ # look zhang t1.txt.sorted
+zhang	100	70
+zhang	100	70
+ # look hello	//可以查询我们的字典,会显示所有包含hello的单词
+在安装look命令的时候,会安装两个字典文件
+
+3.22 ispell命令
+可以检查文件中英文拼写错误,并给出纠正提示
+ # cat test.txt
+yyear	month	hppy
+ # ispell test.txt //修改的结果会保存到文件
+
+3.23 fold命令
+用于控制文件内容在显示的时候占用屏幕的宽度
+ # fold -w 20 /etc/fstab	//指定宽度为20个字符
+换行的内容不表示文本是多行,只是多行显示而已
+
+3.24 fmt命令
+用于对文本文件的内容进行文本格式的优化
+ # fmt -u /etc/fstab	//会压缩显示的空格
+
+3.25 expand命令
+用于将文件中的制表符转换为空格字符
+ # cat t1.txt
+hello	world
+hello		Linux
+ # expand -t 20 t1.txt
+hello                    world
+hello                                        Linux
+与unexpand互逆
+
+3.26 col命令
+用来过滤其他指令输出的控制信息
+ # cat mytest | col > mytest3
+
+3.27 colm命令
+用于删除文件中指定的列(字符为单位)
+ # colm 20 < /etc/fstab		//删除前20列字符
+原有内容不会发生改变
+ # colm 20 50 < /etc/fstab	//删除20到50之间的列
+
+3.28 comm命令
+用于比较已经排序的文件,比较以行为单位
+ # cat chengji1
+wangwu	90
+lisi	60
+zhangsan	80
+ # cat chengji2
+wangwu	90
+zhangsan	80
+lisi	70
+ # sort chengji1 > chengji1-1
+ # sort chengji2 > chengji2-2
+ # comm chengji1-1 chengji2-2
+
+3.29 csplit命令
+用于将一个大文件分割为小的文件,以行为单位
+ # csplit test.txt 300
+/* 从300行处分割成两个文件 */
+
+3.30 diff3命令
+用于比较3个文件的不同,并显示他们的不同地方
+ # diff3 file1 file2 file3
+
+3.31 diffstat命令
+用于统计diff指令的输出结果
+ # diff a.patch
+
+3.32 printf命令
+用于格式化并输出结果到标准输出,非常类似于C语言中的printf函数
+ # printf "%s\t%s\n" "Hello" "world"
+Hello world
+
+3.33 pr命令
+用于将文本文件转换成适合打印的文件,可以将文件分成多页并添加打印标题
+ # pr test.txt > test.txt.print
+
+3.34 od命令
+用于输出文件的八进制,十六进制或其他格式编码的字节,通常用来显示不能直接在终端显示的字符
+ # od -tcx1 test.txt
+ # cat test.txt
+hello world
+
+3.35 rev命令
+用于对文件的文本内容以行为单位进行字符的反序输出
+ # cat test.txt
+hello world
+I love linux!
+ # rev test.txt
+dlrow olleh
+!xunil evol I
+
+

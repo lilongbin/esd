@@ -1,0 +1,262 @@
+数据库常识
+from子句
+where子句
+排序
+
+
+1. DB/DBM
+	oracle	是数据库的一种;
+	DBMS	数据库管理系统;
+	DB		数据库;
+
+	RDBMS	关系型数据库管理系统
+	RDB		关系型数据库;
+			基于二维表的数据库;
+2. 二维表
+	SQL		/'sekl/结构化查询语言 //Struct Query Language
+
+	table
+	表头	//table的第一行
+	行
+	列
+	字段名	//表头中某一个成员
+	字段值
+	一行数据
+
+3. 现在主流的数据库管理系统
+	oracle(甲骨文)	-> oracle9i oracle10g oracle11g目前的市场占有率超过50%;
+	IBM				-> DB2(20%)
+	MIC(微软)		-> sqlserver(10%)
+
+	非商业型数据库
+	SUN			-> mysql(mariadb)
+
+4. SQL语句的分类
+4.1 select语句
+	select //极重点;
+4.2 DDL数据定义语言
+	create	table	//建表
+	drop	table	//删表
+	alter	table	//改表
+4.3 DML数据操作语言
+	insert
+	delete
+	update
+4.4 TCL事务控制语言
+	commit
+	rollback
+	savepoint
+4.5 DCL数据控制语言
+	grant
+	revoke
+5. 操作数据库
+5.1 远程登录服务器
+	使用命令telnet	IP地址(如172.17.3.6/192.168.0.26)
+	或者ssh -p 22 user@IP地址
+	输入用户名和密码登录
+	如openlab/open123
+5.2 使用sqlplus命令连接数据库
+	sqlplus
+	openlab/open123
+	或者sqlplus openlab/open123
+5.3 进入oracle的操作环境
+	SQL>   mysql>
+	SQL> !clear ##跳出,清屏,再跳回;
+	s_emp #oracle公司提供的表,执行summit2.sql可以初始该表;
+	=====================
+	恢复初始化数据库运行环境
+	1.上传环境脚本summit2_drop.sql
+		cd到文件所在目录
+		ftp 172.17.3.6
+		put summit2_drop.sql
+	2.进入sqlplus运行脚本
+		@summit2_drop.sql
+	=====================
+##################
+	SQL>desc	s_emp;
+Name                              Null      Type
+-------------------------------- --------  --------
+ID                                NOT NULL NUMBER(7)
+LAST_NAME   姓                    NOT NULL VARCHAR2(25)
+FIRST_NAME  名                             VARCHAR2(25)
+USERID      用户编号                       VARCHAR2(8)
+START_DATE  入职日期                       DATE
+COMMENTS    备注                           VARCHAR2(255)
+MANAGER_ID  领导者编号                     NUMBER(7)
+TITLE       头衔                           VARCHAR2(25)
+DEPT_ID     部门                           NUMBER(7)
+SALARY      薪水                           NUMBER(11,2)
+COMMISSION_PCT  提成                       NUMBER(4,2)
+##################
+	通过desc(describe的缩写)命令可以得到表的表头中每个字段的名字,反映这个字段能不能NULL(NULL就是不填值)(可选,必填);
+	字段的类型:varchar2(字符串),number(数字类型),date(日期类型);
+
+
+6. select语句
+
+6.1 from子句
+6.1.1 查询表中的一个字段
+	select 字段名 from 表名;
+	//查询s_emp表得到每个人的月薪
+	select salary from s_emp;
+	SELECT SALARY FROM S_EMP;
+	//分号表示一条语句的结束,分号不可省略,关键字不区分大小写,但字段值区分大小写;
+	再执行一次上次的命令输入斜杠(/);
+	//查询s_emp表得到每个员工的编号;
+	select id from s_emp;
+6.1.2 如何查询表中的多个字段
+	//查询s_emp表中每个员工的编号和对应的月薪;
+	select id,salary from s_emp;
+6.1.3 查询一个表中的所有字段对应的数据;
+	select id,first_name ....;//
+	select * from s_emp;//书写简洁,但业务逻辑不清晰,效率低;
+	*号可以代表所有的字段名
+6.1.4 sql语句中的数学运算
+	+ - * / (*号单独出现就是通配符,在表达式中就是乘;除法不再具有取整特性);
+	//求s_emp表中每个人的月薪和年薪
+	select salary,salary*12 from s_emp;
+	select 1000+salary*12 from s_emp;
+	select (1000+salary)*12 from s_emp;
+6.1.5 字段或者表达式的别名
+	select 字段名 别名,表达式 别名 from 表名;
+	select salary sal,salary*12 yearsal from s_emp;
+	select salary "Sal",salary*12 "Year sal" from s_emp;
+	使用双引号可以把别名看成是一个整体,也可以使别名原样显示;
+6.1.6 sql语句中的字符串
+	使用单引号引起来一个字符串
+	''空字符串;
+	' '一个空格;
+	'a' 'hello world'
+6.1.7 oracle中的||字符串拼接符
+	||是字符串拼接符,用来拼接字符串;
+	//把s_emp表中的姓名显示出来
+	select first_name,last_name from s_emp;
+	//把姓名拼接
+	select first_name||last_name from s_emp;
+	//在姓名之间加下划线
+	select first_name||'_'||last_name from s_emp;
+	//在姓名之间拼接一个单引号;
+	第一个单引号代表开始,最后一个代表结束,第二个代表转意;
+	select first_name||''''||last_name from s_emp;
+	//在姓名之间拼接两个单引号;
+	select first_name||''''''||last_name from s_emp;
+	select first_name||''''||''''||last_name from s_emp;
+6.1.8 非常重要的NULL值处理
+	id	name	age
+	1			199 //name的值为空值(NULL)
+	换一种年薪的计算方式
+	salary*12 + salary*12*commission_pct/100
+	select commission_pct from s_emp;
+	select id,salary,commission_pct,salary*12*(1+commission_pct/100) "year sal" from s_emp;
+	commission_pct代表提成,有些成员的提成为NULL值;
+	任何值和NULL值做运算结果都是NULL;
+	nvl(par1,par2)函数叫NUULL值处理函数,要求par1和par2的类型必须保持一致;当par1为NULL时则返回par2的值,当par1不为NULL,则返回par1本身;
+	select id,salary,commission_pct,salary*12*(1+nvl(commission_pct,0)/100) "year sal" from s_emp;
+	NULL的处理原则是尽早处理,否则会造成计算结果的错误;
+	//列出每个员工的id salary manager_id,如果manager_id是NULL,则显示成-1;
+	select id,salary,nvl(manager_id,-1) from s_emp;
+6.1.9 数据的排重显示distinct
+	select salary from s_emp;
+	select distinct salary from s_emp;
+	//显示id和salary联合排重(两个值都一样才排重);
+	select distinct id,salary from s_emp;
+	select title,salary from s_emp;
+	select distinct title,salary from s_emp;
+		
+6.2.where子句
+6.2.1 where子句的本质
+	限制表中数据的返回,满足where条件的数据被选中,不符合where条件的数据被过滤掉;
+6.2.2 如何限制number类型的数据
+	salary > 1000
+	salary < 1000
+	salary = 1000
+	//查询每个员工的id first_name salary要求salary=1000;
+	select id,first_name,salary from s_emp where salary=1000;
+6.2.3 字符串类型的条件
+	//查询first_name是Carmen的id,first_name,salary
+	select id,first_name,salary from s_emp where first_name='Carmen';
+	select id,first_name,salary from s_emp where first_name='carmen';//不可以
+	SQL语句不区分大小写,但字符串的值要严格区分大小写,并且要注意加上单引号;
+	SELECT id,first_name,salary FROM s_emp WHERE first_name='Carmen';
+6.2.4 常见的条件
+	where 字段> < >= <= = !=
+6.2.5 sql提供的条件运算符
+6.2.5.1 表达一个闭区间[a,b]
+	if(a<=salary&&salary<=b){}//在C语言中,语法上没问题;
+	where 字段 between a and b;//sql语句的写法;
+	where 字段 between b and a;//语法上没问题,但逻辑错误;
+	//求工资在[1500,2500]中的员工的id,first_name,salary;
+	select id,first_name,salary from s_emp where salary between 1500 and 2500;
+6.2.5.2 表达列表内任意一个值
+	where 字段 in(值1,值2,值3...);
+	//找出部门编号是31或32或50的员工的id,first_name,dept_id
+	select id,first_name,dept_id from s_emp where dept_id in(31,32,50);
+	列表中的数据顺序如果交换且数据出现概率相同,基本对效率和结果没有影响;
+	但是如果有些数据出现概率高,就应该把概率高的数据放前边;
+	因此要了解公司业务数据,以免影响效率;
+6.2.5.3 NULL值的判断
+	where 字段 is NULL;
+	//找出提成等于10的员工列出id,first_name,commission_pct
+	select id,first_name,commission_pct from s_emp where commission_pct=10;
+	//找出提成不等于10的员工列出id,first_name,commission_pct
+	select id,first_name,commission_pct from s_emp where commission_pct!=10;//不能找出所有的
+	select id,first_name,commission_pct from s_emp where commission_pct is NULL;
+	//找出员工的manager_id是NULL的员工的id,first_name,manager_id
+	select id,first_name,manager_id from s_emp where manager_id is NULL;
+	select id,first_name,nvl(manager_id,-1) from s_emp where manager_id is -1;//不可以
+6.2.5.4 模糊查询关键字like
+	//类似百度搜索
+	where 字段 like '通配串'
+	数据库中的通配符
+	%	0-n个任意字符
+	_	1个任意字符
+	where 字段 like '%龙%' //查出带龙的字符
+	//查询s_emp列出first_name中带a字符的员工id,first_name
+	select id,first_name from s_emp where first_name like '%a%';
+	//找出first_name的第二个字符是a的员工id,first_name
+	select id,first_name from s_emp where first_name like '_a%';
+desc user_tables;
+	table_name
+	select table_name from user_tables;
+	//找出所有以S_开头的表名
+	select table_name from user_tables where table_name like 'S\_%' escape '\';//转意\后面的字符;
+	//找出所有以S__开头的表名
+	select table_name from user_tables where table_name like 'S\_\_%' escape '\';//转意\后面的字符;
+	//查询以S_开头而不以S__开头的表名
+	select table_name from user_tables where table_name like 'S\_%' escape '\' and table_name not like 'S\_\_%' escape '\';
+6.2.6 逻辑条件连接符
+	and or not
+	//找出工资在(1500,2500)开区间(不能用between)中的id,first_name,salary
+	where salary>1500 and salary<2500;
+	//找出部门号是31或者是32或者是50的id,dept_id
+	where id=31 or id=32 or id = 50;
+	not对立面
+	>                 <=
+	<                 >=
+	=                 !=或 ^=或 <>
+	between a and b   not between a and b
+	in                not in(注意NULL)
+	like              not like
+	is NULL           is not NULL
+	//找出所有提成不是NULL的员工的id,salary,commission_pct
+	select id,salary,commission_pct from s_emp where commission_pct is not NULL;
+6.3 数据的排序
+6.3.1 按照一定的标准和排序方式对数据排序
+6.3.2 order by 排序标准 的排序方式
+	排序方式:
+		升序:asc(ascend缩写),默认的排序方式,自然顺序,字典顺序;
+		降序:desc(descend的缩写);
+6.3.3 order by出现在sql语句的最后;
+	select id,salary from s_emp;
+	//按照工资排序,显示id,salary
+	select id,salary from s_emp where 1=1 order by salary;
+	//按照工资降序排序,显示id,salary
+	select id,salary from s_emp where 1=1 order by salary desc;
+6.3.4 多字段排序
+    当第一字段的值相同时,可以启用第二排序字段;
+    //按照工资排序,如果工资相同按id降序排列,显示id,salary
+    select id,salary from s_emp where 1=1 order by salary desc,id
+6.3.5 NULL值在排序中作为最大值处理
+    select id,manager_id from s_emp order by manager_id;
+    select id,manager_id from s_emp order by manager_id desc;	
+

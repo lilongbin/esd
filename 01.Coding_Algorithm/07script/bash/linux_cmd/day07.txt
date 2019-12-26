@@ -1,0 +1,54 @@
+7.01 lp命令
+用于向打印机输出打印任务
+ # lp -d printer 100 /etc/passwd
+/* -d指定将打印任务发送到哪个打印机上 */
+
+7.02 lpr命令
+用于将指定的文件发送给打印机打印
+ # lpr /etc/shadow	//如果不指定打印机,将使用默认的打印机
+ # lpq	//显示打印队列
+
+7.03 lprm命令
+用于删除打印队列中指定的打印任务
+ # lpq
+ # lprm 4	//删除指定的打印任务
+
+7.04 lpc命令
+基于命令行的打印机控制
+ # lpc
+lpc>help
+lpc>status
+
+7.05 lpq命令
+用于显示当前打印机的打印任务队列列表
+
+7.06 lpstat命令
+用于显示当前打印机中的打印任务状态
+
+7.07 accept命令
+用于接收发往指定打印机的打印任务
+ # accept printer100
+
+7.08 reject命令
+用于拒绝发往指定打印机的打印任务
+ # reject printer100
+
+7.09 cancel命令
+用于取消打印队列中的打印作业
+ # lpq
+ # cancel 2
+ # lpq
+
+7.10 cupsdisable命令
+用于停止指定的打印机
+ # cupsdisable printer100
+
+7.11 cupsenable命令
+用于启动指定的打印机
+ # cupsenable printer100
+
+7.12 lpadmin命令
+用于配置打印机
+ # lpadmin -d printer100 //将系统的默认打印机设置为printer100
+
+

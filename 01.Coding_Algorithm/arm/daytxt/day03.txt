@@ -1,0 +1,179 @@
+关于LED驱动:
+1/LED灯给出高电平时,还是低电平亮
+   通过看原理图(底板),我们
+   板子是给出高电平LED亮
+   给出低电平LED灭;
+2/根据底板原理图我们知道是使用CPU的
+   (S5PV210)GPC1 3 管脚控制LED的
+   亮和灭;
+   我们看Tarena标(板子后面)
+   如果板子后面写的融汇,GPC0 3
+3/我们需要看S5PV210编程手册,得到
+   如何控制GPC1 3 或者GPC0 3管脚输出
+   高电平和低电平;  
+   
+   把地址单元 0xE020060
+   [3:0]清零;
+    GPC0 0 管脚做成输入口
+   
+    unsigned int *ptr;
+    ptr = (unsigned int *)0xe0200060;
+    //*ptr &= 0xFFFFFFF0;
+    //*ptr = *ptr & 0xFFFFFFF0;
+    *ptr &= ~0xF;
+    
+    //GPC0 0 管脚做成输出口
+    注意:操作这种寄存器,保证
+          只修改你需要修改的位,
+          而不能修改其他位!!!!!
+    [3:0] BIT0 =1 BIT1 BIT2 BIT3  = 0
+    unsigned int *ptr;
+    ptr = (unsigned int *)0xe0200060;
+    *ptr &= ~0xF;
+     //就把GPC0 0 管脚作为输入口
+    *ptr |= 1;
+     //就把GPC0 0 管脚作为输出口
+    unsigned int tmp
+    tmp = *ptr;
+    tmp &= ~0xF;
+    tmp |= 1;
+    *ptr = tmp;
+    
+    *ptr = (*ptr & ~0xF) | 1;
+  
+    上拉和下拉啥意思?
+      上拉电阻接高
+      下拉电阻接地
+      保证没有信号的时候,状态是确定的;
+
+S5PV210处理器,控制GPC0 3 或者GPC1 3管脚
+输出高或者低电平,要经过哪几个步骤?
+   1/配置GPC0 3或者GPC1 3管脚功能
+      作为输出口
+      GPC0 3
+      GPC0CON  0xE0200060
+        [15:12]位为0001(二进制)
+      GPC1 3
+      GPC1CON  0xE0200080
+        [15:12]位为0001(二进制)
+   2/禁止GPC0 3或者GPC1 3 管脚的
+      内部上/下拉电阻
+      GPC0 3管脚
+      GPC0PUD  0xE0200068
+        [7:6]  0
+ 
+      GPC1 3管脚
+      GPC1PUD  0xE0200088
+        [7:6]  0 
+   3/通过控制数据寄存器的相应位
+      来控制对应的管脚输出高/低电平
+      GPC0 3 管脚
+      GPC0DAT   0xE0200064
+         [3]   = 1   管脚输出高电平
+         [3]   = 0   管脚输出低电平  
+
+      GPC1 3 管脚
+      GPC1DAT   0xE0200084
+         [3]   = 1   管脚输出高电平
+         [3]   = 0   管脚输出低电平  
+
+写完C程序,编译成裸板程序;
+1/用arm-linux-gcc编译成 .o
+  arm-linux-gcc -march=armv5te -nostdlib
+     -c -o led.o led.c
+
+   -march指定生成指令的架构(armv5te)
+   -nostdlib 是指定不使用标准库
+
+2/把.o连接成可执行文件
+  用arm-linux-ld
+   arm-linux-ld -nostartfiles -nostdlib
+         -Ttext=0x20008000 -e led_main
+         -o led led.o
+   -nostartfiles 不使用启动文件
+   -Ttext=??? 指定代码段的起始位置;
+   -e 程序入口点,这我这种情况下,没有作用
+                 使用调试软件时,可能有用;
+
+   file led 显示ELF格式可执行文件 ARM架构的
+   
+   为把led转换成能在裸板运行,我们需要使用
+   arm-linux-objcopy 程序转换
+   arm-linux-objcopy -O binary led led.bin
+
+   led.bin就可以在裸板上运行程序
+就可以把led.bin下载到开发板的0x20008000
+地址运行(使用uboot的go命令)
+   loadb 0x20008000
+
+
+   send  led.bin
+   
+   在tarena #命令下输入
+   go 0x20008000
+   
+任务:
+    1/把代码整理,并放到板子上运行
+    2/你要修改代码,控制LED2的闪存;
+    3/思考一下,我们写代码能不能改进
+    
+    3:30 开始讲新内容   
+
+    串口寄存器:
+    ULCON0 = 3;
+    UCON0 = 5;
+    UFCON0 = 0;
+    UMCON0 = 0;
+    UBRDIV0 = 35
+    UDIVSLOT0 = 0x0080
+
+    UTRSTAT0 只读,用来查询状态
+
+    UTXH0   串口0的发送寄存器
+      注意:当向UTXH0写数据的时候,
+            需要先通过状态寄存器判断
+            UTXH0是不是空的,如果空
+            才能向UTXH0写,如果不空
+            不能写;
+    URXH0   串口0的接收寄存器
+             要读取URXH0先通过状态寄存器
+             判断URXH0中是否有数据,有才
+             读,否则不读;
+    UBRDIV0
+    UDIVSLOT0
+      是用来设置串口0的波特率的;
+    
+UBRDIVn+(UDIVSLOTn中1的个数)/16
+=(PCLK / (bps x 16)) - 1 
+or
+=(SCLK_UART/(bps x 16)) - 1
+UBRDIVn+(UDIVSLOTn中1的个数)/16 = 
+40000000 / 115200 / 16 - 1
+=21.7 -1
+=20.7
+UBRDIV0+(UDIVSLOT0中1的个数)/16 = 20.7
+
+UBRDIV0 = 20
+
+UDIVSLOT0中1的个数 = 0.7*16=11.2=11
+UDIVSLOT0 = 0xDDD5;
+
+PCLK=66500000
+bps=115200
+
+UBRDIV0 = 35
+UDIVSLOT0 = 0x0080
+
+UBRDIV0+(UDIVSLOT0中1的个数)/16=
+66500000/115200/16 - 1
+=36.078559027777777777777777777778 - 1
+=35.078559027777777777777777777778
+1.2569444444444444444444444444444
+1
+
+
+
+
+
+
+

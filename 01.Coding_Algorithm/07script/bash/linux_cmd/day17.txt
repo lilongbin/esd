@@ -1,0 +1,142 @@
+17.01 rpm命令
+rpm软件包的管理工具,redhat package management
+ # rpm -ivh 123.rpm  
+ # rpm -q vim  查询
+ # rpm -qf /sbin/fdisk 查询某个软件从属于哪个软件包文件
+ # rpm -e zsh  卸载软件包
+ # rpm -qpi zsh 查询zsh软件的详细信息
+ # rpm -qpl zsh
+
+17.02 yum命令
+可以看作是rpm的智能化工具,自动解决依赖关系
+ # yum install zsh 安装软件
+ # yum update php 更新软件
+ # yum update 更新所有可以更新的软件
+ # yum upgrade 升级软件
+ # yum remove zsh 卸载软件
+
+
+17.03 chkconfig命令
+redhat兼容的Linux系统的服务管理工具,可以设置管理不同的服务在不同的的运行等级的状态
+ # chkconfig --list
+ # chkconfig --list xinetd
+ # chkconfig --level 3 xinetd off 设置在运行等级3时xinetd默认关闭
+
+17.04 ntsysv命令
+用于配置不同运行等级的启动或关闭状态,会启动文本操作界面
+ # ntsysv 设置当前运行等级服务状态
+ # ntsysv --level 1 设置某个非当前运行等级的服务状态
+
+17.05 apt-get命令
+是debian的软件包管理工具
+ # apt-get install rcconf
+ # apt-get remove rcconf
+ # apt-get update  更新本机的软件包索引列表
+ # apt-get upgrade 升级软件包
+
+17.06 aptitude命令
+是debian中基于文本界面的软件包管理方式
+ # aptitude show rcconf
+ # aptitude install rcconf
+ # aptitude search rcconf
+
+17.07 apt-key命令
+是debian软件包key管理工具
+ # apt-key list
+
+17.08 apt-sortpkgs命令
+是debian中用于排序软件包索引文件
+ # cp /mnt/cdrom0/disks/lenny/main/binary-i386/Packages.gz ./
+ # gzip -d Packages.gz
+ # apt-sortpkgs Packages
+
+17.09 dpkg命令
+是debian中软件包管理工具
+ # dpkg -c rcconf_1.21_all.deb
+ # dpkg -i rcconf_1.21_all.deb
+ # dpkg -r rcconf
+
+17.10 dpkg-deb命令
+是debian中软件包管理工具打包和解包及软件包信息
+ # dpkg-deb -I rcconf_1.21_all.deb
+
+
+17.11 dpkg-divert命令
+是debian中将引起冲突的软件安装至转移目录,而非默认目录
+ # dpkg-divert --add /root/Packages
+
+17.12 dpkg-preconfigure命令
+是debain中在安装软件之前完成预配置功能
+ # dpkg-preconfigure rcconf_1.21_all.deb
+
+17.13 dpkg-query命令
+是debain中已安装软件包查询工具
+ # dpgk-query -l tcsh
+ # dpkg-query -l query
+ # dpkg-query -L
+
+17.14 dpkg-reconfigure命令
+是debian中重新配置已经安装软件的命令,如果软件不需要配置则没有任何输出信息
+ # dpkg-reconfigure bash
+ # dpkg-reconfigure ntlmaps
+
+17.15 dpkg-split命令
+是debian中用于将软件包分割或将分割的软件包合并
+ # dpkg-split -s cpp-4.3.deb
+
+17.16 dpkg-statoverride命令
+是debian中管理软件包的状态改写的实用工具
+ # dpkg-statoverride --list
+
+17.17 dpkg-trigger命令
+是debian中软件包触发器,只能用在维护的脚本中
+ # dpkg-trigger nowai 会提示必须从维护的脚本中调用
+
+17.18 patch命令
+经常被用来为源代码文件打补丁
+ # ls
+linux-2.6.0.tar.bz2 patch-2.6.1.bz2
+ # tar -jxvf linux-2.6.0.tar.bz2
+ # bunzip2 patch-2.6.1.bz2
+ # cd linux-2.6.0
+ # cp ../patch-2.6.1 ./
+ # patch -p1 < patch-2.6.1
+
+17.19 rcconf命令
+是debian中运行等级服务图形配置工具
+ # rcconf
+
+17.20 rpm2cpio命令
+用于将指定的rpm软件包转换成cpio格式的文件
+ # rpm2cpio zsh-4.2.rpm > zsh.cpio
+ # file zsh.cpio
+
+17.21 rpmbuild命令
+被用于创建二进制的rpm软件包和源码软件包
+ # ls zsh-4.2.el5.src.rpm
+ # rpm -ivh zsh-4.2.el5.src.rpm
+ # rpmbuild -ba /usr/src/redhat/SPECS/zsh.spec
+ # ls /usr/src/redhat/RPMS/i386/zsh-*
+
+17.22 rpmdb命令
+用于初始化和重建rpm数据库
+ # rpmdb --rebuilddb 重建数据库
+ # rpmdb --initdb 初始化数据
+
+17.23 rpmquery命令
+rpm软件包的查询工具
+ # rpmquery -q bash 查询是否已经安装
+ # rpmquery -qc bash 查询软件的配置文件
+ # rpmquery -qi bash 
+
+17.24 rpmsign命令
+rpm软件包的签名管理工具
+ # rpmsign --checksig zsh-4.2.el5.i386.rpm
+ # rpmsign --addsign zsh-4.2.el5.i386.rpm 
+ # rpmsign --delsign zsh-4.2.el5.i386.rpm 
+ # rpmsign --resign zsh-4.2.el5.i386.rpm 
+
+17.25 rpmverify命令
+用于验证安装的软件包的正确性
+ # rpmverify -V bash
+

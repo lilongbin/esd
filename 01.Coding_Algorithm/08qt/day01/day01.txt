@@ -1,0 +1,103 @@
+
+
+
+
+
+一/qt
+	一个基于C++语言,专注于图形界面的其他功能也很强的,一个跨平台的功能很强的图形框架(软件半成品);
+二/qt的发展
+	2005年 qt4.0
+	2008年 nokia
+	2009年 开源
+	qt.project.org
+三/qt的编程环境
+	qt的开发工具
+		$qmake -version //查看版本
+		assistant //帮助文档
+		designer //设计师,所见即所得的界面开发工具,***.ui
+		uic 	//界面转换工具,把界面转换成.h文件
+		qmake -project //可以把项目的源文件组织成项目描述文件 ***.pro
+		qmake  //根据项目描述文件,自动生成Makefile
+		make	//根据makefile生成目标
+		$which qmake
+		/usr/lib/qt-3.3/bin/qmake
+		qcreator //集成了上面所有工具的功能
+
+		qt的头文件
+			它提供了两套头文件,一个带.h的一个不带;
+			#include <QApplication>
+			一个类提供一个头文件
+			按照功能划分了模块
+		qt的库文件
+			对头文件的分模块实现
+四/第一个qt程序
+	注意:1.导入相应的类
+		#include <QApplication>//qt应用程序类
+		#include <QLable>//标签类
+	注意:2.Qt要求一个程序对应一个项目
+	$qmake -project
+	$qmake
+	$make
+	/usr/local/Trolltech/Qt-4.8.4/
+五/如何使用文档
+	5.1一个类继承了哪个类,以及它的子类
+	5.2类的成员变量
+	5.3类的函数
+		构造函数
+		成员函数
+	5.4重新实现的父类的函数
+	5.5信号和槽(函数)//Qt的核心
+		public slots://槽函数,一个成员函数,具备连接功能
+		void close();
+		public :signals://信号函数
+		void clicked();
+	5.6静态函数
+		用来构建对象,完成不用对象就能完成的功能;
+	5.7保护函数
+		一般是事件处理函数
+	5.8元对象(宏)
+		Q_OBJECT
+		SIGNAL
+		SLOT
+	5.9类的详细说明
+		详见互联网
+六/中文的显示
+	QTextCodec 文本编码类
+	//查文档构建 QTextCodec对象
+	使用静态函数创建文本编码对象
+	QTextCodec *coder = QTextCodec::codecForName("编码方式");
+	常见的中文编码方式:utf-8,gbk, gb2312
+	
+	coder->toUnicode("中文字符串");
+七/对象的交互	(信号和槽机制)
+	/*连接两个不相关的对象*/
+	bool connect(const QObject* sender,
+				const char* signal,/*函数*/
+				const QObject* receiver,
+				const char* method);
+	sender 信号的发送者指针
+	signal 发出的信号	SIGNAL(tests()/*函数名*/)//宏
+	receiver 信号的接收者
+	method 信号的处理函数,一般是槽函数	SLOT(tests())
+	按钮对象	信号函数,代表点击
+	标签对象	槽函数,代表关闭
+八/父窗口
+	如果一个窗体没有父窗口指针,则这个窗体是一个独立的窗体;
+	如果一个窗体有父窗口指针,则这个窗体停靠在父窗口上;
+	父窗口的类型是QWidget类型或者子类型QMainWindow/QDialog
+	
+	改变组件的大小resize(x,y);
+	改变组件的位置move(x,y);
+	父窗口显示之后,子窗体不用再显示;
+九/练习
+	做一个父窗口------->QWidget
+	组件:QSlider 滑块类
+		QSpinBox 微调框
+		
+	QSlider的信号函数valueChange(int value)
+	QSpinBox的槽函数setValue(int value)
+	当连接信号和槽函数时,如果信号和槽中有参数,则连接时能且只能出现参数的类型不能出现类名;
+	
+	作业:
+	制作一个QQ登录窗口,只有取消功能
+

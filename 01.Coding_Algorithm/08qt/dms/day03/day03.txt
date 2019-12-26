@@ -1,0 +1,48 @@
+任务调度
+	crontab
+	由系统内核维护的,定时精度比较高
+
+crontab -e
+编辑定时任务
+* * * * * 执行任务的命令
+min hour mday month weekday
+0-59 0-24 1-31 1-12 0-6
+
+* 0-11 * * * 任务
+15 * * * * 任务
+15 * * * 1-5 任务
+0,30 * * * 1-5 任务
+
+
+crontab -r
+删除所有的定时任务
+crontab -l
+查看定时任务
+crontab -e
+编辑定时任务
+
+crontab默认开始的目录是当前用户的主目录,所以程序中建议使用绝对路径;可以使用配置文件避免掉移植问题;
+
+makefile编辑格式
+CC=g++
+dmsclient:logreader.o logsender.o testdmsclient.o
+	$(CC) $^ -o $@
+logreader.o:logreader.cpp
+	$(CC) -c logreader.cpp
+logsender.o:logsender.cpp
+	$(CC) -c logsender.cpp
+testdmsclient.o:testdmsclient.cpp
+	$(CC) -c testdmsclient.cpp
+clean:
+	rm -rf dmsclient *.o
+
+QT中的线程
+pthread_create();
+class MyThread:public QThread{
+	public:
+};
+
+加密算法
+
+
+

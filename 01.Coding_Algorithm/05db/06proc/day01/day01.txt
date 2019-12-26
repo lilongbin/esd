@@ -1,0 +1,249 @@
+宿主变量
+指示变量
+数组变量
+sqlca通信区/oraca通信区
+proc中嵌入sql/plsql语句
+
+如何在ubuntu上安装gftp
+1.下载安装文件
+2.找到安装文件,安装
+	sudo dpkg -i gftp*
+3.gftp
+	主机名	用户名	密码
+
+set serveroutput on
+set timing on
+
+1 什么是pro程序
+	通过在过程化编程语言中嵌入sql语句开发出的应用程序;
+	//面向对象是对对面向过程的扩展
+	在通用编程语言中使用的SQL称为嵌入式SQL
+	SQL语言像寄生虫一样依赖于宿主语言;
+	
+2 为什么要使用proc/proc++
+	要使用c或者c++这种高效的语言成为访问oracle的工具;
+	proc的一个实例
+#include<stdio.h>
+EXEC SQL BEGIN DECLARE SECTION;
+	char username[20];
+	char password[20];
+	char last_name[25];
+EXEC SQL END DECLARE SECTION;
+EXEC SQL INCLUDE sqlca;
+void sqlerror();
+main() {
+	//连接
+	EXEC SQL WHENEVER SQLERROR DO sqlerror();
+	strcpy(username,"tarena");
+	strcpy(password,"tarena");
+	EXEC SQL CONNECT:username IDENTIFIED BY:password;
+	//SQL操作语句
+	EXEC SQL select LAST_NAME into :last_name from S_EMP where id=2;
+   printf("\nID=2,last_name=%s\n" , last_name);
+}
+void sqlerror() {
+	EXEC SQL WHENEVER SQLERROR CONTINUE;
+	printf("\n---- oracle error detected:\n");
+	printf("%.70s\n", sqlca.sqlerrm.sqlerrmc);	
+	EXEC SQL ROLLBACK WORK RELEASE;
+	exit(1);
+}
+
+3 一个proc程序中涉及到的内容
+	1.C语言的
+	引入c相关的头文件
+		#include <****.h>
+	定义变量
+	定义函数
+	2.sql独有的
+	连接数据库
+		exec sql connection:user_name passwd;
+	查询
+		select first_name into var_name from s_emp where id = 2;
+		exec sql select first_name into var_name from s_emp where id = 2;
+	断开数据库连接
+		exec sql commit work release;
+		exec sql rollback work release;
+4 如何写一个C程序
+	1.编写源代码 vi *.c
+	2.编译gcc -c *.c
+	3.连接gcc **.c
+	4.执行./a.out
+5 写一个proc程序的步骤
+	1.编写源代码vi *.pc
+	2.预编译proc *.pc生成.c文件
+	3.编译连接gcc *.c -lclntsh
+		windows下是gcc *.c -loraclesqll0 
+	4.执行./a.out
+6 宿主变量
+6.1特点
+	既能在sql语句中使用,又能在宿主语言中使用的变量;
+6.2宿主变量的类型
+	char
+	char var[n] 定长字符串//不会有乱码
+	short
+	int
+	long
+	float
+	double
+	varchar var[n] 变长字符串//没有被填充的部分可能会有垃圾数据
+6.3定长字符串和变成字符串
+	定长字符串使用char var[n]
+	变长字符串使用varchar var[n]
+	在sql语句中和定长字符串变量的使用方式完全相同;但宿主语言中访问字符串的值时必须使用  变量名.arr 访问;变量名.len代表字符串的长度;
+	清空垃圾的方式:
+		varchar var[n] = {0};
+		或在填充数据之后输出之前var.arr[var.len]='\0';
+
+	可以使用proc的预编译选项
+	proc char_map = charz /* 默认方式,即定长方式,空格补齐并加\0 */
+				= charf|varchar2/* 定长空格补齐,不以空格结尾 */
+				= string/* 变长处理,并且以\0结尾 */
+	find / -name stddef.h 2>/dev/null
+	find 路径 选项(文件名)  文件名 错误输出重定向
+	proc 1first.pc sys_include ='/usr/include/linux/stddef.h' 
+6.4宿主变量的使用注意事项
+	宿主变量强烈建议放入声明区,可以屏蔽系统的环境差异,使程序更通用
+	exec sql begin declare section;
+		/* 宿主变量定义 */
+	exec sql end  declare section;
+	宿主变量可以是指针类型,但使用前必须分配内存空间,但对字符串的支持不好,边界无法确定;
+	DDL中不能使用宿主变量
+		char table_name[30] = "s_emp";
+		exec sql drop table table_name;//实际删除table_name表而不是s_emp
+	sql语句中使用宿主变量时变量前要加冒号:
+		int id = 2;
+		exec sql select first_name into 
+				:var_name from s_emp where id = :id;
+	写一个proc程序,把id=2的first_name和salary分别放入两个变量中,要求把first_name使用变长字符的字符;
+7 指示变量
+7.1作用
+	当数据库中的字段值赋值给宿主变量时,赋值的状态可以通过指示变量得到;
+	==0 		赋值正常
+	==-1 	数据库中的字段值是NULL值;
+	>1 		截断赋值,尽量避免
+7.2语法
+	必须是short类型
+	short indname = 0;
+	exec sql select first_name into 
+		:var_name:indname from s_emp where id = 1;			
+	exec sql select first_name into 
+		:var_name indicator :indname from s_emp where id = 1;			
+8 数组变量
+8.1数组变量的限制
+	proc只支持一维数组,字符除外
+		char data[100][50];
+	不支持数组指针
+	最大元素个数32767
+	在select语句中只能给出数组的名字,不能给数组的下标;
+8.2把s_emp表中所有的first_name和manager_id分别放入两个数组中,并且指示这些数据的赋值状态;
+9 sqlca通信区
+		sqlca.sqlerrd[2]得到sql语句影响的行数
+	sqlca通信区本质上是一个结构体,没执行一次sql就会把通信区中的字段更新一遍;
+	要得到sql语句的执行状态要立即获得,否则会被下一次sql覆盖掉;
+		sqlca.sqlcode用于保存最近一次运行sql指令的状态
+			==0		正常
+			>0 		有一个异常产生
+			<0		系统错误,可能来自网络,或数据库本身
+		sqlca.sqlerrm.sqlerrmc 		得到sql出错信息的内容
+10 oraca通信区
+	对sqlca通信区的信息补充;
+	可以通过oraca得到执行的sql的文本
+10.1包含oraca
+	exec sql include sqlca;
+	exec sql include oraca;
+10.2打开oraca
+	exec oracle option(oraca=yes);
+10.3设置sql的保存标志oraca oracle sql txt flags
+	oraca.orastxtf = 0;// 默认的不保存sql
+				=1	// 只有当sql语句出错时保存;
+				=2	// 当sql语句出错或者出现警告时保存;
+				=3	// 都保存;常用1和3;
+10.4得到sql文本内容
+	oraca.orastxt.orastxtc
+11 proc中如何嵌入sql语句
+11.1嵌入select语句
+	语句前加上exec sql并且结合into语句;
+11.2嵌入DML语句
+		嵌入TCL语句
+		嵌入DDL语句
+	只要在语句前加上exec sql
+	但ddl中不能有宿主变量
+12 proc中如何嵌入plsql
+	格式:
+	exec sql execute
+		begin
+			/* 这里相当于匿名块 */
+		end;
+	end-exec;
+12.1建立一个存储过程准备调用
+	create or replace procedure getsum100(var_x in number,var_y in out number)
+	is
+	begin
+		var_y:=var_x+var_y;
+	end;
+	/
+12.2写一个proc程序调用getsum100
+	#include <stdio.h>
+	exec sql include sqlca;
+	int main(){
+		exec sql begin declare section;
+			char userpasswd[30]="csd1309/csd1309";
+			int var_x=100;
+			int var_y=200;
+		exec sql end declare section;
+		exec sql connect:userpasswd;
+		exec sql execute
+				begin
+					getsum100(:var_x,:var_y);
+				end;
+		end-exec;
+		printf("var_y = %d\n",var_y);
+		exec sql commit work release;
+		return 0;
+	}
+
+	预编译
+		proc 10callprocedure.pc sqlcheck=semantics userid=csd1309/csd1309
+	userid是在预编译时确定存储过程是否存在和合法;
+	gcc 10callprocedure.c -lclntsh
+12.3作业
+	写一个函数,传入两个整数参数
+	返回参数的最大值,使用proc程序调用验证函数的功能;
+	1建立一个存储过程准备调用
+		create or replace function getmax100(var_x in number,var_y in number)
+		return number 	is
+		begin
+			if var_x < var_y then
+				return var_y;
+			elsif var_x > var_y then
+				return var_x;
+		end;
+		/
+	2写一个proc程序调用getsum100
+		#include <stdio.h>
+		exec sql include sqlca;
+		int main(){
+			exec sql begin declare section;
+				char userpasswd[30]="csd1309/csd1309";
+				int var_x=100;
+				int var_y=200;
+				int var_res = 0;
+			exec sql end declare section;
+			exec sql connect:userpasswd;
+			exec sql execute
+				begin
+					:var_res:=getmax100(:var_x,:var_y);
+				end;
+			end-exec;
+			printf("var_res = %d\n",var_res);
+			exec sql commit work release;
+			return 0;
+		}
+
+	预编译
+		proc 11callfunction.pc sqlcheck=semantics userid=csd1309/csd1309
+	userid是在预编译时确定存储过程是否存在和合法;
+	gcc 11callfunction.c -lclntsh
+			
+

@@ -1,0 +1,165 @@
+8.01 man命令
+在Linux中获取指令的帮助信息
+ # man passwd
+使用空格或Page Down翻页,也可使用上下键滚屏
+在结果中可以使用搜索,n下一个,N上一个
+q退出
+ # man 3 printf
+The standard sections of the manual include:
+	1  User Commands
+	2  System Calls
+	3  C Library Functions
+	4  Devices and Special Files
+	5  File Formats and Conventions
+	6  Games et. Al.
+	7  Miscellanea
+	8  System Administration tools and Deamons
+
+8.02 info命令
+帮助类命令,可以查看Linux为我们提供的帮助文档
+ # info emacs buffers -o out.txt	//将emacs的buffers的帮助文档输出保存到out.txt
+
+8.03 cksum命令
+可以利用循环冗余校验文件
+ # cksum /etc/passwd
+
+
+8.04 bc命令
+是一种交互式的计算器
+ # bc
+然后就进入bc运行界面,可以输入一些基本的运算表达式
+
+8.05 cal命令
+用于显示日历信息
+ # cal	当前月历
+ # cal -3 显示最近3个月的月历
+ # cal 9 1990 显示1990年3月的月历
+
+8.06 sum命令
+简单的计算校验和
+ # sum /etc/passwd
+
+
+8.07 md5sum命令
+使用md5算法对文件计算校验和
+ #  md5sum /etc/shadow
+可以检验文件是否在网络传输中发生错误或被篡改
+
+8.08 hostid命令
+用于打印当前主机的十六进制的数字标识
+ # hostid
+
+
+8.09 date命令
+用于显示或设置当前系统日期和时间
+ # date
+ # date "+%Y-%m-%d %T" 指定时间显示格式
+ # date -r file	显示文件的最后修改时间
+ # date -s "2014-10-15 20:00:00"
+
+
+8.10 dircolors
+用于指定ls输出的不同文件类型文件的颜色显示
+ #  dircolors -b
+ #  echo $LS_COLORS 显示当前环境的设置
+
+
+8.11 gpm命令
+是Linux虚拟控制台下的鼠标辅助工具,可以完成快速的复制和粘贴
+ # gpm
+ # ps aux | grep gpm
+
+8.12 sleep命令
+用于指定shell睡眠的时间,通常用在shell脚本中
+ #  sleep 2s
+ #  sleep 2h
+
+
+8.13 whatis命令
+用于从whatis数据库中打印指令的简短信息
+ #  whatis fdisk
+
+
+8.14 who命令
+可以打印登录到当前系统中的所有用户
+ #  who
+ #  who -H 可以给每一列加上头信息
+
+
+8.15 whoami命令
+用于当前正在使用shell的用户
+ # whoami
+
+
+8.16 wall命令
+用于向登录当前系统的其他所有用户发送广播信息,需要root权限
+ #  wall "hello everyone"
+
+
+8.17 write命令
+用于向指定的用户终端发送信息
+ #  write user2
+Ctrl+d结束输入
+
+8.18 mesg命令
+用于控制终端是否可写,一般需要和write命令组合测试
+[test2] #  write test1
+[test1] #  mesg -n 拒绝其他普通用户的信息
+
+8.19 talk命令
+是linux中的聊天客户端,需要首先启动talkd服务进程
+在配置文件/etc/xinet.d/ntalk
+ #  service xinetd restart
+ #  talk user [ttyname]
+ #  talk user2 # localhost tty2
+
+
+8.20 login命令
+系统的登录命令
+
+
+8.21 mtools命令
+是dos系统的兼容的工具集
+
+8.22 stty命令
+用于修改命令行终端中的相关设置
+如Ctrl+c中断执行
+ #  stty -a 显示系统定义的组合键
+
+
+8.23 tee命令
+数据分离命令,除正常输出外另存一份到文件
+ #  ps -ef | grep root |tee filename
+
+
+8.24 users命令
+用于显示登录到当前系统的所有用户的列表
+ #  users
+
+8.25 clear命令
+linux系统的清屏命令,或按Ctrl+l
+ #  clear
+
+
+8.26 consoletype命令
+用于打印已经连接的终端类型
+ #  consoletype
+pty是伪终端
+ #  echo $?
+打印返回值
+ 0	虚拟终端
+ 1	串行终端
+ 2	伪终端
+
+
+8.27 sln命令
+是ln命令的静态连接版本,可以不需要任何动态连接库
+ #  ls -l /bin/ln /sbin/sln
+经常用于为动态连接库创建符号连接
+
+8.28 yes命令
+用于在命令行中输入指定的字符串,直到yes进程结束
+ #  yes "hello"
+ #  yes "n" | cp dir1/* dir2/ -i 如果目标已存在则跳过
+
+

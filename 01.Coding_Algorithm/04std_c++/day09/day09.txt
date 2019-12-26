@@ -1,0 +1,117 @@
+IO
+
+
+
+1. 标准的输入输出
+	C++系统提供了一个用于标准输入输出操作的类体系,这个类体系提供了对预定义类型进行输入输出操作的能力,程序员也可以利用这个类体系进行自定义类型的输入输出操作;
+	标c其实是调用uc的东西,标c是上层的抽象所以通用性更强;
+	cin//标准输入
+
+	cout//标准输出,输出到显示器,有缓冲(flush解决缓冲),可以重定向
+	cerr//标准错误输出,输出到显示器,无缓冲,不可重定向
+	clog//标准日志输出,输出到显示器,标准要求有缓冲,不要重定向,但一般实现如同cerr;
+	输出缓冲如遇到换行,有输入,fflush,缓冲区满会自动刷新输出;
+
+2. 类的层次结构
+	istream ostream cin cout  -----> #include <iostream>
+	ifstream ofstream fstream  ----> #include <fstream>
+	istringstream ostringstream ---> #include <sstream>
+
+3. 非格式化IO
+	int get();//返回int型的字符
+	istream& get(char& c);//返回一个引用型的流,得到的字符存入c;当读到文件结尾会返回一个空指针;
+	put
+	ostream& put(char ch);
+
+	getline(char* data, size_t num);
+	getline(char* data, size_t num, char delim);
+
+	clear();//清除错误状态
+	ignore();//忽略掉一个字符(清除缓冲区)
+	ignore(size_t num, char delim);//最多忽略掉num个字符,直到出现delim结束字符;
+
+	putback(c)//回退一个字符
+	peek()//偷看一眼下一个字符,文件指针没移动;
+
+4. 字符串输入输出流
+	#include <sstream>
+	/*sprintf()可以做格式化拼接*/
+	istringstream istr;//数据来自于字符串流istr;
+	ostringstream ostr;//数据到流对象ostr中去;
+	ostr << 123;
+	ostr << "wtmpx";
+	istr >> data;//表示数据来源于istr保存到data;
+	//如何把ostr变成字符串?
+	string mystr = ostr.str();
+	练习:把文件名每次运行一次变化一次
+	string name = "wtmpx";
+	----------->2014032414:22:58wtmpx
+	----------->2014032414:23:01wtmpx
+	
+	练习:解析以下字符串
+	istringstream istr("abc 123 7876.45");
+	string name;
+	int num;
+	double salary;
+	重载一个对象的输出运算符,可以把对象使用ostringstream变成字符串;
+
+5. 文件读写
+	c++的string操作实质上是在内存中操作字符串数据的一个对象类型;
+	ifstream ifs("c风格字符串");//文件不存在,则直接报错
+	ofstream ofs("c风格字符串");//文件不存在,则创建文件
+	ifs.read(char *buf,size_t num);
+	ofs.write(char *buf,sizez_t num);
+	gcount()//得到本次读取到的字节数
+
+	/*以对象大小进行多个对象的文件读写,list<对象类型> datas,泛型技术*/
+
+	练习:使用read读取一个文件,把文件中的每个字符和一个随机数做^运算,然后把这些异或之后的数据写入到另一个文件中;
+	命令格式:./a.out  srcfile  targetfile//加密
+	./a.out 加密文件名 目标文件名 key//如果key对则会解密,否则二次加密
+
+6. 文件的随机读写
+	seekp(调整字节数,参考点)//设置当前写位置
+	seekg//设置当前读位置
+	参考点:ios::beg ios::end ios::cur
+		ios::cur 向前为负数,向后为正数;
+
+	tellp//获取当前写位置
+	tellg//获取当前读位置
+
+7. 格式化输出
+	c比c++做的好
+7.1 使用控制符控制输出格式
+	格式标志	作用
+	ios::left	输出数据在本域宽范围内向左对齐
+	ios::right	输出数据在本域宽范围内向右对齐
+	ios::internal	数值的符号位在域宽内左对齐，数值右对齐，中间由填充字符填充
+	ios::dec	设置整数的基数为10
+	ios::oct	设置整数的基数为8
+	ios::hex	设置整数的基数为16
+	ios::showbase	强制输出整数的基数(八进制数以0打头，十六进制数以0x打头)
+	ios::showpoint	强制输出浮点数的小点和尾数0
+	ios::uppercase	在以科学记数法格式E和以十六进制输出字母时以大写表示
+	ios::showpos	对正数显示“+”号
+	ios::scientific	浮点数以科学记数法格式输出
+	ios::fixed	浮点数以定点格式(小数形式)输出
+	ios::unitbuf	每次输出之后刷新所有的流
+	ios::stdio	每次输出之后清除stdout, stderr
+
+7.2 使用流对象的成员函数控制输出
+	除了可以用控制符来控制输出格式外，还可以通过调用流对象cout中用于控制输出格式的成员函数来控制输出格式。
+	用于控制输出格式的常用的成员函数，如：
+	
+	流成员函数	与之作用相同的控制符	作用
+	precision(n)	setprecision(n)	设置实数的精度为n位
+	width(n)	setw(n)	设置字段宽度为n位
+	fill(c)	setfill(c)	设置填充宇符c
+	setf()	setiosflags()	设置输出格式状态，括号中应给出格式状态，内容与控制符setiosflags括号中的内容相同
+	unsetf()	resetioflags()	终止已设置的输出格式状态，在括号中应指定内容
+	
+	控制符是在头文件iomanip中定义的，因此用控制符时，必须包含iomanip头文件。
+	cout流的成员函数是在头文件iostream 中定义的，因此只需包含头文件iostream，不必包含iomanip。
+
+
+8. 文件流和字符流操作 day09.streambuf.txt
+
+

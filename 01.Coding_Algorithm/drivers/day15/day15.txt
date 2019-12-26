@@ -1,0 +1,334 @@
+LCD
+nand/nor
+
+
+
+回顾
+1.DS18B20温度传感器
+  一线式总线相关特性:
+  硬件连接:三线制和二线制两种接法
+  master和设备之间的通信就是通过一根数据线进行
+  一根数据线上可用挂接很多从设备
+  内部集成了64bitROM
+  由于没有时钟控制信号:数据线上的数据交互要严格按照芯片手册规定的操作步骤和相关的操作时序图(读写0,1)
+  软件实现的前提是对DS18B20硬件操作流程要熟知!
+2.LCD相关的内容(framebuffer)
+  LCD显示的硬件原理:
+  LCD显示面板,LCD控制器,系统总线,内存控制器,内存,显存
+  图像在显存的存放格式:像素,RGB,24位色(888)
+  透明度+R分量+G分量+B分量
+  LCD面板和显存的一一对应关系:0x00ff0000->0x00ffffff
+  软件如何操作显存!
+  linux系统下,如果直接操作显存 -> QT/Android这些只是在用户层进行进一步的封装(封装了对现存的操作)
+  LCD控制器的操作时序+LCD面板的操作时序
+  VSYNC
+  HSYNC
+  VCLK
+  VDEN
+  VD
+  切记:如果LCD屏进行更换,时间参数记得要去修改! 
+
++---------+
+| LCD驱动 |
++---------+
+----------------------------------------------------------
+linux内核LCD驱动相关内容:
+LCD驱动框架:
+app:open,read,write,mmap... (/dev/fb0,主设备号29) 
+    对显存进行打开,读写访问
+---------------------------------------
+       LCD核心层(drivers/video/fbmem.c)
+       1.对上(用户)提供统一的访问硬件的操作接口(fops)
+       2.对下(驱动)提供统一的注册硬件到核心层的方法和数         据结构(用来描述底层的硬件信息) 
+---------------------------------------
+	LCD硬件驱动
+---------------------------------------
+	LCD控制器
+---------------------------------------------------------
+问:核心层给用户提供统一的访问显存的操作接口是什么?
+问:核心层给驱动程序提供统一的注册硬件到核心层的数据结构和方法是什么?
+问:驱动程序会显存的什么硬件信息提供给核心层呢?
+问:如何写一个符合LCD驱动框架的LCD驱动?
+答:答案在fbmem.c
+
+核心层入口函数:fbmem_init:
+//注册字符设备,给用户提供的访问接口fb_fops
+register_chrdev(FB_MAJOR,"fb",&fb_fops)
+//创建好设备类
+fb_class = class_create(THIS_MODULE, "graphics");
+
+app:open("/dev/fb0", O_RDWR)
+-----------------------------
+sys_open->fb_open:
+int fbidx = iminor(inode); //获取显存对应的次设备号
+struct fb_info *info;
+info = registered_fb[fbidx];//以次设备号为索引,在数组中取出一项fb_info信息,问:这个数组什么时候被初始化的?
+if (info->fbops->fb_open) {
+  res = info->fbops->fb_open(info,1);
+}//如果取出的fb_info中的fbops中有fb_open,那就调用这个函数
+
+app:获取屏幕的可变,固定参数信息:
+    ioctl( fdfb, FBIOGET_VSCREENINFO, &fbvar ) 
+    ioctl( fdfb, FBIOGET_FSCREENINFO, &fbfix )
+---------------------------------------------
+int fbidx = iminor(inode);
+//以次设备号为索引,在数组中取出一项fb_info
+struct fb_info *info = registered_fb[fbidx];
+switch (cmd) {
+	case FBIOGET_VSCREENINFO:
+	 var = info->var;
+	 copy_to_user((void *)arg, &var, sizeof(var));
+         break;//从fb_info中取出屏幕的可变参数信息上报给用         户
+        case FBIOGET_FSCREENINFO:
+	  fix = info->fix;
+        copy_to_user(argp, &fix, sizeof(fix))
+	break;//从fb_info中取出屏幕的固定参数信息上报给用户
+总结:以上两个函数的实现严重依赖fb_info
+
+
+app:
+fb32 = (int *)mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fdfb, 0);//将显存起始物理地址映射用户空间的虚拟地址fb32
+
+--------------------------------------------
+sys_mmap->fb_mmap:
+struct fb_info *info = registered_fb[fbidx];//获取fb_info
+struct fb_ops *fb = info->fbops;
+//如果fb_info的fb_ops中有fb_mmap,就调用这个函数
+if (fb->fb_mmap) {
+	res = fb->fb_mmap(info, vma);
+	return res;
+}
+//如果fb_ops中没有fb_mmap,内核帮你实现一个映射过程
+start = info->fix.smem_start; //显存的起始物理地址
+off += start; //计算映射的显存的起始的物理地址off = vma->pgoff
+//最终内核帮你将显存的物理地址映射到用户空间的虚拟地址上
+io_remap_pfn_range(vma, vma->vm_start, off >> 12,
+			     vma->vm_end - vma->vm_start, vma->vm_page_prot)
+映射的前提的必须从fb_info中的fix中取出显存的物理地址(smem_start)
+
+app:read,读显存内容
+-------------------------------
+sys_read->fb_read:
+int fbidx = iminor(inode);
+struct fb_info *info = registered_fb[fbidx];//获取fb_info
+u32 *buffer, *dst;
+u32 __iomem *src;
+
+//如果你有自己的fb_read实现,就调用你自己的,否则内核帮你实现一个读显存的过程
+if (info->fbops->fb_read)
+		return info->fbops->fb_read(info, buf, count, ppos);
+
+//分配内核缓冲区
+buffer = kmalloc(count);
+
+//从fb_info中获取显存的内核虚拟地址screen_base
+src = (u32 __iomem *) (info->screen_base + p);
+while (count) {
+	dst = buffer; //dst指向内核缓冲区
+	*dst++ = fb_readl(src++);//从显存读取数据到内核空间
+	copy_to_user(buf, buffer, c)//从内核缓冲区到用户缓冲
+}
+
+总结:mmap,read的实现严重依赖fb_info,因为fb_info中存放显存的起始物理地址(fix.smem_start)还有显存的起始内核虚拟地址(screen_base)还有显存的大小(screen_size或fix.smem_len)
+
+fb_info来自registered_fb数组:
+问:这个数组在使用之前何时何地被初始化的?
+答:在函数register_framebuffer中完成对数组的初始化工作
+    也就是说:LCD底层驱动只需分配和根据屏幕的信息初始化fb_info,调用此函数注册fb_info到核心层,以后应用程序就可用使用了!
+//从registered_fb数组中取出空项
+for (i = 0 ; i < FB_MAX; i++)
+		if (!registered_fb[i])
+			break;
+device_create(fb_class, fb_info->device,
+		MKDEV(FB_MAJOR, i), NULL, "fb%d", i);
+每当驱动向核心层注册一个fb_info时,内核就会创建对应的设备节点,主设备号为29,次设备号就是i(i表示的数组中的空项),
+并且设备节点名:/dev/fb0,/dev/fb1,/dev/fb2.../dev/fb31
+记住:一个设备节点对应的是一个fb_info,一个fb_info对应的一个显存的物理上的信息
+
+如何写一个LCD驱动呢?
+1.分配fb_info
+2.根据屏幕的信息初始化fb_info
+3.调用register_framebuffer向核心层注册即可
+  1.将fb_info放到数组中
+  2.创建这个fb_info对应的设备节点,应用程序访问这个设备节点,就是在访问这个fb_info.
+4.硬件相关的初始化
+  GPIO复用的处理
+  地址映射
+  初始化LCD控制器:重点初始化6个时间参数
+
+重点:把握在驱动移植:根据屏幕的硬件差异进行驱动相关参数的调整!
+
+800*480 888 4
+480*272 565 2
+
++---------------+
+| nand与nor驱动 |
++---------------+
+面试:简述nand和nor的区别
+nandflash的硬件特性:
+DATA0~DATA7:8根数据线,传输命令,地址和数据
+CLE:每当CLE为高电平,数据线上传输的命令
+ALE:每当ALE为高电平,数据线上传输的地址
+ALE和CLE都为低电平时,数据线上传输的数据
+WE:写使能,低电平有效
+RE:读使能,低电平有效
+CE:片选信号,电平有效,由于8根数据线,内存,网卡,nand都共用,需要使用片选来区分. 
+R/B:nandflash状态,nand空闲,高电平,nand繁忙,低电平
+
+nandflash的操作:
+1.发送命令
+2.发送地址
+3.读写数据
+		nand		s5pv210
+发送命令  使能片选		NFCMMD=命令
+          拉高CLE
+          拉低WE
+	  将命令写入数据线上
+发送地址  ... 			...
+
+读写数据  ...			...
+
+在uboot模式操作nand,读取nand的ID信息:
+tarena # help md
+md [.b, .w, .l] address [# of objects]
+          - memory display
+
+tarena # help mw
+mw [.b, .w, .l] address value [count]
+         - write memory
+
+tarena # mw b0e00008 90
+tarena # mw b0e0000c 00
+tarena # md.b b0e00010 1
+b0e00010: ec    .
+tarena # md.b b0e00010 1
+b0e00010: d3    .
+tarena # md.b b0e00010 1
+b0e00010: 51    Q
+tarena # md.b b0e00010 1
+b0e00010: 95    .
+tarena # md.b b0e00010 1
+b0e00010: 58    X
+
+uboot:
+nand dump 0 //读取第一页的数据信息
+
+要访问8000地址中的数据:
+页地址:8000/2048=3=>0x3
+页内偏移:8000-2048*3=0x740
+第一次:0x40
+第二次:0x07
+第三次:0x03
+第四,第五:0x00
+
+---------------------------------------------------------
+问:linux系统起来以后,如何使用nandflash?
+问:如何在linux系统起来以后,更新uboot,zImage,根文件系统镜像?
+答:linux起来以后,使能nand的步骤如下:
+1.查看nandflash的分区
+  / # cat /proc/mtd 
+dev:    size   erasesize  name
+mtd0: 00100000 00020000 "bootloader"
+mtd1: 00300000 00020000 "Logo"
+mtd2: 00500000 00020000 "kernel"
+mtd3: 3f600000 00020000 "rootfs"
+2.查看每一个分区对应的设备节点
+  ls /dev/mtd* -lh //以第四块分区为例
+crw-rw----   90,   7  /dev/mtd3
+brw-rw----   31,   3  /dev/mtdblock3
+
+3.问:nandflash的字符设备节点(mtd0,mtd1,mtd2,mtd3)和块设备节点(mtdblock0,mtdblock1,mtdblock2,mtdblock3)怎么使用呢?
+答:nand块设备节点的使用方法:
+    1.对要操作的分区执行mount命令
+    mount -t yaffs2 /dev/mtdblock3 /mnt
+    将第四块分区挂接到/mnt目录,指定的文件系统类型是yaffs2,那以后mnt目录就是nand的第四块分区的入口,进入这个目录即可进行文件的读写访问. 
+    2.cd /mnt //表明进入第四块分区中
+    3.mkdir hello //在第四块分区中创建hello目录
+      或者
+      time cp kernel.tar.bz2 /mnt //测试从别处拷贝kernel.tar.bz2到第四块分区的时间
+      一般来说拷贝完以后,最好测试一下拷贝是否具有完备性!
+      md5sum 原始包
+      md5sum 拷贝以后的包
+      对比两个校验值,是否一样!
+
+    4.如果不使用,需要进行卸载
+      cd / //退出mnt目录,
+      umount /mnt //卸载,mnt就不再是第四块分区的入口了
+
+nandflash字符设备节点使用:
+1,对于nand字符设备节点的使用,必须利用一些工具来操作
+  工具有:flash_eraseall(擦除),nanddump(读),nandwrite(写)
+2.通过配置busybox添加支持以上三个工具
+  进入busybox源代码,执行:
+  make menuconfig
+   Miscellaneous Utilities  ---> 
+	 [*] nandwrite  
+	  [*] nanddump 
+            [*] flash_eraseall
+  保存退出
+  修改Makefile
+	ARCH=arm CROSS_COMPILE=arm-linux-
+  make 
+  make install //默认安装源码的_install目录
+  cd _install
+  部署rootfs(创建必要的目录,添加库和配置文件)
+
+3.利用三个工具在系统正常运行情况下,操作nand
+  3.1首先擦除某一个分区(以擦除第三块分区为例)
+     flash_eraseall /dev/mtd2
+  3.2将一个文件写入到第三块分区
+     nandwrite -p /dev/mtd2 zImage //将文件zImage写入到第三块分区中
+  3.3读flash
+     nanddump -f hello.txt /dev/mtd2 //将第三块分区的内容读出来,保存在hello.txt文件中
+  验证zImage是否烧写成功:
+  3.4进入uboot模式,执行以下命令:
+     nand read 50008000 500000 500000
+     bootm 50008000 //查看内核是否正常启动
+
+  对比:在uboot模式将文件写入nand的操作:
+	tftp 50008000 zImage
+        nand erase 100000 400000
+        nand write 50008000 100000 400000
+
+问:如何在linux内核中对nandflash进行分区
+1.nandflash的分区内容通过一个分区表来描述
+2.分区表一般都是定义在nandflash的驱动程序中
+3.将之前的四个分区分别进行重新修改:
+  进入内核源码,打开nandflash官方驱动
+  vim drivers/mtd/nand/s3c_nand.c,找到分区表
+4.根据需求,修改分区表
+  0------2M-------7M-------12M-------剩余
+   uboot    zImage   rootfs    userdata
+  将以下分区表信息,进行修改:修改如下:
+  struct mtd_partition s3c_partition_info[] = {                                   
+           {                                       
+                   .name           = "uboot", 
+                   .offset         = (0),          
+                   .size           = (SZ_1M*2), 
+           },                                      
+           {                                       
+                   .name           = "kernel",       
+                   .offset         = (2*SZ_1M),    
+                   .size           = (5*SZ_1M),    
+           },                                    
+	   {                                       
+                   .name           = "rootfs",       
+                   .offset         = (7*SZ_1M),    
+                   .size           = (5*SZ_1M),    
+           },
+	   {                                       
+                   .name           = "userdata",       
+             .offset         = MTDPART_OFS_APPEND,//追加    
+            .size   =  MTDPART_SIZ_FULL, //剩余所有空间   
+           },
+  };
+ make zImage
+ 重启开发板,执行cat /proc/mtd查看分区信息
+
+ 找库:
+ 1.查看当前使用的是哪个编译器
+   which is arm-linux-gcc //获得编译器所在路径
+ 2. cd 进入编译器所在的路径
+ 3.执行find . -name libc.so* //找到c库所在目录
+
+

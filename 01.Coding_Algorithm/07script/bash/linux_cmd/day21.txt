@@ -1,0 +1,59 @@
+21.01 ping命令
+ping, ping6 - send ICMP ECHO_REQUEST to network hosts
+是进行网络测试的命令,用来探测主机与目标主机的网络连接性
+ # ping www.baidu.com
+ # ping -c 4 www.baidu.com
+
+21.02 netstat命令
+用于显示网络状态
+ # netstat -r  路由表信息
+ # netstat -a  所有列表
+ # netstat -i  当前网络的接口状态
+
+21.03 nslookup命令
+常用的域名测试命令
+ # nslookup www.baidu.com  查看域名是否可以被解析
+ # nslookup www.163.com
+ # nslookup 进入交互式操作
+
+21.04 traceroute命令
+用于追踪数据包在网络上传输所经过的路由节点信息
+ # traceroute www.baidu.com
+
+21.05 arp命令
+用于操作本机的arp缓冲区,可以操纵IP和MAC的对应关系
+ # arp
+ # arp -n 对应的mac地址不进行解析
+ # arp -d 172.16.132.39 删除一个条目
+
+21.06 dig命令
+常用的dns查询工具,可以测试域名解析是否正确
+ # dig www.sina.com.cn
+
+21.07 host命令
+常用的域名查询工具,可以测试域名解析是否被正确的完成
+ # host www.sohu.com
+
+21.08 nc(netcat)命令
+网络中的瑞士军刀
+ # netcat -l -p 6666
+等待客户端的连接
+另一个终端 # netcat 59.69.135.131 6666
+就建立了一个tcp协议的连接
+
+21.09 arping命令
+用于
+向目标主机发送arp请求报文,用于测试网络连接状态,只限于arp报文请求
+ # arping -f 59.69.135.129
+
+21.10 arpwatch命令
+用于跟踪显示本机arp缓冲中mac和IP地址对应关系的变化
+ # arpwatch -d 以调试模式运行
+
+
+21.11 tracepath命令
+用于追踪报文经过的路由信息,还可以发现传输路由中的mtu最大传输参数值
+ # tracepath www.sina.com.cn
+
+
+

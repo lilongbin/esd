@@ -1,0 +1,461 @@
+内核模块参数
+printk打印级别
+GPIO操作函数库
+Linux字符设备驱动
+
+回顾:
+1.回顾部署linux系统的过程
+	uboot
+	kernel
+	rootfs
+2.Linux系统的组成
+	用户空间:应用程序,C库
+	内核空间:7大子系统
+	问:为什么要划分
+		最终实现安全保护机制,进行权限限制
+	问:怎么划分
+		基于ARM的7种硬件工作模式,在硬件上已经实现权限的分离;基于这种硬件的实现可以实现软件上空间的划分
+	问:划分以后,注意哪些事项
+		用户不能访问内核的地址空间,包括代码和数据
+	    用户不能直接操作硬件资源,操作系统起到承上(用户空间)启下(硬件资源)的作用
+	    必须通过系统调用来实现访问
+	    通过硬件中断实现两者转移
+	    用户和内核都有自己独立的栈,用户空间的栈非常大0-3G,进程由用户空间通过系统调用进入内核空间时,内核会为进程分配一个内核栈8K
+3.内核7大子系统
+	系统调用接口    SCI     system call interface
+    进程管理        PM      process management
+    虚拟文件系统    VFS     virtual file system
+    内存管理        MM      memory management
+    网络协议栈              network protocol stack
+    平台相关        ARCH    architecture
+    设备驱动        DD      device driver
+4.内核模块编程
+	内核的编译;Kconfig&Makefile(LM77)
+5.内核编程方法
+	入口函数:module_init()
+	出口函数:module_exit()
+6.内核编程和应用编程要进行区分
+	掌握7个区别
+		1.不能访问C库也不能访问标准C的头文件
+    	2.必须使用GNU C
+    	3.没有内存保护机制
+    	4.难以执行浮点运算
+    	5.内核给每一个进程只有一个很小的定长内核栈8K
+    	6.内核支持中断,抢占和SMP(shared memory processor),要时刻注意同步和并发问题
+    	7.要考虑可移植性的重要性
+	多内存的使用要格外小心
+7.内核模块编译:Makefile
+8.模块都是以.ko结尾
+9.模块的使用
+  insmod	加载模块命令,不会检查模块的依赖性;如果使用这个命令,需要认为地知道模块之间的依赖关系
+  rmmod		卸载模块
+  lsmod		查看模块
+  modinfo	查看模块信息
+  modprobe	加载模块命令,会检查模块之间的依赖关系(modules.dep) 
+		A->B->C:	modprobe A.ko	内核自动加载C->B->A
+
+添加模块信息
+MODULE_LICENSE("GPL");
+	//添加许可声明,必须加,否则内核中的一些API不能调用
+MODULE_AUTHOR("myname <name@mail.com>");
+	//添加作者信息,可选
+MODULE_DESCRIPTION("Hello Kernel Module");
+	//添加模块功能描述信息,可选
+MODULE_VERSION("V1.0.0");
+	//添加模块版本信息,可选
+
+今天
+	内核模块参数
+	print打印级别
+	GPIO操作库函数
+
++--------------+
+| 内核模块参数 |
++--------------+
+
+应用程序中main函数的传参
+int main(int argc, char *argv[]){
+	/* ... */
+	return 0;
+}
+运行:./a.out 100 200
+	argc	命令行参数的个数
+	argv	命令行参数信息
+	argc=3
+	argv[0] = ./a.out
+	argv[1]	= 100
+	argv[2] = 200
+
+内核模块参数声明
+	module_param(name, type, permission);
+功能:指定模块参数,用于在加载模块时或者模块加载以后传递参数给模块
+	name	模块参数的名称
+	type	模块参数的数据类型
+		bool/inbool 	布尔/布尔反值
+		charp			字符指针
+		short/ushort	短整型/无符号短整型
+		int/uint		整型/无符号整型
+		long/ulong		长整型/无符号长整型
+	perm	模块参数的访问权限
+		权限一般用8进制表示如0666
+		如声明 int irq;	char *pstr;
+		module_param(irq, int, 0664);//可以在模块运行时修改
+		module_param(pstr, charp, 0);//只能在加载时指定
+		irq		->	/sys/module/hellokernel/parameters/irq
+		pstr	->	/sys/module/hellokernel/parameters/没有
+
+内核模块参数数组声明
+	module_param_array(name, type, &num, permission);
+功能:指定模块参数,用于在加载模块时或者模块加载以后产地参数给模块
+	name	模块参数的名称
+	type	模块参数的数据类型
+	nump	数据元素个数指针
+	perm	模块参数的访问权限
+		static int fish[10];
+		static int nr_fish;
+		module_param_array(fish, int, &nr_fish, 0664);
+		nr_fish用于保存最终传递数组元素个数,不能大于10个;
+		fish	->	/sys/module/hellokernel/parameters/fish
+内核模块参数的使用
+模块文件hellokernel.c
+static int irq;
+static char *pstr;
+static int fish[10];
+static int nr_fish;
+module_param(pstr, charp, 0);
+module_param(irq, int, 0664);
+module_param_array(fish, int, &nr_fish, 0664);
+	#insmod hellokernel.ko irq=100, pstr=china fish=1,2,3
+	#echo 200 > /sys/module/hellokernel/parameters/irq
+	#echo 10,20,30,40 > /sys/module/hellokernel/parameters/fish
+	因为有文件存在,会占用一定的磁盘空间;而且/sys文件系统是内存文件系统占用内存空间
+
+实验步骤:
+    1.insmod hellokernel.ko
+       查看打印信息
+    2.rmmod hellokernel
+    3.insmod hellokernel.ko irq=100 pstr=tarena fish=1,2,3,4,5
+       查看打印信息
+    4.cat /sys/module/hellokernel/parameters/irq
+	//查看irq文件内容
+      cat /sys/module/hellokernel/parameters/fish
+	//查看fish文件内容
+    5.修改以上两个文件内容
+       echo 2000 > /sys/module/hellokernel/parameters/irq
+       echo 10,20,30,40,50 > /sys/module/hellokernel/parameters/fish
+       注意:修改文件等于修改变量的内容
+    6.rmmod hellokernel //查看变量的内容是否修改
+    切记:一旦权限不为0,那么就会生成跟变量名同名的文件,会占用内存空间,为0,不占用,所以要考虑好是否真的需要指定一个非0权限!
+
+
+内核模块符号导出
+EXPORT_SYMBOL(函数名或变量名);
+EXPORT_SYMBOL_GPL(函数名或变量名);
+功能:导出函数或者变量供其他模块使用,后者只能用于包含GPL许可证的模块;
+	模块文件B.c
+void file1_test(void){
+}
+EXPORT_SYMBOL(file1_test);
+	头文件B.h
+extern void file1_test(void);
+B模块中的函数file1_test()可以供A模块调用
+
+内核打印printk与C库的printf
+相同点:打印信息,用法一致
+不同点:
+	应用程序使用printf;
+	内核使用printk,允许根据严重程度通过附加不同的优先级来对消息分类
+
++----------------------+
+| 内核打印printk优先级 |
++----------------------+
+
+内核打印printk优先级
+从高到低依次是
+#define KERN_EMERG		"<0>"	通常是系统崩溃前的消息
+#define KERN_ALERT		"<1>"	需要立即处理的消息
+#define KERN_CRIT		"<2>"	严重情况
+#define KERN_ERR		"<3>"	错误情况
+#define KERN_WARNING	"<4>"	有问题的情况
+#define KERN_NOTICE		"<5>"	正常情况,但仍然需要注意
+#define KERN_INFO		"<6>"	信息型消息
+#define KERN_DEBUG		"<7>"	用作调试信息
+
+频繁输出信息会降低系统性能,所以需要设置打印输出级别
+
+内核默认的printk输出级别的设置方法:
+	1.控制台优先级配置
+	通过修改配置文件/proc/sys/kernel/printk
+      cat /proc/sys/kernel/printk
+        7  4 1 7 //关注第一个数字7即可,它就是默认的输出级别,
+        只要是小于7的printk信息都可以输出,大于等于7的不输出
+      echo 8 > /proc/sys/kernel/printk 降低输出级别,这样的输出信息都可以打印
+      insmod hellokernel.ko //查看一下输出的信息
+	此种方法无法设置内核启动的输出信息
+	2.如果修改内核启动的打印信息,只能通过设置uboot的启动参数bootargs来指定输出级别
+	setenv bootargs root=/dev/nfs nfsroot=192.168.1.8:/opt/rootfs ip=192.168.1.6:192.168.1.8:192.168.1.1:255.255.255.0::eth0:on init=/linuxrc console=ttySAC0,115200 debug (设置默认的输出级别为10)
+
+	setenv bootargs root=/dev/nfs nfsroot=192.168.1.8:/opt/rootfs ip=192.168.1.6:192.168.1.8:192.168.1.1:255.255.255.0::eth0:on init=/linuxrc console=ttySAC0,115200 quiet (设置默认的输出级别为4)
+
+	setenv bootargs root=/dev/nfs nfsroot=192.168.1.8:/opt/rootfs ip=192.168.1.6:192.168.1.8:192.168.1.1:255.255.255.0::eth0:on init=/linuxrc console=ttySAC0,115200 loglevel=8
+
+U盘Linux启动盘
+	1.将U盘插入到Linux系统中
+	2.通过dmesg查看U盘的信息
+		找到U盘对应的设备节点sdb,sdb1
+	3.将ubuntu的ISO live镜像烧写到U盘中
+		sudo dd if=ubuntu-12.04-desktop-i386.iso of=/dev/sdb
+	4.让PC从U盘启动即可
+
++--------------------+
+| 内核GPIO操作库函数 |
++--------------------+
+
+内核GPIO操作的库函数
+GPIO作为内核资源,有唯一的软件编号,这个工作由平台代码来实现向内核注册资源
+	硬件标识	软件编号
+	GPA0_0		S5PV210_GPA(0)	|
+	GPC0_3		S5PV210_GPC(3)	|内核GPIO资源池
+
+    gpio_request(int gpio, char *name); 
+		//从内核GPIO资源池给驱动模块申请GPIO资源
+		//gpio	GPIO软件编号
+		//name	标识
+    gpio_direction_output(int gpio, int value);
+		//设置GPIO为输出口,并设置输出value值
+		//gpio	GPIO软件编号
+		//value	管脚状态
+		//GPIO库函数的实现:1.操作配置寄存器,2.操作数据寄存器
+    gpio_direction_input(int gpio);
+		//设置GPIO为输入口
+		//gpio	GPIO软件编号
+		//GPIO库函数实现:操作配置寄存器
+    gpio_set_value(int gpio, int value);
+		//设置GPIO的状态为value
+		//gpio	GPIO软件编号
+		//value	管脚状态
+		//GPIO库函数实现:操作数据寄存器
+    gpio_get_value(int gpio);
+		//获取GPIO状态,返回值为状态信息
+		//gpio	GPIO软件编号
+		//GPIO库函数实现:操作数据寄存器
+    gpio_free(int gpio);
+		//释放GPIO资源
+		//gpio	GPIO软件编号
+		//GPIO库函数实现:操作数据寄存器
+
+   LED 灯对应的GPIO:	S5PV210_GPC1(3), S5PV210_GPC1(4)
+   #include <asm/gpio.h>
+   #include <plat/gpio-cfg.h>
+  案例:要求加载驱动模块时,打开所有的灯
+            卸载驱动模块时,关闭所有的灯
+
++----------+
+| 系统调用 |
++----------+
+
+系统调用接口SCI
+	用户空间和内核空间交互的桥梁
+	用户应用软件可以直接调用系统调用接口,也可以调用C库函数,然后C库函数再调用系统调用接口
+系统调用:Linux内核中设置了一组用于实现各种系统功能的子程序,用户可以在自己的应用程序中调用使用他们
+如
+	调用prinf()->C库的printf()调用C库的write()->write系统调用
+	应用程序	->	C库	->	内核
+用户调用的wirite会调用C库的实现,再调用内核的实现,不能直接调用内核的实现
+
+	普通函数的函数调用		VS.	系统调用函数调用
+	1.运行在用户空间		|	1.运行在内核空间
+	2.由函数库或者自己提供	|	2.由内核来实现
+	C库printf/write			|	write系统调用
+
+系统调用的作用
+	1.为用户空间提供一个硬件的抽象接口
+	2.保证了系统的稳定性
+
+系统调用的工作原理	/* 非常重要 */
+#include <stdio.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
+int main(){
+	int fd = open("a.txt", O_RDWR);/* 打开文件 */
+	/* 这个open在C库里 */
+	close(fd);
+}
+
+首先了解系统调用号
+定义内核源码arch/arm/include/asm/unistd.h
+#define __NR_SYSCALL_BASE	0
+#define	__NR_exit			(__NR_SYSCALL_BASE + 1)
+#define	__NR_fork			(__NR_SYSCALL_BASE + 2)
+#define	__NR_read			(__NR_SYSCALL_BASE + 3)
+#define	__NR_write			(__NR_SYSCALL_BASE + 4)
+#define	__NR_open			(__NR_SYSCALL_BASE + 5)
+#define	__NR_close			(__NR_SYSCALL_BASE + 6)
+/* ...对Linux2.6.35的内核共有365个 */
+/* 也可以手动添加一个自己的系统调用,追加到后面,系统调用号+1 */
+
+系统调用工作原理
+	1.进程先将系统调用号填充寄存器;
+	2.调用一个特殊指令;如ARM的swi指令
+	3.让用户进程跳转到内核事先定义好的一个位置,进入到内核空间
+	4.内核位置是ENTRY(vector_swi);/* entry-common.s */
+	5.检查系统调用号,这个号告诉内核请求哪种服务;
+	6.检查系统调用表(sys_call_table)找到所调用的内核函数的入口地址;
+	7.调用该函数,执行,执行完毕后返回到用户进程
+
+系统调用工作原理(用户空间)
+#define __syscall(name) "swi\t" __NR_##name "\n\t"
+int open(const char *name, int flags){
+	/* ... */
+	__syscall(open); /* 调用C库的open*/
+	/* ... */
+}
+			||转化
+int open(const char *name, int flags){
+	/* ... */
+	mov	r7, #0x1	/* 保存系统调用号 */
+	swi	__NR_open
+	/* ... */
+}
+系统调用工作原理(内核入口)
+ENTRY(vector_swi)		/* 入口 */
+adr		tbl	sys_call_table	/* 系统调用表 */
+ldrcc	pc, [tbl, scno, lsl#2]	/* 匹配,执行sys_open函数 */
+...
+ENTRY(sys_call_table)
+#include "call.S"
+			||
+...
+CALL(sys_read)
+CALL(sys_write)
+CALL(sys_open)	/* 找到系统调用函数,执行 */
+CALL(sys_close)
+
+系统调用工作原理流程图
+	用户态			->		|内核态
+xyz()->xyz(){__syscall(xyz)}|vector_swi->xyz(){}
+
+案例
+新增内核系统调用
+目的
+	理解linux内核系统调用, 掌握添加系统调用的方法
+硬件设备
+	PC机(X86兼容机), CW210开发板
+软件环境
+	Ubuntu12.04
+	arm-none-linux-gnueabi-gcc
+案例内容
+在linux内核中添加新的系统调用,在用户空间编程实现对新增系统调用的使用. 
+案例步骤
+1.进入内核源码根目录
+2.执行"vim arch/arm/kernel/sys_arm.c",在文件最后增加
+asmlinkage int sys_add(int x, int y)
+{
+        printk("call sys_add\n");
+        return x+y;
+}
+3.执行"vi arch/arm/include/asm/unistd.h",
+在"#define __NR_recvmmsg	(__NR_SYSCALL_BASE+365)"后增加如下代码
+"#define __NR_add	(__NR_SYSCALL_BASE+366)"
+4.执行"vi arch/arm/kernel/calls.S",在
+"/* 365 */	CALL(sys_recvmmsg)"后增加"CALL(sys_add)". 
+5.在内核源码根目录下执行make zImage
+6.拷贝生成的镜像文件到tftp主目录
+"cp arch/arm/boot/zImage  /tftpboot/"
+用新内核重新引导系统
+7.创建测试调用该系统调用的应用程序newsyscall.c 
+8.生成可执行文件
+	#arm-none-linux-gnueabi-gcc newsyscall.c -o newsyscall
+9.拷贝newsyscall到NFS目录. 
+10.在开发板终端执行"./newsyscall"
+案例代码newsyscall.c
+#include <stdio.h>
+#include <linux/unistd.h>
+int main(int argc, char **argv)
+{
+	int ret;
+	ret = syscall(366, 100, 200 );
+	printf("The result of new syscall: %d\n", ret);
+	return 0;
+}
+
++-------------------+
+| Linux字符设备驱动 |
++-------------------+
+
+设备驱动的作用
+	驱动是让硬件工作的软件
+	它不仅仅是让硬件正常工作,还能提供让用户访问硬件的操作接口
+
+linux设备驱动分类
+	字符设备驱动char device driver	
+		采用字节流方式访问,如按键,串口,声卡,触摸屏等
+	块设备驱动block device driver
+		Unix系统采用一个数据块访问,数据块一般为512字节,1K等
+		Linux下可以采用任意尺寸的数据访问,访问他们的接口不同
+		如硬盘,U盘,光盘,SD卡,Nand flash等
+		使用前一定先挂接
+	网络设备驱动network device driver
+		在dev才没有对应的设备维瑙健,必须通过套接字来访问
+		要结合TCP/IP协议栈来使用
+
+字符设备驱动
+	采用字节流访问的设备称为字符设备,通常只能采用顺序访问方式,也有极少数可以前后移动访问指针的设备如帧捕捉卡等设备.
+	系统标准字符设备,如字符终端,串口等设备
+	常见待开发设备驱动的字符设备,如触摸屏,自定义键盘,视频捕捉设备,音频设备等
+	按键,串口,声卡,触摸屏等
+
+块设备驱动
+	该类设备通常在物理上不能按字节处理数据,只能通过一个或多个长度是512字节(或一个更大的2的n次幂的数据尺寸)的整块数据进行读/写/擦除等控制操作.
+	unix下,必须采用一个数据块来进行访问,数据块一般为512字节,1k等
+	在Linux系统中,允许为块设备传递任意数据尺寸的字节,在Linux中表面上看似块设备和字符设备没什么不同.实际上块设备和字符设备的区别仅仅在于驱动应该提供给内核的接口不同,内核内部管理数据的方式(会采用缓存机制等)也不同.即接口不同,数据结构体不同
+	块设备必须支持mount文件系统
+	系统标准块设备,如磁盘,光盘,USB存储设备,Nand Flash存储设备等设备
+	常见待开发设备驱动的块设备,基本上不用自己开发,Linux已经提供了几乎所有块设备驱动
+	块设备使用前一定要先mount挂接才能访问
+	如硬盘,U盘,光盘,SD卡,nandflash,TF卡等
+	mount -t vfat /dev/sda1 /mnt 将U盘挂接到mnt目录,
+	以后访问mnt目录就是在访问U盘里的内容,然后就可以利用open,read,write对U盘里的文件进行读写访问
+
+字符设备和块设备的不同
+	字符设备是按字节流访问的设备,如按键,led灯,音频;
+	块设备在unix中必须按数据块的方式访问如512字节1K等,在Linux中二者相同,本质区别是内核对字符设备和块设备定义的结构体和操作接口是不同的
+	
+网络设备驱动
+	在Linux系统中,网络设备是一类特殊设备,采用数据包传输方式访问设备,系统对该类设备提供对发送数据和接收数据的缓存,提供流量控制机制/对多协议的支持
+	网络设备可通过ifconfig命令来创建和配置设备
+	网络驱动同块驱动最大的不同在于网络驱动一部接收外界数据,而块设备只对内核的请求做出响应
+	在Linux系统中,任何网络事物都通过接口来进行处理,一个接口通常是一个网络硬件设备,也可以是一个纯粹的网络软件设备,一个网络接口负责变送和接收数据报文
+	系统标准网络设备,如回还接口
+	常见待开发网络设备驱动的网络设备,该类设备驱动通常需要移植或开发
+	在dev没有对应的设备文件,必须通过套接字来访问,
+	要结合TCP/IP协议栈来使用
+
+Linux应用程序操作硬件设备的过程
+	应用程序通过访问对应的用户空间设备文件,再通过访问系统调用接口,进入内核空间访问设备驱动,最终访问具体的硬件设备
+	在Linux系统中一切皆文件,但设备文件不是普通的文本文件或软链接文件
+应用程序=>字符设备文件=>	SCI=>	字符设备驱动=>	字符设备
+应用程序=>文件系统->块设备文件=>	SCI=>	块设备驱动=>	块设备
+应用程序=>套接字=>	SCI=>	协议栈->网卡驱动=>	网卡接口设备
+
+驱动使用
+	应用程序->设备文件(设备节点)->驱动
+
+14.问应用程序如何访问字符设备驱动和块设备驱动?
+    字符设备和块设备在用户空间的/dev目录下,都有对应的设备文件(一切皆文件),应用程序通过系统调用函数open,read,write等访问设备文件,就是在访问设备驱动和硬件设备
+	主次设备号
+	ls /dev/console -lh 查看设备文件
+	crw------- 1 root root 5,1 ... /dev/console
+	c代表字符设备,5和1分别代表主次设备号,/dev/console代表设备节点;第一个字符b代表块设备
+
+15.问应用程序通过设备文件如何访问驱动程序呢?
+    答:通过字符设备文件附加的主,次设备号
+    应用程序通过主设备号找到对应的驱动程序,表明一个驱动程序有唯一的主设备号,那么驱动程序也就必须和这个主设备号进行绑定和关联(如何绑定和关联?). 
+    如果有同类型的不同设备个体,比如S5PV210有四个串口,这四个串口硬件属性几乎都一样,所以只需要一个驱动程序即可,表明主设备号只有一个,都相等,应用程序通过每个串口对应的设备文件的次设备号在驱动程序中进行区分!
+
+主设备号
+	用于标识设备设备类型,内核依据该号码对应设备文件和对应设备驱动
+次设备号
+	于标识同类型的不同设备个体,驱动程序依据该号码辨别具体操作的是哪个设备个体,比如串口
+

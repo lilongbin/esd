@@ -1,0 +1,260 @@
+device-platform-driver
+
+
+
+回顾:
+1.物理内存映射
+	1.1request_mem_region()申请物理内存
+	1.2ioremap()将物理内存映射到内核虚拟内存
+2.linux内核链表
+
++-------------------+
+| linux内核分离思想 |
++-------------------+
+Linux内核高级字符设备驱动
+案例:将使用ioremap的LED驱动程序由管脚GPC1_3,GPC1_4改成GPF1_5和GPF1_6;
+实现:如果还是使用同一个设备驱动程序,这个驱动程序需要修改哪些地方,不需要修改哪些地方
+	需要修改的地方都是跟硬件操作相关的内容;
+	不需修改的地方都是跟硬件无关或者硬件逻辑的软件部分.
+
+总结:以前的驱动程序跨硬件平台的可移植性非常差
+驱动程序总是包含两部分:硬件资源和操作硬件的软件;
+如果要修改硬件驱动,修改的部分也只是跟硬件相关的内容,而跟硬件无关的内容无需修改;
+
+问:linux内核如何改进这样的驱动代码
+答:
+	linux内核采用分离思想来改进;
+	分离就是将操作硬件的纯软件和硬件资源分开,让驱动开发者以后只关注硬件的差异性即可,而无需再关注操作硬件的纯软件部分;
+
+问:linux内核如何实现这种分离思想
+答:
+	linux内核通过[设备-总线-驱动]模型来实现这种软硬件分离的思想
+
+[设备-总线-驱动]模型实现过程
+
+[前提]	内核已经帮我们定义好了一个虚拟总线(platform_bus_type),并在这个总线上维护着两个链表:dev链表和drv链表;
+	对应的数据类型分别是platform_device和platform_driver;
+	platform_device描述硬件相关的信息;
+	platform_driver描述对硬件操作的软件信息;
+	通过这对链表实现软硬件的分离;
+
+platform总线定义
+定义在内核源代码drivers/base/platform.c中
+platform总线
+struct bus_type platform_bus_type = {
+	.name = "platform", /* 总线名称 */
+	.dev_attrs = platform_dev_attrs, /* 总线属性 */
+	.match = platform_match, /* 驱动匹配函数 */
+	.uevent = platform_uevent, /* 热插拔时间变出前的环境变量处理函数 */
+	.pm = PLATFORM_PM_OPS_PTR, /* 电源管理函数集 */
+};
+
+[匹配1]硬件找驱动
+	当用platform_device定义硬件相关的节点信息,并将这个硬件节点添加到dev链表时,内核会遍历drv链表,与每一个驱动对应的platform_driver进行匹配,匹配通过总线的match函数,比较各自的name,如果一致,说明硬件成功找到了软件,然后将匹配成功的硬件节点的首地址传递给platform_driver的probe函数;
+[匹配2]驱动找硬件
+	当用platform_driver定义一个驱动的软件信息,并将这个drv节点添加到drv链表时,内核会遍历dev链表,与每一个硬件节点信息platform_device进行匹配,匹配通过总线的match函数,比较各自的name,如果一致,说明软件成功找到了硬件,然后内核调用platform_driver的probe函数,并将匹配成功的硬件节点的首地址传递给platform_driver的probe函数. 
+
+总结:通过这种模型,内核帮我们实现了软硬件的分离,也同时帮我们实现了软硬件的结合; 驱动开发者一旦将软件驱动写好,以后的维护更新只需关注硬件相关的部分即可(platform_device);
+对于这样的驱动程序,关键在于platform_device和platform_driver的使用;
+
+问:怎么用platform_device描述硬件信息
+问:怎么用platform_driver描述软件信息
+问:两个结构体一旦关联,probe函数怎么操作硬件
+
+platform_device的定义
+定义在内核源代码的include/linux/paltform_device.h中
+struct platform_device {
+	const char *name; /* 设备资源名称,必须有 */
+	int id; /* 设备资源编号,如果只有一个资源,id==-1; */
+			/* 如果有多个同名的设备,通过id来区分 */
+	struct device dev;
+	/* dev.platform_data这个字段一般存放硬件私有信息(led_resource,button_resource),platform_data专门来装载自己定义的硬件相关的结构体信息 */
+	u32 num_resources; /* 设备资源数 */
+	struct resource *resource; /* 硬件资源信息 */
+	const struct platform_device_id *id_entry;
+
+	/* arch specific additions */
+	struct pdev_archdata archdata;
+};
+
+存放硬件资源的数据结构
+定义在内核源代码的include/linux/ioport.h
+strcut resource {
+	unsigned long start; /* 硬件资源的起始信息 */
+	unsigned long end;  /* 硬件资源的结束信息 */
+	const char *name; /* 名称 */
+	unsigned long flags; 	/* 硬件资源的标志 */
+		/* IORESOURCE_MEM:地址资源信息 */
+		/* IORESOURCE_IRQ:IO/中断管脚信息 */
+};
+
+platform_device操作
+注册
+int platform_device_register(struct platform_device *pdev);
+	pdev	已分配的平台设备;
+	返回	注册成功返回0,失败返回非零;
+
+一般使用方法
+	分配resource;
+	分配platform_device,添加已分配的resource;
+	注册platform_device;
+
+通过platform_device描述硬件资源信息,可以通过:
+1.platform_device.dev.platform_data
+2.platform_device中的resource
+
+使用步骤
+1.分配struct resource;
+2.填充resource硬件资源的信息;
+3.可以分配自己私有的硬件结构体信息led_resource,btn_resource;
+4.分配struct platform_device;
+5.初始化platform_device
+	.name = //必须有
+	.id = -1,
+	.dev = {
+		.platform_data = 指向自己定义的硬件私有结构体信息
+	 }
+	.resource = 硬件资源信息
+	.num_resources = 资源信息的个数
+6.调用platfrom_device_register注册platform_device
+	6.1.将分配初始化好的platform_device硬件节点信息添加到dev链表中;
+	6.2.遍历drv链表的platform_driver跟自己匹配,如果匹配成功,内核调用platform_driver的probe函数,并将platform_device的首地址传递给probe函数;
+
+
+platform_driver的定义
+定义在内核源代码的include/linux/platform_device.h中
+struct platform_driver {
+	/* 当硬件和软件匹配成功以后,调用probe函数,
+	并且probe函数的形参指向匹配成功的硬件资源信息 */
+	int (*probe)(struct platform_device *);
+	/* 当删除硬件或者软件时,调用remove做清理工作 */
+	/* 和probe函数是相对的 */
+	int (*remove)(struct platform_device *);
+	
+	/* 当考虑使用电源管理机制时,每当系统进入待机,
+	调用此函数,完成让外设进入低功耗模式 */
+	int (*suspend)(struct platform_device *, pm_message_t state);
+	/* 当考虑使用电源管理机制时,每当系统被唤醒,
+	调用此函数,完成让外设恢复正常工作模式 */
+	int (*resume)(struct platform_device *);
+
+	/* 驱动属性,这个结构体重点关心其中的name,必须有; */
+	struct device_driver driver;
+};
+
+platform_driver操作
+注册
+int platform_driver_register(struct platform_driver *drv);
+	drv		已分配的platform_driver结构体;
+	返回	成功返回0,失败返回非零;
+
+一般使用方法
+	定义platform_device;
+	注册platform_device;
+	定义platform_driver;
+	注册platform_driver;
+
+1.分配struct platform_driver,描述纯软件的部分;
+2.初始化struct platform_driver
+	.probe	=
+	.remove	=
+	.suspend =
+	.resume =
+	.driver = {
+		.name = /* 必须有,匹配靠它来进行 */
+	 }
+3.调用platform_driver_register向drv链表注册platform_driver节点;
+	3.1.将分配初始化好的软件platform_driver添加到drv链表中;
+	3.2.遍历dev链表,取出每一个节点信息跟自己进行匹配,如果匹配成功,内核调用probe函数,并且将匹配成功的硬件节点的首地址传递给probe函数,至于probe函数具体做什么,完全由驱动开发者来实现;
+
+案例:通过平台总线机制来优化LED驱动
+      led_dev.c -> platform_device -> 硬件资源信息
+      led_drv.c -> platform_driver -> 纯软件资源信息
+测试步骤:
+先加载硬件,再加载软件
+	1.insmod led_dev.ko
+	2.insmod led_drv.ko //看probe是否被执行
+	3.rmmod led_dev //看remove是否被执行
+	4.rmmod led_drv 
+先加载软件,再加载硬件
+	1.insmod led_drv.ko
+	2.insmod led_dev.ko //看probe是否被执行
+	3.rmmod led_drv  //看remove函数是否被执行
+	4.rmmod led_dev
+总结:一个完整的驱动不能没有硬件信息也不能没有软件信息;
+
+一旦probe函数被执行,就预示着硬件和软件已经结合成功;
+
+内核提供了获取硬件资源信息的方法:
+struct resource *platform_get_resource(struct platform_device *pdev, int flags, int num);
+	pdev	指向硬件信息的首地址,就是probe函数的形参;
+	flags	获取硬件资源类型IORESOURCE_MEM,IORESOURCE_IRQ;
+	num		获取指定资源类型中的一个资源偏移量(同类资源的偏移量);
+	返回值	就是resource结构体指定的硬件资源的首地址;
+
+案例:添加GPC1_4灯的支持
+案例:能够通过ioctl实现控制哪个灯
+案例:不使用resource来装载硬件资源,而全部改用platform_data装载硬件资源信息
+
+硬件私有结构体的定义
+strcut led_resource {
+	char *name;
+	int productid;
+	unsigned long phy_gpio;
+	int reg_size;
+	int pin;
+};
+
+static struct led_resource led_info = {
+	.name = "tarena",
+	.productid = 0x12345678,
+	.phy_gpio = 0xe0200080,
+	.reg_size = 8,
+	.pin = 3
+};
+
+platform_device {
+	.dev = {
+		.platform_data = &led_info
+	},
+}
+
+led_drv.c
+led_probe {
+	struct led_resource *pled = pdev->dev.platform_data;
+}
+
+
+linux内核的分离思想
+	之前的led驱动的实现跟硬件信息相关太大,导致硬件一旦发生变化,驱动需要进行大量的修改;所以使用linux内核的分离来优化驱动程序. 
+
+问:分离思想如何实现
+答:
+	内核采用设备——总线——驱动模块框架来实现;
+	就是将硬件信息和软件信息(跟硬件无关的纯软件,即操作硬件的逻辑代码)进行分离,软件一次性写好以后,即使硬件发生变化,驱动软件也无需再修改,只需要修改硬件相关的内容即可. 
+
+设备-总线-驱动模型的实现过程:
+1.内核已经实现了一个虚拟总线"platform" --平台总线;
+2.平台总线上维护着两个链表dev和drv;
+3.前者存放着硬件相关的信息,后者存放着驱动软件;
+4.前者对应的节点的数据结构struct platform_device;
+5.struct platform_device 中如何装载硬件信息:
+	.name = 必须有,匹配靠他来实现
+	.dev = {
+		.platform_data = 指向驱动开发者自定义的私有硬件信息
+	},
+	.resource = 指向用struct resource 定义的硬件信息
+	.num_resources = 资源个数
+6.struct platform_device 如何向内核平台总线的dev链表注册添加,通过调用platform_device_register;
+7.后者对应的软件信息使用的数据结构struct platform_driver;
+8.struct platform_driver是如何装载软件信息的
+struct platform_driver {
+	.driver = {
+		.name = 必须有,匹配靠他来实现;
+	},
+	.probe = 这个函数在硬件信息和软件信息匹配成功以后调用,这个函数的实现完全由我们来决定,比如可以获得硬件信息,然后处理硬件信息,并且给用户提供访问硬件的操作方法(注册字符设备);
+	.remove = 卸载硬件信息或软件信息时调用;
+}
+最后通过调用platform_driver_unregister向内核平台总线的drv链表添加节点,还要遍历dev链表,进行匹配工作. 
+
+

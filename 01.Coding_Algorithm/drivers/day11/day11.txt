@@ -1,0 +1,330 @@
+input子系统
+
+
+
+
+回顾:
+1.mmap
+  目的:就是将设备内存映射到用户空间的某一块虚拟内存上;
+	要结合read,write进行对比
+  mmap->sys_mmap->led_mmap:只做一件事:建立物理地址和用户的虚拟地址
+	内核找一块空闲内存区域
+	struct vm_area_struct
+	remap_pfn_range
+
+2.select/poll
+  目的:能够监听多个设备
+  明确监听设备的读,写,异常需求
+  在应用程序中1.定义fd_set; 2.把监听的设备放在fd_set中; 3.调用select/poll启动监听;
+
+案例:给按键驱动添加被监听功能(poll)
+select->sys_select->btn_poll(返回0)->主进程进入休眠;
+有按键操作:
+button_isr中断处理函数调用 -> ispress=1,唤醒主进程 ->
+sys_select -> btn_poll(返回非0) -> 返回用户空间的select ->
+read->btn_read(ispress = 1,不休眠) -> copy_to_user;
+
++----------------------+
+| linux内核input子系统 |
++----------------------+
+1.分析按键驱动的第二个版本存在的问题
+	应用程序和底层驱动关系很密切,一旦驱动发生变化,应用程序必须得修改,无法像scanf一样做到应用和驱动无缝衔接.
+	因为第二版的按键驱动给用户提供的设备节点是人为自定义,并且上报的信息量和内容也是人为自定义的.
+	如果能做到即使驱动变化,应用程序也无需修改,就可以实现无缝衔接. 
+2.实现按键驱动和应用无缝衔接,就是让应用无需再关注底层硬件的细节,不管是什么样的按键或触摸屏等;
+要实现这样的驱动,必须将驱动程序设计为符合linux内核input子系统的驱动;
+
+3.input子系统管理的设备对象
+	开发板的按键
+	USB接口的键盘
+	PS/2的键盘
+	触摸屏(电阻屏,电容屏)
+	鼠标
+	游戏摇杆等;
+
++-------------------+
+| Linux内核分层思想 |
++-------------------+
+======================================================
+	            A 应用层
+	open,read,write,ioctl,mmap....
++--------------------------------------------------+
+|        B 核心层(drivers/input/input.c)           |
+|                                                  |
+|   1.对上(用户)提供统一的访问硬件的操作接口和方法,|
+|     应用程序直接通过核心层的这些方法来访问硬件,  |
+|     但是无需关注硬件细节;                        |
+|   2.对下(驱动)提供统一的注册硬件到核心层的方法,  |
+|     驱动层根据这个接口将自己的硬件信息           |
+|     注册到核心层,供核心层区使用;                 |内
++--------------------------------------------------+核
+|             C 设备驱动层                         |
+|   管理硬件信息:注册中断,申请GPIO,地址映射        |
++--------------------------------------------------+
+======================================================
+
+问:核心层给用户提供统一的访问硬件的接口是什么
+问:核心层给驱动提供统一的注册硬件到核心层的接口是什么
+问:核心层是如何来访问硬件的
+问:如何写一个符合input子系统的按键驱动
+答:
+	从核心层代码drivers/inout/input.c分析;
+	camera也有分层,要先从核心层开始研究;
+
+核心层
+	input_dev_list链表,存放底层驱动注册的硬件信息;
+	input_handler_list链表,存放操作硬件的纯软件;
+input_dev_list的每一个节点对应的数据类型是input_dev(.硬件信息, .h_list);input_dev节点通过input_register_device()注册到核心层的input_dev_list中;这样核心层就有了硬件信息,比如按键驱动的按键信息;然后就会遍历input_handler_list;
+input_handler_list的每一个节点对应的数据类型是evdev_handler(.event, .connect, .fops, .h_list);通过input_register_handler()注册到核心层的input_handler_list链表中;这样核心层就有了操作硬件的软件信息;
+
+软件与硬件通过input_handle(.dev, .handler)建立连接;dev是指向input_dev的指针,handler是指向evdev_handler的指针;input_handle也已经成为input_dev.hlist和evdev_handler.hlist的节点;内核都已帮我们实现;
+
+
+核心层代码drivers/inout/input.c;
+subsys_initcall(input_init) /* input.c的入口函数 */
+
+/* 注册字符设备,主设备号13,
+ * 给用户提供的访问接口是input_fops(而不是evdev_fops) */
+register_chrdev(INPUT_MAJOR, "input", &input_fops);
+
+/* 应用程序调用open->sys_open->input_open_file */
+问:为什么没有read,write,ioctl,poll...
+static const struct file_operations input_fops = {
+	.owner = THIS_MODULE,
+	.open = input_open_file,
+};
+
+答:
+	input_open_file():
+struct input_handler *handler;
+struct file_operations *old_fops, *new_fops;
+/* 以此设备号/32为索引在数组input_table中取出一项input_handler */
+
+handler = input_table[iminor(inode) >> 5];
+/* 取出input_handler中的fops(操作集合) */
+/* 问:input_table数组何时何地被初始化的 */
+new_fops = fops_get(handler->fops);
+
+old_fops = file->f_op // = &input_fops;
+file->f_op = new_fops // = &evdev_fops;
+结果:以后应用程序调用read,write,ioctl,poll最终访问的就是evdev_fops;
+/* 如果evdev_fops中有open,调用此open函数 */
+new_fops->open(inode, file);
+
+问:input_table数组什么时候被初始化
+在函数input_register_handler完成初始化:
+/* 将分配初始化好的input_handler添加到数组中 */
+input_table[handler->minor >> 5] = handler;
+/* 将分配初始化好的input_handler添加到input_handler_list链表中 */
+list_add_tail(&handler->node, &input_handler_list);
+/* 链表input_dev_list,取出每一个节点input_dev,
+ * 跟自己的input_handler进行匹配(input_attach_handler进行匹配) */
+
+问:如果匹配成功,会做什么事
+//软件找硬件
+list_for_each_entry(dev, &input_dev_list, node) {
+		input_attach_handler(dev, handler);
+}
+注意:函数input_register_handler和input_handler_list中的每一个节点的注册,都是内核已经帮我们实现好,比如evdev_handler,这里面就是包含的操作硬件的软件信息,无需底层驱动再编写;
+
+问:input_handler_list什么时候被遍历
+问:input_dev_list什么时候添加节点input_dev
+问:input_attach_handler(dev, handler)进行匹配,匹配成功以后,后面做什么事
+答:
+	input_register_device这个函数实现对两个链表的操作,
+每当调用此函数向核心层注册硬件信息input_dev时
+/* 添加硬件节点信息 */
+list_add_tail(&dev->node, &input_dev_list);
+/* 硬件找软件,遍历input_handler_list,取出每一个节点input_handler,进行匹配 */
+list_for_each_entry(handler, &input_handler_list, node)
+		input_attach_handler(dev, handler);
+
+input_attach_handler:
+	/* 如果硬件找到了软件或者软件找到了硬件,最后要建立硬件和软件的联系,通过handler的connect函数建立两者的联系 */
+	handler->connect(handler, dev, id);
+
+问:如何建立硬件和软件的联系
+evdev_connect:
+	1.分配handle;
+	在evdev结构体中
+		struct input_handle handle;
+	  /* handle.handler指向匹配成功的软件信息 */
+	2.handle.handler = handler /* = evdev_handler */;
+	  /* handle.dev指向匹配成功的硬件信息 */
+	3.handle.dev = 硬件信息input_dev;
+	4.调用input_register_handle()注册input_handle;
+注册实现:	
+input_register_handle(&handle);
+	/* handle中的handler和dev已经保存了匹配成功
+	 * 的软件和硬件信息 */
+	/* 从handle中取出软件和硬件 */
+	struct input_handler *handler = handle->handler;
+	struct input_dev *dev = handle->dev;
+	/* 将input_handle添加到input_dev硬件信息中 */
+	list_add_tail_rcu(&handle->d_node, &dev->h_list);
+	/* 将input_handle添加到input_handler软件信息中 */
+	list_add_tail_rcu(&handle->h_node, &handler->h_list);
+这样硬件和软件就建立好了联系:
+	input_dev或input_handler都可以通过自己的h_list找到对方;
+
+	一旦建立好软件和硬件的联系,完整的驱动程序就存在了,就可以供应用程序访问了;
+切记:
+	软件都是由内核实现好的evdev_fops,
+	但硬件input_dev需要底层驱动来实现;
+	不同于设备平台总线中的platfrom_device和platform_driver,此处的platform_driver相当于已经由内核实现了;
+
+以读取按键为例,看看如何使用这种联系
+app:read->sys_read->evdev_read:
+evdev_read:
+	1.判断是否采用非阻塞;
+	2.判断数据是否可用,如果不可用,进入休眠;
+        问:怎么唤醒休眠
+	答:当然是由中断唤醒,但是唤醒工作是在evdev_event()中实现的;
+	evdev_handler = {
+	 .event = evdev_event, /* 这个接口什么时候调用呢 */
+	}
+总结:
+	1.休眠是在这个函数中进行
+	2.唤醒操作是在evdev_event()中实现的;
+	等待队列头evdev->wait由evdev_event()中的wake_up_interruptible(&evdev->wait)操作;
+	3.真正的唤醒还是应该由中断处理函数来指定;
+
+问:中断处理函数如何与handler->event进行衔接
+问:数据最终来自硬件,硬件的数据怎么给evdev_read
+答:
+	通过在中断处理函数中调用input_event函数,将上报的硬件信息传递给input_handler;
+	然后调用input_handler->event唤醒休眠的进程(.event = evdev_event,);
+
+input_event():
+	input_handle_event(dev, type, code, value);
+	input_pass_event(dev, type, code, value);
+
+	/* 通过input_dev的h_list找到input_handle */
+	list_for_each_entry_rcu(handle, &dev->h_list, d_node) {	
+		/* 通过input_handle找到软件input_handler */
+		handler = handle->handler;
+
+		/* 调用input_handler的event将硬件数据递交给
+		 * input_handler然后唤醒休眠的进程 */
+		handler->event(handle, type, code, value);
+		/* .event = evdev_event, */
+	}
+
+总结:一旦建立好联系,硬件设备驱动和软件之间的通信都是靠input_event函数来实现;
+
+提交事件报告
+void input_event(struct input_dev *dev,
+				unsigned int type,
+				unsigned int code,
+				int value);
+	dev		提交报告的输入设备;
+	type	提交报告的事件类型;
+	code	提交报告的键值;
+	value	提交报告的键值对应的数值;
+	input_event()是核心层给驱动提供的事件提交函数;
+提交同步事件报告
+void input_sync(struct input_dev *dev);
+
+input_dev操作
+分配input_dev
+	分配并初始化input_dev结构体
+	struct input_dev *input_allocate_devcie(void);
+	返回分配到的input_dev结构体指针,失败返回NULL;
+注册input_dev
+	注册输入设备到输入子系统核心
+	int input_register_device(struct input_dev *dev);
+	dev是待注册的输入设备;
+	成功返回0,失败返回负值;
+
+问:
+如何写一个符合input子系统的按键驱动
+答:
+1.分配input_dev
+	struct input_dev *input = input_allocate_device();
+2.初始化input_dev//装载硬件信息
+	//指定上报什么事件类型#
+    #define EV_SYN       0x00 /* 同步类事件,刷新 */
+    #define EV_KEY       0x01 /* 按键类事件,按键 */
+    #define EV_REL       0x02 /* 相对位移坐标事件,鼠标 */
+    #define EV_ABS       0x03 /* 绝对位移坐标事件,触摸屏 */
+    #define EV_REP       0x14 /* 重复类事件 */
+    #define EV_FF        0x15 /* 力反馈 */
+    #define EV_PWR       0x16
+    #define EV_FF_STATUS 0x17 /* 力反馈状态 */
+
+	/* 初始化必须指定evbit能够上报哪种事件类型,
+	 * 如果不指定,核心层无法上报信息! */
+	/* __set_bit(EV_KEY, input->evbit) */
+	unsigned long evbit[BITS_TO_LONGS(EV_CNT)];
+	
+	/* 指定上报按键类事件中的哪些事件(具体哪个键值) */
+	/* 键值不再随意定义:用标准键值input.h */
+	/* KEY_L,KEY_DOWN,KEY_UP,KEY_1,KEY_2... */
+	/* __set_bit(kpad->keycode[i] & KEY_MAX, input->keybit) */
+	unsigned long keybit[BITS_TO_LONGS(KEY_CNT)];
+	
+	/* 指定上报相对位移事件中的哪些事件(相对x,y,方向) */
+	unsigned long relbit[BITS_TO_LONGS(REL_CNT)];
+	
+	/* 指定上报绝对位移事件中的哪些事件(X,Y,压力值) */
+	unsigned long absbit[BITS_TO_LONGS(ABS_CNT)];
+	
+
+3.调用input_register_device()注册input_dev
+      1.添加节点到input_dev_list;
+      2.找到对应的input_handler(evdev_handler);
+      3.建立两者之间的联系;
+      结果:硬件input_dev和软件evdev_handler建立联系,一个完成的驱动就存在了,等待用户去操作(操作接口内核帮我们写好了);
+4.申请GPIO;
+5.注册中断;
+
+注意:应用程序和核心层之间的数据交互使用的数据结构
+在include/linux/input.h中
+struct input_event {
+    struct timeval time; //时间信息
+    __u16 type;  /* 事件类型(EV_KEY  EV_ABS   EV_ABS)  */
+    __u16 code;  /*          键值    ABS_X     ABS_Y   */
+    __s32 value; /*          状态  x实际坐标 y实际坐标 */
+}
+
+案例:利用input子系统框架,实现按键驱动第三版本
+测试步骤:
+	1.insmod btn_drv.ko
+	2.cat /proc/interrupts /* 查看中断信息 */
+	3.cat /proc/bus/input/devices /* 查看设备节点 */
+I: Bus=0000 Vendor=0000 Product=0000 Version=0000
+N: Name="input_button"
+P: Phys=
+S: Sysfs=/devices/virtual/input/input3
+U: Uniq=
+H: Handlers=kbd event3 (设备节点名:/dev/event3)
+B: EV=100003
+B: KEY=40 90000000
+
+	4.测试按键操作
+方法1:
+	# hexdump /dev/event3
+	/* 用hexdump去读按键设备 */
+	/* 按下松开一次会打印4行信息 */
+hex命令头 时----间---信----息 type code value低 value高
+0000000   729a 0000 123e 0003 0001 0026  0001    0000 按下
+0000010   729a 0000 1247 0003 0000 0000  0000    0000 同步类事件
+0000020   729a 0000 db18 0006 0001 0026  0001    0000 松开
+0000030   729a 0000 db1c 0006 0000 0000  0001    0000 同步类事件
+同步类事件可以不加,但为了确保数据到达对方,还是要加上;
+
+方法2:
+    # ./btn_test /dev/event3
+type = 0x1, code = 0x26, value = 0x1 按下
+type = 0x0, code = 0x00, value = 0x0
+type = 0x1, code = 0x26, value = 0x0 松开
+type = 0x0, code = 0x00, value = 0x0
+
+方法3:将标准输入指定到开发板的按键
+    # exec 0 < /dev/tty1
+     操作开发板的按键实现ls命令
+
+面试:阐述按键驱动如何编写
+
+
+

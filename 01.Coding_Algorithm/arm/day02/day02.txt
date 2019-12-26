@@ -1,0 +1,308 @@
+回顾:
+    C语言程序设计-现代方法
+    实验要做熟练
+目标:向开发板的闪存安装软件
+      使用S5PV210的USB启动方式
+
+我们S5PV210支持哪些中启动方式?
+    我们讲了4种,更多看S5PV210的编程手册;
+      1/nand flash (闪存)
+      2/SD卡
+      3/USB
+      4/UART
+我们昨天实验用到了几种?
+      USB和nand flash
+我们的开发通过什么装置来实现
+启动方式的选择?
+    通过启动拨码开关
+    USB启动方式拨码开关怎么拨?
+       1->ON
+       2->OFF
+       3->OFF
+       4->ON
+    闪存启动方式拨码开关怎么拨?
+       1->ON
+       2->OFF
+       3->OFF
+       4->OFF
+S5PV210处理器上电以后先执行什么软件?
+   S5pv210处理器内部集成了ROM(只读存储器),IROM,IROM里面三星出厂时就集成程序;
+   IROM程序来决定从什么设备上读取启动代码;
+   通过USB方式,PC上需要一个支持和IROM程序使用协议一样的发送程序;
+   我们使用的DNW软件;
+   1/运行,并且配置DNW软件
+      配置串口相关信息,下载地址
+      DNW软件支持使用串口和开发板通信/
+      也支持使用USB和开发板通信;
+      串口更多的时候,充当交互;
+   2/选择串口菜单的conect
+   3/我们配置下载地址为0xd0020010
+      向开发板发送x210_usb.bin
+      开发板IROM程序接收x210_usb.bin并且保存到指定地址的内存中;
+      然后自动调用接到的代码(x210_usb.bin)
+   4/配置下载地址为0x23e00000
+      向开发板发送u-boot.bin
+      开发板端程序接收,存放到指定地址,并自动调用;
+      u-boot.bin就在开发板内存中运行;
+   5/DNW窗口会看到信息(字符)
+      开发板运行u-boot向PC发送的字符信息,被DNW软件接收,并且显示;
+   6/需要在DNW窗口按"空格"
+      相当于安装程序已经运行了;
+      通过已经运行的安装程序把需要安装到闪存的程序,安装到闪存中;
+   7/通过已经运行的uboot命令把pc上的u-boot.bin下载到开发板的内存中0x20008000地址
+    用命令:
+      dnw  0x20008000
+    DNW软件通过usb向开发板发送u-boot.bin
+   8/u-boot.bin已经放到开发板内存(0x20008000)
+     把u-boot.bin写到闪存中;
+   
+   nand erase 0x0   0x100000
+   nand write 0x20008000 0x0  0x100000
+   9/断电
+   10/调整拨码开关(nand flash启动方式)
+   11/重新启动;
+   
+0xd0020010	(IRAM)
+0x23e00000	(DDRII)	
+0x20008000	(DDRII)
+这三个地址:都是开发板上的内存地址;
+0xd0020010 地址是CPU内部集成的内存
+0x20008000,0x23e00000 这两个是开发板上DDRII内存;
+
+把x210_usb.bin 放到0xd0020010自动运行
+把u-boot.bin放到开发板的0x23e00000自动运行;
+  dnw 0x20008000
+把u-boot.bin放到0x20008000,没有运行;
+  dnw是我们的uboot这个软件提供的命令,只接收代码或者数据;
+
+在我们向闪存写入u-boot.bin时,开发板的闪存中有几个u-boot.bin?分别在哪里存放;
+   2个
+   第一个放到0x23e00000 (正在运行的)
+   第二个放到0x20008000	(作为一般的数据存放的)
+
+为什么不把0x23e00000的u-boot.bin写入闪存,而是把地址0x20008000的u-boot.bin写入闪存?
+   我们写入闪存的u-boot.bin应该和PC机上u-boot.bin一模一样
+   内存当中的两份,0x20008000处的应该是和PC的u-boot.bin一模一样的;
+   不能保证0x23e00000地址的u-boot.bin和PC上的一模一样,因为0x23e00000地址处的u-boot.bin已经运行了;
+为什么0x23e00000处的u-boot.bin运行了就不能保证和PC上的u-boot.bin一模一样了?
+   代码里面一般包括:
+     .text  段 通常放只读
+     .data  段 通常放带初值的全局变量
+     .bss   段 放没有初值或者初值为0的全局变量;
+   可执行程序文件中: 
+     .text
+     .data
+   u-boot.bin的 .text 和 .data放到0x23e00000地址运行;
+
+   第一个提问:如果是跟我们当堂课程有关的问题,并且分享给大家,在TTS6 
+     发邮件,或者在群讨论;
+
+开发板和PC之间连接介质
+   USB/网络/UART/JTAG
+
+通过网络的方式把PC上的数据或者软件放到开发板的内存中;
+	前提是:u-boot安装成功;
+	如果要想通过网络向开发板发送数据,需要PC上有通过网络发送的软件,开发板上要有通过网络接收的软件
+	tftp功能(简单协议);
+
+使用ftp的时候,需要有:
+	ftp服务器,ftp客户端
+	tftp也需要一个tftp服务器,一个tftp客户端
+
+PC 和开发板
+	一般把PC作为tftp的服务器,把开发板作为tftp客户端;
+	PC上(win)tftp服务器,tftpd32
+	客户端用uboot的tftp命令:tftp  0x20008000  u-boot.bin
+
+我们需要配置服务器和客户端ip地址;
+我们实验里面为少出错我们,我们改PC的IP,让PC的IP和Uboot默认的IP一致;
+我们查看一下uboot默认的IP是什么?
+tarena# 命令行输入 print命令
+
+gatewayip=192.168.1.1
+netmask=255.255.255.0
+ipaddr=192.168.1.6    开发板的IP地址
+serverip=192.168.1.8  是服务器(PC)的IP地址
+
+修改和开发板相连的网卡的IP地址为192.168.1.8
+
+验证:
+   在开发板端ping PC机
+   tarena #命令行下面敲入:ping 192.168.1.8
+如果显示
+		tarena # ping 192.168.1.8
+		dm9000 i/o: 0x88000000, id: 0x90000a46 
+		DM9000: running in 16 bit mode
+		MAC: 00:40:5c:26:0a:5b
+		operating at 100M full duplex mode
+		host 192.168.1.8 is alive
+		tarena # 
+
+说明网络是通的;
+
+配置tftp服务的工作目录,并且把要下载到开发板内存的文件复制到该目录;
+以 D:\tftpboot为例;
+把tftpd32的工作目录设置为D:\tftpboot
+并且把u-boot.bin复制到该目录;
+在tarena #命令行输入tftp命令:
+
+tftp 0x20008000         u-boot.bin
+     开发板的内存地址  文件名(提前放在服务器的工作目录中)
+-------------------------------------------------
+dm9000 i/o: 0x88000000, id: 0x90000a46 
+DM9000: running in 16 bit mode
+MAC: 00:40:5c:26:0a:5b
+operating at 100M full duplex mode
+TFTP from server 192.168.1.8; our IP address is 192.168.1.6
+
+Filename 'u-boot.bin'.
+Load address: 0x20008000
+
+Loading: T #########################
+
+done
+Bytes transferred = 357060 (0x572c4)
+tarena # 
+-------------------------------------------------
+下载成功;
+
+如果ping的时候网络不通,怎么办?
+   1/IP地址对不对
+   2/网线插没插好
+   3/换根网线
+   4/换个板子试试
+   5/防火墙关闭
+   6/如果是笔记本,把无线网络禁止
+
+ubuntu下面通讯;
+1/为虚拟机的ubuntu系统添加串口
+2/建立ubuntu和win之间共享目录
+   以后ubuntu和win之间通过共享目录来传递文件;
+
+.kermrc 文件复制到 /home/tarena
+ .kermrc是隐藏文件,ls -a
+在ubuntu下面启动kermit
+
+#sudo kermit
+需要输入tarena用户密码
+出现
+#C-Kermit> 
+在kermit提示符下敲入 "c" 回车
+然后开发板上电,应该能看到信息;
+
+如果kermit终端窗口没有反应:
+  1/确认dnw是否在使用;dnw如果已经使用串口,虚拟机将无法使用串口,要关闭windows下的dnw软件;
+  2/确认串口在虚拟机里面是否已经连接;
+  3/串口使用COM1
+
+如何从uboot提示符返回到上个界面?
+   ctrl+\ 松开 再按c
+
+把给定的led.bin 放到开发板运行
+   1/led.bin复制到共享目录
+   2/把led.bin复制到/home/tarena/1312目录
+   3/uboot命令行下面执行
+      loadb  0x20008000
+     按ctrl+\   c
+      send /home/tarena/1312/led.bin
+     按"c"键回到uboot命令行
+     用uboot的go命令运行
+     go 0x20008000
+
+在Ubuntu中系统如何通过网络向开发板发送数据?
+1/还是在开发板上通过 tftp命令
+   tftp 0x20008000 u-boot.bin
+2/tftp服务器需要放到ubuntu下;
+   tfpd-hpa
+3/把虚拟机的网络设置桥接;
+4/选edit菜单里面"虚拟网络编辑"
+5/配置静态IP地址
+6/启动和配置unbuntu中的tftpd服务器
+   /tftpboot
+7/启动tftpd服务
+   sudo /etc/init.d/tftpd-hpa restart
+8/传输:tftp 0x20008000 led.bin
+
+ARM板的CPU文档
+arm-resource\arm-resource\arm课程资源\datasheet\datasheet.rar
+解压,里面 S5PV210_UM_REV1.1.pdf
+看GPIO这一章;
+
+arm-resource\arm-resource\arm课程资源\arm gcc编译器\arm-2009q3.tar.bz2
+安装编译器步骤:
+
+1/把arm-2009q3.tar.bz2放到共享目录
+2/到ubuntu解压,记住解压到哪里!!!!
+   /opt
+   解压
+	 tar -jxvf arm-2009q3.tar.bz2 
+3/PATH:保存路径
+   设置环境变量PATH
+   sudo vim /etc/environment 
+   
+   PATH="/opt/arm-2009q3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/home/tarena/workdir/toolchains/opt/S5PV210-crosstools/4.4.6/bin"
+
+   让设置的环境变量生效
+    source /etc/environment 
+    或者
+    .  /etc/environment  
+   
+
+GCC使用:
+   arm-linux-gcc -S 把 .c 汇编成 .s
+   arm-linux-gcc -c 把 .c 编译成 .o
+
+   arm-linux-readelf  查看elf格式文件的信息
+   
+   arm-linux-nm 查看程序里面标号值
+
+   arm-linux-objdump 反汇编软件
+   
+   arm-linux-strip  去掉无用信息
+                    嵌入式比较有用;
+   
+   arm-linux-ld		链接
+   arm-linux-objcopy	生成二进制文件
+
+任务:完成基于S5PV210开发板的LED驱动编写;
+     1/根据开发板的电路图查看开关是0时表示开还是1时表示开
+     2/CPU的哪个管脚控制这开关
+     3/如何控制CPU的管脚给出0或者1
+
+    CW210-COREC.pdf  
+       CPU板(核心板)的电路图
+       tarena版本的(后面)
+    CW210-COREB.pdf
+       融汇的板子
+
+    CW210-Peripherial_ver2.pdf
+       底板(扩展板)电路图
+
+    1.控制LED1灯,有管脚给出高电平时灯亮,给出低电平时灯灭;
+    高电平---1
+    低电平---0
+
+    2.S5PV210的GPC1-3管脚控制LED1
+    
+    3.如何控制GPC1 3管脚输出高电平或者低电平?
+      S5PV210_UM_REV1.1.pdf
+    
+   0xd0020000   IRAM  96K s5pv210 内部
+   0x20000000   DDRII 1GB s5pv210 外部
+   96K  SRAM    静态  
+                访问速度快,成本高
+                信号接对,给电,芯片就可以工作;
+ 
+   1GB  DDRII   动态
+                访问速度没有SRAM快
+                成本低,可以做大容量
+                周期性持续给出刷新电流,里面才能保持,否则数据就丢失;
+                DRAM控制器,持续控制;
+明天开始动手写c程序控制led灯
+
+    通过USB方式安装程序
+    1/x210_usb.bin下载到0xd0020010运行
+       初始化工作,至少对DRAM控制器进行
+       配置(初始化)使1G内存可用;
+    2/u-boot.bin 下载到0x23e00000运行
+		

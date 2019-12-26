@@ -1,0 +1,461 @@
+mmap
+select/poll
+
+
+
+回顾:
+1.linux内核的分离思想
+	之前的LED驱动的实现跟硬件信息相关太大,导致如果硬件发生变化,驱动需要进行大量的修改,所以使用linux内核的分离来优化驱动程序;
+问:分离思想如何实现
+答:内核采用设备-总线-驱动模块框架来实现;
+	就是将硬件信息和软件信息(跟硬件无关的纯软件部分,即操作硬件的逻辑代码)进行分离,软件一次性写好以后,以后硬件发生变化,软件也无需再修改,只需修改硬件相关的部分即可;
+
+设备-总线-驱动模型实现过程:
+1.内核已经实现了一个虚拟总线"platform"--平台总线
+2.平台总线上维护着两个链表dev和drv
+3.前者存放硬件相关的信息,后者存放软件信息
+4.前者对应的节点的数据结构struct platform_device
+5.struct platform_device中如何装载硬件信息
+  .name = 必须有,匹配靠它来实现
+  .dev = {
+      .platform_data = 指向驱动开发者自定义的私有硬件信息
+  },
+  .resource = 指向用struct resource定义的硬件信息
+  .num_resources = 资源的个数
+6.strcut platform_device通过调用platform_device_register实现注册添加到内核平台总线的dev链表;
+7.后者对应的软件信息使用的数据结构struct platform_driver;
+8.struct platform_driver如何装载软件信息
+  struct platform_driver {
+	.driver = {
+		.name = 必须有,匹配靠它来进行
+	},
+	.probe = 这个函数当硬件信息和软件信息匹配成功后调用,函数的实现完全由我们自己来决定,比如可以获取硬件信息,然后处理硬件信息,并且给用户提供访问硬件的操作方法(注册字符设备)等;
+	.remove = 卸载硬件信息或者软件信息时调用;
+	.suspend = /* 可选的 */
+	.resume =  /* 如果有对应的电源管理则需要实现 */
+  }
+  最后通过调用platform_driver_register向内核的平台总线的drv链表添加节点,还要便利dev链表,进行匹配工作;
+  内核中90%以上的驱动代码都是采用这个框架实现的;
+
++------+
+| mmap |
++------+
+将物理地址映射到某一用户进程虚拟地址的MMAP虚拟内存映射区
+
+案例:分析之前的LED驱动,总结数据流的走向:
+app:
+	int index = 1;
+	ioctl(fd, LED_ON, &index);
+led_drv:
+	int index = 1;
+	copy_from_user(&index, (int *)arg, 4);
+	*gpiodata |= (1 << 3);
+上面代码都要经过用户空间到内核空间,内核空间再到硬件寄存器
+经过两次的数据操作和拷贝
+
+案例:分析按键驱动,获取按键值
+app:
+	unsigned char key_val;
+	read(fd, &key_val, 1);
+btn_drv:
+	key_val = gpio_get_value(gpio) | 0x50;
+	copy_to_user(buf, &key_val, 1);
+上面的代码也要经过两次的数据拷贝,硬件到内核空间,内核空间到用户空间. 
+
+总结:通过以上两个案例发现,应用程序调用read,write,ioctl等都要经过两次的数据拷贝(用户空间-内核空间-硬件),如果数据量非常小,他们对系统性能的影响几乎可以忽略不计;
+但是如果操作的数据量很大(如摄像头,视频采集卡),这些设备如果都要经过两次数据拷贝才能完成数据操作,会对系统的性能有很大的影响.
+
+问:内核对于这些设备的访问,如何提升对设备访问的效率
+答:
+	解决的思路就是将设备的访问操作由两次的数据拷贝变成一次;
+
+	以前调用read,write,ioctl等函数的前提是将物理地址映射到内核空间,用户访问这些内核虚拟地址,只能经过用户空间-内核空间的数据拷贝;
+	如果能将设备的物理地址信息映射到用户进程的某一个虚拟地址空间,那么以后用户访问这个用户进程的虚拟地址,就是在访问设备,省略用户空间到内核空间的拷贝过程,由2次拷贝变成1次拷贝,从而提升对设备访问的效率;
+
+问:如何将设备的物理地址信息映射到用户进程的虚拟地址空间
+答:
+	首先要了解用户每一个进程的3G地址空间的划分:
+	  代码段
+   	  数据段
+   	  BSS段
+   	  堆
+   	  MMAP虚拟内存映射区(动态库,物理地址,文件)
+   	  栈
+    内核描述进程所使用的数据结构:strcut task_struct;
+    内核描述用户进程的3G虚拟地址空间:struct mm_struct;
+
+	进程地址空间mm_struct组成
+  +------------------+3G
+  |                  |stark_start
+  |  Stack_Segment | |
+  |                V |stark_end
+  +------------------+
+  |                  |mmap_base
+  |  MMAP Segment |  |
+  |               V  |
+  +------------------+
+  |               ^  |brk
+  |  Heap Segment |  |
+  |                  |start_brk
+  +------------------+
+  |  BSS Segment     |
+  +------------------+
+  |                  |end_data
+  |  Data Segment    |
+  |                  |start_data
+  +------------------+
+  |                  |end_code
+  |  Text Segment    |
+  |                  |start_code
+  +------------------+0x0000 0000
+
+    对3G虚拟地址空间划分进行相关的了解以后,只需将物理地址映射到MMAP虚拟内存映射区的某一个虚拟地址即可,以后在用户空间访问这个虚拟地址就是在访问设备硬件;
+
+问:如何将物理地址映射到某一个用户进程虚拟地址的MMAP虚拟内存映射区
+答:
+	通过调用mmap来实现.
+	通过调用mmap,可以完成将物理地址映射到MMAP区的某一个虚拟地址空间,以后访问这块虚拟地址,就是在访问硬件设备. 
+	mmap操作提供了一种机制,让用户程序直接访问设备内存;
+	这种机制,相比较在用户空间和内核空间相互拷贝数据,效率更高;在要求高性能的应用中比较常用;
+	mmap映射内存必须是页面大小的整数倍;
+	#include <sys/mman.h>
+
+    void *mmap(void *addr, size_t length, int prot, int flags,
+               int fd, off_t offset);
+    void *mmap64(void *addr, size_t length,	int prot, int flags,
+               int fd, off64_t offset);
+    int munmap(void *addr, size_t length);
+
+mmap()  creates a new mapping in the virtual address space of the call-
+ing process.  The starting address for the new mapping is specified  in
+'addr'.  The 'length' argument specifies the length of the mapping.
+
+If addr is NULL, then the kernel chooses the address at which to create
+the mapping; this is the most portable method of creating a new mapping. 
+The 'prot' argument describes the desired memory protection of the map-
+ping (and must not conflict with the open mode of the file).
+
+The contents of a file mapping (as opposed to an anonymous mapping; see
+MAP_ANONYMOUS  below),  are  initialized using length bytes starting at
+offset 'offset' in the file (or other object) referred to by the  file
+descriptor 'fd'. offset must be a multiple of the page size as returned
+by sysconf(_SC_PAGE_SIZE).
+
+On success, mmap() returns a pointer to the mapped area.  On error, the
+value MAP_FAILED (that is, (void *) -1) is returned, and errno  is  set
+appropriately.   On  success,  munmap()  returns  0, on failure -1, and
+errno is set (probably to EINVAL).
+
+问:mmap的应用程序和底层实现
+答:
+1.app
+	void *addr;
+	int fd = open("a.txt");
+	addr = mmap(0, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	memcpy(addr, "helloworld", ...);
+	结果就是将文件映射到用户0-3G的MMAP虚拟内存区的某一块虚拟内存中,以后访问这块虚拟内存,就是在访问文件;
+	映射的虚拟内存的首地址就是addr;
+	addr = mmap(0, /* 让内核帮我门找一块空闲的虚拟空间用来映射文件 */
+	            0x1000, /* 一页 */
+	            PROT_READ | PROT_WRITE, MAP_SHARED, /* 可读可写共享 */
+	            fd, /* 要映射的文件 */
+	            0 /* 偏移量,0从起始开始映射 */); 
+
+2.mmap->sys_mmap
+	2.1 内核会在当前进程的0-3G的MMAP虚拟内存映射区,找一块空闲虚拟内存区域,一旦找到以后,内核就会用struct vm_area_struct结构体来描述这块找到的虚拟内存区域;
+	struct vm_area_struct {
+		struct mm_struct *vm_mm; /* 所处的地址空间 */
+		unsigned long vm_start; /* 虚拟内存起始地址 */
+		unsigned long vm_end; /* 虚拟内存结束地址 */
+		pgprot_t vm_page_prot; /* 访问权限 */
+		unsigned long vm_flags; /* 虚拟内存区域标志 */
+		...
+	}; /* 内核通过此结构来管理映射的内存 */
+	vm_start	mmap的返回值addr;
+	vm_end		vm_start + 映射长度; /* 以上两个有内核完成的 */
+	vm_page_prot	访问权限;
+
+ +--------------------------------------------------------+
+ |  应用程序调用mmap();                                   |
+ |  -> 系统调用sys_mmap();                                |
+ |  -> 内核到用户空间查找/创建vm_area_struct描述映射的内存|
+ |  -> 调用底层驱动的x_mmap();                            |
+ |  -> 底层驱动的x_mmap()调用remap_pfn_range()实现映射;   |
+ |                                                        |
+ |  当应用程序调用mmap()返回addr;                         |
+ |  addr是指向虚拟空间首地址vma_start;                    |
+ |  mmap前两个参数由内核转换为vm_start和vm_end;           |
+ |  mmap的prot传递给vma_area_struct的prot;                |
+ +--------------------------------------------------------+
+3.sys_mmap最后调用到底层驱动的x_mmap,并将内核创建的vm_area_struct结构体的首地址vma传递给底层驱动的x_mmap;
+4.底层驱动的x_mmap通过vma->vm_start获取要映射的虚拟地址,通过芯片手册或者原理图得到要访问的物理地址,底层驱动的mmap最后调用remap_pfn_range函数完成将物理地址到用户进程的虚拟地址映射; 
+
+设备驱动中的mmap
+在struct file_operations的成员中
+.mmap = x_map
+
+int (*mmap)(struct file *filp,
+             struct vm_area_struct *vma);
+	filp	文件指针,open->sys_open创建的文件指针; /* 物理地址 */
+	vma		待映射的进程vma(内核已经分配好的)指针; /* 虚拟地址 */
+
+4.最后将vma->vm_start返回给应用程序的mmap,以后应用程序操作
+  addr = mmap(...);就是在访问硬件设备;
+
+驱动mmap
+	[X]	应用程序不能直接访问硬件;
+	[X]	内核虚拟地址=ioremap(物理地址),read/write/ioctl要2次拷贝;
+	[V] 把物理地址映射到用户进程虚拟地址,1次数据拷贝;
+x_map(filp, vma){
+	vma->vm_start	内核分配的用户进程虚拟地址;
+	物理地址看芯片手册;
+}
+到此万事俱备只欠东风,东风就是映射的实现;
+
+int remap_pfn_range(struct vm_area_struct *vma,
+					unsigned long addr,
+					unsigned long pfn,
+					unsigned long size,
+					pgprot_t prot);
+	vma		用户虚拟内存区域指针;
+	addr	用户虚拟内存起始地址;vma->vm_start;
+	pfn		要映射的物理地址所在页帧号,物理地址除以4k;
+			可通过 [物理地址 >> PAGE_SHIFT]得到;
+	size	待映射内存区域的大小;
+	prot	vma的保护属性;mmu地址转换时有权限检查;
+	该操作将用户空间的一段地址关联到设备内存上,当用户读写这段用户空间时,实际上就是在访问设备;
+	mmap操作的任务就是建立虚拟地址到物理地址的页表;
+	
+总结:
+1.MMAP虚拟内存区域中的空闲虚拟内存由内核来找;
+2.这块内存区域找到以后,由内核创建vm_area_struct结构体来描述;
+3.最终完成物理地址到用户虚拟地址的映射由驱动程序来完成,所以底层驱动的mmap只做一件事,就是将物理地址和用户空间的虚拟地址做映射,一旦映射好以后,用户就可以在用户空间访问虚拟地址,完成对硬件的操作和访问;
+4.以后用户在用户空间访问映射的虚拟地址就是在访问映射设备,原来使用read,write,ioctl经过两次的数据拷贝过程才能完成对设备的访问,使用mmap变成1次数据拷贝,从而实现对设备访问效率的提高;
+
+案例:使用mmap完成点灯
+#include <linux/mm.h>
+
++-----------------------+
+| IO多路监听select/poll |
++-----------------------+
+linux系统的select/poll实现IO多路监听
+一个应用读取多个设备
+	百度地图:GPS(串口)/WIFI/按键
+
+案例:一个应用程序如何读取多个设备
+解决方案:
+	首先应用程序打开要访问的设备
+	int fd1, fd2, fd3;
+	fd1 = open(按键);
+	fd2 = open(串口);
+	fd3 = socket(...);
+
+读取方法如下:
+
+方案1:循环顺序读取
+	while (1) {
+		read(按键);
+		read(串口);
+		recvfrom(网络);
+	}
+	这种读取方法会造成数据的丢失,因为当主进程在读取按键的时候,如果没有按键操作,主进程在第一个read就进行休眠,造成串口和网络的数据无法获取;
+
+方案2:开启多个线程或者子进程分别区读取三个设备
+	void *threa1(void *arg){
+	   	read(串口);
+	}
+	void *threa2(void *arg){
+	   	read(按键);
+	}
+	void *threa3(void *arg){
+	   	read(网络);
+	}
+	这种方法可以避免数据的丢失问题,但线程的创建增大系统的开销. 
+
+方案3:采用IO多路监听机制select/poll
+	驱动中添加poll;应用程序中调用select或poll
+	主进程分别被添加到三个驱动程序各自的等待队列中;
+	目的:一个主进程就能够实现监听多个设备,如果发现某一个设备可用(可读,可写),那么主进程就去操作这个设备;
+
+问:linux应用程序如何使用select
+答:
+	$ man 2 select
+/* According to POSIX.1-2001 */
+#include <sys/select.h>
+
+/* According to earlier standards */
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+select() and  pselect()  allow  a  program  to  monitor  multiple  file
+descriptors,  waiting  until one or more of the file descriptors become
+"ready" for some class of I/O operation (e.g., input possible).  A file
+descriptor  is considered ready if it is possible to perform the corre-
+sponding I/O operation (e.g., read(2)) without blocking.
+
+int select(int nfds, 
+			fd_set *readfds, 
+			fd_set *writefds,
+			fd_set *exceptfds, 
+			struct timeval *timeout); /* 监听各set中的设备 */
+void FD_CLR(int fd, fd_set *set);/* 从监听集合set清除指定的fd */
+int  FD_ISSET(int fd, fd_set *set); /* 判断是否set的fd引起的唤醒 */
+void FD_SET(int fd, fd_set *set); /* 添加fd到监听集合set */
+void FD_ZERO(fd_set *set); /* 清空set */
+
+功能:
+	能够监听多个设备的读/写/异常;
+	如果设备出现可读/可写或异常,那么就让主进程去处理这个设备.
+	主进程调用此函数监听这些设备,当设备不可用,主进程就会进入休眠状态,当其中一个设备可用,那么主进程就被唤醒,然后去处理设备;
+
+参数注解	
+	nfds		当前进程监听集合中最大的文件描述符 + 1;
+	fd_set		数据类型,用于描述要监听的文件描述符集合,
+				如果要使用select对设备进行监听,
+				必须将要监听的设备的文件描述符添加到这个集合中;
+				否则select不会对其监听;
+	readfds		监听设备的可读性;
+	writefds	监听设备的可写性;
+	exceptfds	监听设备是否有异常;
+	timeout 	超时时间,如果设置了超时时间且设备不可用,当超时时间到,主进程就会被唤醒,select函数立即返回;如果指定为NULL,主进程会一直休眠等待;
+
+	如果要监听一个设备是否可读/写,将设备的文件描述符分别添加到对应的readfds和writefds中即可;
+	如果这些被监听的设备不可用,主进程就会进入休眠状态,一旦发现设备可用,主进程就会被唤醒,然后处理设备. 
+
+返回值
+	返回值>0,表明select监听到设备可用(可读,可写,异常);
+	返回值=0,表明select超时返回;
+	返回值=-1,表明select系统调用出错;
+
+注意:
+select仅仅只做监听,对设备的读写还需要调用read,write,ioctl等方法来操作设备;
+select不会告诉我们是哪个可用设备唤醒了主进程;还需要主进程进一步判断;
+
+问:如何将一个设备添加到文件描述符集合中
+问:如何将一个设备从文件描述符集合中删除
+问:如何判断数据来自哪个具体的设备
+答:
+	fd_set文件描述符集合操作的方法:
+
+/* 添加一个新的设备,进行监听,如果要再次监听,需要重新添加监听的设备 */
+	void FD_SET(int fd, fd_set *set);
+/* 清空set;如果要进行再次监听,监听前需要清空set */
+	void FD_ZERO(fd_set *set);
+
+/* 删除指定的某个设备,不再进行监听 */
+	void FD_CLR(int fd, fd_set *set);
+
+/* 判断是哪个设备引起的主进程唤醒,
+ * 如果是某一个设备引起的唤醒,FD_ISSET返回true,否则返回false */
+	int  FD_ISSET(int fd, fd_set *set);
+	
+案例:利用系统提供的select的参考代码,实现用户输入信息,在终端里进行回显;
+
+应用程序select和底层驱动的poll的实现过程
+问:一个主进程对应多个监听的设备,主进程如何实现休眠
+问:只要有一个设备数据变为可用,都会唤醒休眠的进程,怎么实现
+
+答:
+	一个主进程能够监听多个设备,如果设备不可用(poll返回0),主进程进入休眠状态,但只要有设备个体可用,就会唤醒休眠的进程,那么也就意味着主进程分别被添加到所监听的设备驱动程序各自的等待队列头中,然后利用等待队列机制实现进程的休眠. 
+
+主进程select() -> sys_select()
+unsigned int ret = 0, timed_out = 0, mask;
+for (;;) {
+	for (监听设备的个数) {
+		mask = file->f_op->poll(); /* 调用驱动poll() */
+		/* poll()会将当前进程添加到驱动的等待队列头 */
+		/* mask == 0 设备不可用 */
+		/* mask != 0 设备可用 */
+		if (mask != 0) {
+			/* 设备可用 */
+			ret++;
+		}
+	}
+	if (ret || timed_out || signal_pending(current)) {
+		/* 设备可用 || 超时时间到 || 接收到信号 */
+		break; /* 跳出死循环,返回用户空间 */
+	}
+	if (!poll_schedule_timeout(...)) { /* 超时休眠 */
+		/* 调用poll_schedule_timeout()函数 */
+		/* 如果超时时间未到将在此进入休眠 */
+		/* 如果设备数据可用底层poll将唤醒主进程,
+		 * 该函数返回非0 */
+		/* 如果超时时间到poll_schedule_timeout直接返回0,
+		 * timed_out置1,下一次循环时跳出并返回用户空间 */
+		timed_out = 1;
+	}
+	/* 超时/信号/休眠都已经由系统内核实现 */
+	/* 以前用户进程的休眠是在驱动中,现在是在系统调用中 */
+} /* 返回用户空间 */
+驱动中poll()的返回值很关键,真正的休眠不是在驱动的poll()中完成的;
+
+在struct file_operations中
+unsigned int (*poll)(struct file *filp,
+						struct poll_table_struct *wait);
+	filp	文件指针;
+	wait	轮询表指针;
+poll()设备操作的任务
+	调用poll_wait()将当前进程添加到休眠的等待队列头,并不会引起休眠;
+	返回描述设备是否可读/可写的掩码;
+
+poll_wait()函数
+void poll_wait(struct file *filp,
+				wait_queue_head_t *wait_address,
+				poll_table *p);
+	filp	执行操作的设备文件指针;
+	wait_address	设备驱动的等待队列头;
+	p		内核传递的轮询表指针;
+poll_wait()函数调用并不会引起阻塞,它仅仅将当前进程添加到wait参数指定的等待队列中;
+poll操作返回值
+	通常返回以下定义"或"的结果
+	POLLIN		设备可无阻塞读;
+	POLLOUT		设备可无阻塞写;
+	POLLRDNORM	数据可读
+	POLLWRNORM	数据可写
+	设备可读通常返回	POLLIN | POLLRDNORM
+	设备可写通常返回	POLLOUT | POLLWRNORM
+
+驱动中poll操作一般结构
+xxx_poll(){
+	/* [1] */
+	unsigned int mask = 0; /* 定义返回值 */
+	...
+	/* [2]调用poll_wait()把进程添加到等待队列中,不休眠 */
+	...
+	/* [3] */
+	if (device is ready for read) {
+		mask = POLLIN | POLLRDNORM;
+		...
+	}
+	return mask; /* 0,不可用; 非0,可用 */
+}
+
+过程
+当应用程序调用select/poll(启动监听多个设备)->sys_select();
+A超时返回的情况
+A1.挨个执行每个驱动程序的poll函数,底层驱动的poll函数会将当前主进程添加到各自的等待队列头中,然后根据设备的可用性,返回0或非0;
+	如果设备有可用的,poll返回非0;
+	如果设备都不可用,poll返回0;
+A2.如果驱动的poll返回0(设备不可用),接着判断是否有超时,
+	A2-1.如果还没有超时,
+	再判断当前主进程是否接受到信号,
+	if (接受到信号) {
+		返回到用户空间;
+	} else if (没有接受到信号){
+		sys_select最终会调用poll_schedule_timeout()
+		让主进程进入休眠,超时计时仍然在进行;
+	}
+	A2-2.如果超时时间到,设备仍不可用,poll_shedule_timeout函数返回0(超时到期),超时时间标志置1并进入下一次循环;
+3.再次调用每个驱动的poll,判断设备是否可用,若都不可用,判断是否超时,若已超时,返回用户空间;
+
+B如果不是超时的返回
+B1当调用poll_schedule_timeout进入休眠时,超时时间未到,这时其中一个设备数据可用,这个设备的驱动程序就会唤醒休眠的主进程(此前已经把主进程添加到驱动的等待队列头中),函数poll_schedule_timeout返回非0(超时没到期),
+B2由于驱动的poll被调用,这时肯定有某一个驱动程序的poll返回0,最后返回用户空间;
+
+总结:底层驱动的poll完成的工作
+	1.调用poll_wait将主进程添加到各自驱动的等待队列头中;
+	2.判断设备是否可用,如果不可用返回0,否则返回非0;
+
+案例:给第二版本的按键驱动添加被监听的功能
+

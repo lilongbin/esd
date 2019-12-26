@@ -1,0 +1,478 @@
+wait_queue
+MMU
+kmalloc/kfree+memset
+
+
+回顾:
+linux内核并发和竞态
+1.掌握概念
+   并发:多个执行单元(进程,中断处理程序)同时进行
+   竞态:首先要有并发,还要有共享资源
+   共享资源:包括硬件资源和全局变量
+   互斥访问:在同一时刻,只能有一个执行单元访问共享资源
+   临界区:访问共享资源的代码区
+   建议读读计算机操作系统的书籍!
+2.掌握产生竞态的情况
+   多核(SMP):共享总线(地址总线,数据总线),IO等(内存,外存)
+   进程和抢占它的进程
+   中断和进程
+   中断和中断
+3.Linux内核解决竞态的方法
+   中断屏蔽:CPU的CPSR是总开关,中断控制器是二级开关;对操作系统会有影响
+   原子操作:分为位原子操作和整型原子操作
+   自旋锁:不能处理中断引起的竞态,且会引起忙等待影响系统性能
+   衍生自旋锁:能解决所有情况的竞态
+   信号量:睡眠锁
+
++-------------------+
+| Linux内核等待队列 |
++-------------------+
+如何让一个应用程序在内核空间进入休眠
+案例:当串口设备不可读的时候(没有数据可读),应用程序应该怎么办
+	[休眠]
+案例:当按键设备没有操作时(按键数据不可读),应用程序应该怎么办
+	[休眠]
+答:
+	应用程序对设备的这种状态(数据不可用的状态),可以轮询(polling)读取设备的数据直到读到有效的数据,这种方式其实是一种忙等待,相当糟糕;
+	还可以通过睡眠等待的方式,就是当设备数据不可用时,由底层驱动来检测/检查/识别设备数据是否可用;如果不可用,底层设备驱动就让应用程序(此时应用程序已由用户空间通过系统调用进入到内核空间)进入休眠状态(结果让当前进程的CPU资源让给其他任务去使用),并且底层驱动能够检查设备是否可用,如果检查到设备数据可用,会唤醒休眠的进程(休眠的进程一旦被唤醒,就会获取CPU资源),然后去读取数据;
+
+问:如何实现应用程序(的进程)在设备驱动中(内核空间)进行休眠和唤醒
+答:
+	要实现这种机制,需要驱动程序具有检查设备是否可用的功能;
+
+	进程的休眠实际上是进程在用户空间通过系统调用进入内核空间后,在内核空间休眠;应用程序如果要在用户空间进行休眠只有调用sleep();
+	驱动程序不能让应用程序在用户空间进入休眠状态,因为用户空间不能直接访问硬件资源;只用在应用程序进入内核空间之后访问驱动程序时让应用程序进入休眠状态;
+
+	在Linux驱动程序中,可以使用等待队列来实现进程阻塞;
+	等待队列可以看作保存进程的容器,在阻塞(休眠)进程时,将进程放入等待队列,当进程被唤醒时,从等待队列中取出进程;
+	实际上,信号量等对进程的阻塞在内核中也是依赖等待队列来实现的;
+
+等待队列数据类型定义:
+	定义在<linux/wait.h>中
+	/* 等待队列头 */
+	struct __wait_queue_head {
+		spinlock_t lock;
+		struct list_head task_list;
+	};
+	typedef struct __wait_queue_head wait_queue_head_t;
+
+	/* 等待队列,存放要休眠的进程 */
+	struct __wait_queue {
+		unsigned int flags;
+		#define WQ_FLAG_EXCLUSIVE 0x01;
+		void *private;
+		wait_queue_func_t func;
+		struct list_head task_list;
+	};
+	typedef struct __wait_queue wait_queue_t;
+
+类似于老鹰抓小鸡;
+老鹰就是进程调度器;
+等待队列头和等待队列分别对应鸡妈妈和小鸡队列;
+对老鹰来说鸡妈妈没有用,关键是要抓到小鸡;
+
+等待队列操作
+
+定义在<linux/wait.h>中
+定义和初始化队列头
+	wait_queue_head_t wqh;
+		/* 定义等待队列头类型变量 */
+	init_waitqueue_head(wait_queue_head_t *wqh);
+		/* 初始化等待队列头 */
+	或
+	DECLARE_WAIT_QUEUE_HEAD(name);
+		/* 定义并初始化等待队列头 */
+定义和初始化等待队列
+	/* 定义并初始化等待队列 */
+	wait_queue_t wait;
+	init_waitqueue_entry(&wait, current);
+
+	/* 定义并初始化等待队列 */
+	DECLARE_WAITQUEUE(name, task);
+		/* 定义并初始化一个名称为name的等待队列;
+		 * task通常被设置为代表当前进程的current指针;
+		 * 截至目前接触了两个内核全局变量jiffies和current;
+		 */
+添加/移除等待队列
+	add_wait_queue(wait_queue_head_t *q, wait_queue_t wait);
+		/* 将等待队列wait添加到等待队列头q指向的等待队列数据链中 */
+	remove_wait_queue(wait_queue_head_t *q, wait_queue_t *wait);
+		/* 从中移除 */
+等待事件
+	wait_event(queue, condition);
+		/* 当condition为真时,立即返回;
+		 * 否则进程进入TASK_UNINTERRUPTIBLE类型的休眠状态,
+		 * 并挂在queue指定的等待队列数据链上;
+		 */
+	wait_event_interruptible(queue, condition);
+		/* 当condition为真时,立即返回;
+		 * 否则进程进入TASK_INTERRUPTIBLE类型的休眠状态,
+		 * 并挂在queue指定的等待队列数据链上;
+		 */
+	wait_event_killable(queue, condition);
+		/* 当condition为真时,立即返回;
+		 * 否则进程进入TASK_KILLABLE类型的睡眠状态,
+		 * 并挂在queue指定的等待队列数据链上;
+		 */
+	wait_event_timeout(queue, condition, timeout);
+		/* 但condition为真时,立即返回;
+		 * 否则进程进入TASK_UNINTERRUPTIBLE类型的睡眠状态,
+		 * 并挂在queue指定的等待队列数据链上;
+		 * 当阻塞时间timeout超时后,立即返回
+		 */
+	wait_event_interruptible_timeout(queue, condition, timeout);
+		/* 当condition为真时,立即返回;
+		 * 否则进程进入TASK_INTERRUPTIBLE类型的睡眠状态,
+		 * 并挂在queue指定的等待队列数据链上;
+		 * 当阻塞时间timeout超时后,立即返回
+		 */
+唤醒队列
+	wake_up(wait_queue_t *queue);
+		/* 唤醒由queue指向的等待队列数据链中的所有睡眠类型的等待进程 */
+	wake_up_interruptible(wait_queue_head_t *queue);
+		/* 唤醒由queue指向的等待队列数据链中的所有睡眠类型为
+		 * TASK_INTERRUPTIBLE类型的等待进程 */
+改变进程状态的方法
+	调用set_current_state(state_value);
+	调用set_task_state(task, state_value);
+	直接采用current->state = TASK_INTERRUPTIBLE; /* 类似于赋值语句 */
+
+linux内核等待队列实现进程休眠和唤醒的方法和步骤
+	定义和初始化等待队列,将进程状态改变,并将等待队列添加到等待队列数据链中;
+	通过schedule()调用放弃CPU,调度其他的进程执行;
+	进程被其他地方唤醒,将等待队列移出等待队列头;
+编程方法1:
+	1.定义等待队列头
+		wait_queue_head_t wqh;
+	2.初始化等待队列头
+		init_waitqueue_head(&wqh);
+	DECLARE_WAIT_QUEUE_HEAD(wqh); /* 定义并初始化等待队列头 */
+	3.定义等待队列
+		wait_queue_t wait;
+	4.初始化等待队列,将当前进程添加到这个容器中(等待队列)
+		init_waitqueue_entry(&wait, current);
+	 DECLARE_WAITQUEUE(wait, current);
+	说明:
+	current是内核的一个全局变量,用来记录当前进程,内核对于每一个进程,在内核空间都有一个对应的结构体struct task_struct,而current指针就指向当前运行的那个进程的task_struct结构体;
+	可以通过current指针来获取当前进程的pid和进程的名字(current->pid, current->comm);
+	5.将当前进程添加到等待队列头中(还没有真正的休眠);
+		add_wait_queue(&wqh, &wait);
+	6.设置当前进程为可中断的休眠状态(还没有真正的休眠);
+		set_current_state(TASK_INTERRUPTIBLE); /* 能够接收处理信号 */
+		说明:设置状态之前,进程是TASK_RUNNING状态;
+	7.调用schedule()完成真正的休眠工作,当调用此函数时,会将当前进程占用的CPU资源让出来给别的任务,并让当前进程进入真正的休眠状态,一旦进程被唤醒,schedule()函数就返回,代码继续往下执行;
+	8.一旦被唤醒以后,要判断是什么原因唤醒当前进程:
+		唤醒进程的原因:
+			1.数据可用的唤醒;
+			2.接收到了信号;
+	9.调用signal_pending(current)来判断是否是因为接收到信号引起的唤醒;
+		如果函数返回0,表明没有接收到信号,说明唤醒是由于数据可用引起的唤醒;
+		如果函数返回非0,表明接收到信号(引起的唤醒),就不要再操作硬件设备了;
+	10.如果是设备数据可用引起的唤醒,一旦唤醒,就调用:
+		current->state = TASK_RUNNING; /* 设置当前进程为运行状态 */
+		remove_wait_queue(wait_queue_head_t *q, wait_queue_t *wait);
+		remove_wait_queue(&wqh, &wait);
+		/* 将唤醒的进程从等待队列头所在的数据链中移除. */
+	11.进程读取或者操作设备即可. 
+
+参考代码:
+	假设串口没有数据到来,应用程序调用read读->驱动uart_read:
+	wait_queue_head_t rwq; /* 分配一个读的等待队列头, 全局变量 */
+	init_waitqueue_head(&rwq); /* 在驱动入口函数初始化 */
+
+uart_read() {
+	wait_queue_t wait; /* 分配等待队列 */
+	init_waitqueue_entry(&wait, current); /* 将当前进程添加到容器中 */
+	add_wait_queue(&rwq, &wait); /* 将当前进程添加到队列头中 */
+	set_current_state(TASK_INTERRUPTIBLE); /* 设置当前进程的状态 */
+	schedule(); /* 进入真正的休眠状态(CPU资源让给别的任务) */
+	/* 一旦被唤醒,要判断是哪个原因引起的唤醒 */
+	if(signal_pending(current)){
+	/* 信号引起的唤醒 */
+		printk("RECV SIN!\n");
+		return -ERESTARTSYS;
+		/* 返回用户空间的read */
+	} else {
+	/* 由数据可用引起的唤醒 */
+		set_current_state(TASK_RUNNING);
+		remove_wait_queue(&rwq, &wait);   
+		/* 读取串口数据 */
+		copy_to_user(...);
+		/* 上报数据 */
+	}
+}
+
+编程实现方法2:
+	案例:如果串口没有数据到来,应用程序调用read->uart_read
+	1.分配等待队列头
+		wait_queue_heat_t rwq;
+	2.初始化等待队列头
+		init_waitqueue_head(&rwq);
+	3.在uart_read函数中
+	直接调用
+	wait_event/wait_event_timeout/wait_event_interruptible_timeout
+	wait_event_interruptible(&rwq, condition);
+	/* 如果数据可用,condition为真;
+	 * 如果数据不可用,condition为假,当前进程就会进入休眠.
+	 */
+	4.一旦被唤醒,当前进程直接去操作设备即可
+
+问:如何唤醒
+答:唤醒源有三个:1.数据可用;2.接收到信号;3.超时唤醒;
+	如果是数据可用的唤醒,那就表明硬件设备可用;
+	如何判断硬件设备可用呢,一般要么轮询,要么中断,因为一旦设备给CPU发一个中断信号,表明设备可用,那么只需在中断处理函数中唤醒休眠的进程即可,这种唤醒就是设备可用的唤醒!
+
+问:在内核中如何唤醒
+答:在中断处理函数中调用一下函数即可实现唤醒进程:
+	wake_up()/wake_up_interruptible();
+
+案例:编写按键驱动的第二版本,采用中断和等待队列机制来实现应用程序获取按键值,当按键按下,上报0x51,按键松开,上报0x50;
+	1.应用程序调用read,最终执行驱动的read,第一次读ispress==0,应用程序休眠;
+	2.当按下按键触发外部中断并调用中断处理函数,记录按键值修改ispress=1,唤醒休眠的进程;
+	3.ispress=0复位,按键值上报至用户空间;
+	4.用户空间将值打印出来,并进入下一个读循环;
+案例:采用等待队列编程方法1实现按键驱动
+
+问:为什么要写这个第二版本的按键驱动
+答:
+    因为按键驱动的第一版本采用轮询方式,非常浪费CPU的资源,也就是按键有没有操作,应用程序都会去读取按键设备,做了大量的无用功;
+    所以需要这么改进:
+	当按键没有操作时,应该让应用程序进入休眠状态,这个休眠的过程应该在底层驱动中来实现(驱动能够检查按键是否有操作－－－中断);一旦按键有操作,必然产生(硬件)中断,在中断处理函数中唤醒休眠的进程,进程被唤醒以后,再去读按键的有效数据即可;
+	中断本身不能和用户空间进行数据的往来. 如果中断中向用户空间上报数据信息,还要结合系统调用(file_operations).还需要中断和内核的等待队列机制来实现第二版本的驱动. 
+
+linux内核非阻塞的实现
+	实际上应用程序并不关心驱动里面read/write具体实现,只管调用并获取返回值;
+	如果设备没有准备好数据给应用程序read或者没有准备好接收用户程序write,驱动程序应当阻塞进程,使它进入休眠,直到请求可以得到满足;
+
+阻塞读
+	在阻塞型驱动程序中,如果进程调用read设备操作,但是设备没有数据或数据不足,进程应该被阻塞;当新数据到达后,唤醒被阻塞的进程;
+
+阻塞写
+	在阻塞型驱动程序中,如果进程调用write设备操作,但是设备没有足够的空间供其写入数据,进程应该该被阻塞;当设备中的数据被读取后,缓冲区中空出部分空间,再唤醒被阻塞进程;
+	
+阻塞方式是文件读写操作的默认读写方式;
+应用程序可以通过使用O_NONBLOCK标志来人为的设置读写操作为非阻塞方式;
+	定义在<asm-generic/fcntl.h>中;
+	如果设置了O_NONBLOCK标志,read和write的处理行为相同;
+1.阻塞访问方式是linux访问设备的默认方式,也就说如果设备不可用(不可读,不可写),那么驱动程序利用等待队列将进程进行休眠. 
+2.如果驱动程序不想让进程进入休眠,而是采用非阻塞方式来处理(立即返回应用程序),如何实现这种机制呢
+
+非阻塞的实现步骤:
+应用程序调用open时,需要指定采用非阻塞来访问设备
+	int fd = open("/dev/mybuttons", O_RDWR | O_NONBLOCK);//只需指定一个
+	O_NONBLOCK表明对设备的访问就是采用非阻塞来访问. 
+问:应用程序open指定了这个宏,怎么样就让底层驱动的btn_read函数就知道了是采用非阻塞访问
+答:
+  open->sys_open:
+	1.从inode->i_rdev获取设备号
+	2.以设备号为索引找到自己的cdev
+	3.创建struct file对象
+	4.将找到的cdev中的ops赋值给file->f_op
+	5.然后将O_RDWR | O_NONBLOCK信息保存在file->f_flags
+	6.如果file->f_op中有open的实现,那么就调用底层驱动的open,如果没有,立即返回用户空间(永远成功);
+	通过以上的过程可知,在底层驱动的其他接口函数中,比如read,write,通过file->f_flags来判断应用程序是采用阻塞还是非阻塞;
+	if (file->f_flags & O_NONBLOCK) {
+	/* 采用非阻塞方式 */
+		if (设备数据是否可用){} 
+		else {不可用, 直接return用户空间即可;}
+	} else {
+	/* 阻塞方式 */
+	}
+
+案例:将按键驱动添加非阻塞的功能
+
+
++----------------------+
+| Linux内核内存管理MMU |
++----------------------+
+1.内存空间和IO空间
+	X86平台:具有内存空间和IO空间,内存空间寻址范围为(32位)4G,IO空间寻址访问(16位)64K,如果将外设连接到内存空间,CPU访问外设都是通过地址(指针)的形式来访问;如果将外设连接到IO空间,CPU访问外设都是通过in,out两条指令集来完成对设备的访问;
+	ARM平台:没有IO空间,只有内存空间,所以设备的访问都是通过地址(指针)的形式,比如访问操作LED,都是访问操作LED对应的寄存器地址. 
+
+2.用户不管是在用户空间还是在内核空间,访问的地址都是虚拟地址,内存都是虚拟内存,为什么不去直接访问物理内存. 
+因为虚拟内存有好处:
+	1.用户程序可以使用到比实际物理内存更大的空间. 
+	2.用户看到的和接触的都是虚拟地址,无法看到真实的物理地址. 
+	3.实现操作系统自我保护. 
+		应用程序不能直接访问内核空间,需要访问必须通过系统调用!
+	4.每个进程都有独立的内存空间,大小为3GB,互不相干;
+	5.内核空间1G,对于所有的进程都是共享的;进程为每个进程提供了8K的内核栈;
+	6.用户空间的地址范围:0x00000000 ~ 0xBFFFFFFF
+	 内核空间的地址范围:0xC0000000 ~ 0XFFFFFFFF
+
+3.CPU最终访问的地址都是物理地址,但程序里看到的都是虚拟地址,如何进行转换
+答:
+	MMU(内存管理单元):管理内存并把虚拟地址转换为物理地址的硬件逻辑单元;以页为单位处理,并进行内存访问权限保护,控制cache等;
+	一旦CPU具有MMU,那就可以使用虚拟地址,如果CPU不具有MMU,就无法使用虚拟地址,如FPGA+ARM核(不带MMU)->uclinux(物理地址);
+
+页表
+	就是虚拟地址和物理地址之间的一个映射关系,保存在主存(内存)里面;
+	MMU转换就是通过页表来实现虚拟与物理的转换.
+TLB
+	类似cache,MMU为了提高转换的速度,用TLB来做页表的缓存;
+TTW
+	转换表遍历硬件;
+	如果TLB中没有要转换的页表,这时就需要从主存中取出页表,再更新TLB中的页表,为下一次转换做好准备!
+
+ARM CPU 数据访问流程
+---------------------------------
+start;
+if (MMU_enable == false) {
+	goto visit_memory;
+	return;
+}
+res = find_out(MMU_TLB);
+if (res != OK) {
+	MMU(TTW);
+	if (MMU(TTW) == exception){
+		printf("error\n");
+		return;
+	} else {
+		fresh(MMU_TLB);
+	}
+}
+if (permission != right){
+	printf("error\n");
+	return;
+}
+if (cash_bit !=1) {
+	goto vist_memory;
+	return;
+}
+res = find_out_cashe;
+if (res != find_out) {
+	goto visit_memory->fresh_cashe;
+}
+visit_cashe;
+end;
+---------------------------------
+
+Linux内存最小管理单元为页,通常一页为4KB;
+内核用struct page结构表示系统中的每一个物理页,不是虚拟页,在内核初始化的时候为每一个物理页都分配了这样一个结构体来描述物理内存本身;
+page结构与物理页相关,而非与虚拟内存相关;
+物理内存页已经映射到内核空间的起始处,便于直接访问,无需复杂页表操作;
+
+Linux内核虚拟地址空间的使用
+1.内核空间的1G地址空间是共享的在内核初始化时,完成跟物理内存的映射,后续无需再建立页表等操作,提高访问速度;
+2.用户空间的3G地址空间是相互独立的不会在内核初始化时映射,而是在用户进行真正的访问时,才会动态建立用户虚拟地址和物理地址之间的映射;不使用时不建立映射;
+copy_from_user/copy_to_user会检查用户空间的虚拟地址空间是否已经建立了映射;
+内存中0x2000 0000 ~ 0x2000 8000存放页表信息;
+
+问:内核初始化时建立的内核空间的虚拟地址空间只有1G,如果物理内存大于1G,如何建立虚拟和物理上的映射
+答:内核对于这种情况,内核将1G地址空间进行划分:
+	对于X86平台,划分的结果如下:
+内核地址空间划分:
++----------------+--------------+----------+----------+
+|  直接          |   动态       |  永久    |   固定   |
+|内存映射区..    |内存映射区..  |内存映射区|内存映射区|
+|最大896MB       |最大120MB     |4MB       |4MB       |
+|0xC0000000开始  |              |          |          |
++----------------+--------------+----------+----------+
+
+直接内存映射区:
+	这块区域也叫Low mem(低端内存);
+	起始地址0xC0000000,大小关键看物理内存的大小,如果物理内存大于896M,直接内存映射区的大小就是896M,后面128M用于动态内存映射;
+	直接内存映射物理地址和虚拟地址之间存在一一映射的线性关系:
+		虚拟地址 = 0xC0000000 + (物理地址 - 物理地址的起始地址);
+
+	High_memory是物理内存超过896M时超过直接内存映射区的那部分内存,实际上只有内存大于896M的情况才有高端内存,如果物理内存小于896M直接做一一映射则不存在高端内存;
+	
+动态内存映射区:
+	动态内存映射区由内核函数vmalloc来分配,特点是线性空间连续,但对应的物理空间不一定连续;起始地址要根据物理内存的大小决定;需要时映射;
+	vmalloc函数分配的线性地址所对应的物理页可能位于低端内存,也可能位于高端内存;
+	如果物理内存大于896MB,high_memory = 起始地址0xC0000000+896M;
+	如果物理内存小于896MB,high_memory = 起始地址0xC0000000+物理内存的大小;
+	该区域从high_memory+8M内核地址开始分配;
+	虚拟上连续,物理上不一定连续!
+
+永久内存映射区:
+	如果要频繁使用某一个物理页,可以直接将物理做好一个固定映射;
+	调用void *kmap(struct page *page);如果page位于低端内存中的一页,函数单纯返回页的虚拟地址;如果位于高端内存,会建立一个永久映射,再返回地址;
+	kunmap(struct page *page);函数可以解除映射;
+	会引起休眠,只能用在进程上下文;
+
+固定内存映射区:
+	与永久内存映射区建立的方法不一样;
+	要映射一个给定的page结构到内核地址空间,并且不能休眠;
+	void *kmap_atomic(struct page *page, ...);
+	如果page位于低端内存中的一页,函数单纯返回页的虚拟地址,如果位于高端内存,会建立一个永久映射,再返回地址;
+	kunmap_atomic(struct page *page, ...);解除映射;
+	可以用在中断上下文,禁止内核抢占;
+	如果要在中断上下文中进行将物理地址和虚拟地址做一个固定映射,可以使用kmap_atomic做映射;
+
+对于S5PV210,1G内核虚拟地址空间的划分如下:
+    vector  : 0xffff0000 - 0xffff1000   (   4 kB)
+    fixmap  : 0xfff00000 - 0xfffe0000   ( 896 kB)
+    DMA     : 0xff000000 - 0xffe00000   (  14 MB)
+    vmalloc : 0xf4800000 - 0xfc000000   ( 120 MB)
+    lowmem  : 0xc0000000 - 0xf4000000   ( 832 MB)
+    modules : 0xbf000000 - 0xc0000000   (  16 MB)
+      .init : 0xc0008000 - 0xc0037000   ( 188 kB)
+      .text : 0xc0037000 - 0xc0831000   (8168 kB)
+      .data : 0xc0832000 - 0xc08817a0   ( 318 kB)
+
+malloc/free		按字节分配内存
+valloc/free		分配的内存按页对齐
+kmalloc/kfree	分配的内存物理上连续,只能在低端内存分配;
+				不会清除内存中的垃圾;
+				可使用kzalloc/kfree相当于kmalloc+memset;
+get_zeroed_page/free_page	分配一个页面,并且该页面内容被清零,只能在低端内存分配;
+__get_free_pages/free_pages	分配指定页数的低端内存;
+alloc_pages/__free_pages	分配指定页数的内存,可以从高端内存,也可从低端内存分配,通过宏指定;
+vmalloc/vfree 默认分配在动态内存映射区,分配的内存在内核空间中连续,物理上无需连续;vmalloc由于不需要在物理上连续,所以性能很差,一般只在必须申请大块内存时才使用,如动态插入模块时;
+对于申请的内存不再使用时必须释放,否则将导致系统错误;
+
+#include <linux/slab.h>
+void *kmalloc(size_t size, gfp_t flags);
+	size	待分配内存的大小(按字节统计);
+	flags	分配标志,用于控制kmalloc行为;GFPKERN
+	返回	分配到的内核虚拟地址,失败返回NULL;
+void kfree(const void *objp);
+	objp	由kmalloc返回的内核虚拟地址;
+
+unsigned long get_zeroed_page(gfp_t gfp_mask);
+	基于kmalloc()函数实现的;
+	gfp_mask	分配标志,用于控制kmalloc行为;
+	返回	指向分配到的已经被清零的内存页面第一个字节的指针,失败返回NULL;
+void free_page(unsigned long addr); //宏
+	addr	由get_zeroed_page返回的内核虚拟地址;
+
+unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order);
+	gfp_mask	分配标志,用于控制__get_free_pages行为;
+	order		请求或释放的页数的2的次幂;如操作1页该值为0,16页该值为4;
+				如果该值太大会导致分配失败,该值允许的最大值依赖于体系结构;
+	返回		指向分配到的连续内存区第一个字节的指针,失败返回NULL;
+void free_pages(unsigned long addr, unsigned int order);
+	addr	由__get_free_pages返回的内核虚拟地址;
+	order	__get_free_pages分配内存时使用的值;
+
+int get_order(unsigned long size);
+	size	需要计算order值的大小(按字节计算);
+	返回	__get_free_pages等函数需要的order;
+
+#include </linux/vmalloc.h>
+void *vmalloc(unsigned long size);
+	size	待分配的内存大小,自动按页对齐;
+	返回	分配到的内核虚拟地址,失败则返回NULL;
+void vfree(const void *addr);
+	addr	由vmalloc返回的内核虚拟地址;
+
+注意:以上函数的返回值需要进行类型转换;
+
+内核内存分配标志
+	GFP_KERNEL
+	表示该次内存分配由内核态进程调用,这是内核内存的正常分配,该分配方式最常用;如果空间空间不够,该次分配将使得进程进入睡眠等待空闲页出现;
+	所以不能用在中断上下文,不能用在中断屏蔽保护的临界区,不能用在中断屏蔽或自旋锁保护的临界区;
+	GFP_ATOMIC
+	用于分配请求不是来自于进程上下文,而是来自于中断\任务队列处理\内核定时器等中断上下文的情况,此时不能进入睡眠;可以用在中断上下文;如果请求分配的内存空间不足会立即返回;
+
+虚拟地址和物理地址转换
+	定义在arch/arm/include/asm/memory.h中
+	/* 虚拟地址转换为物理地址; */
+	unsigned long virt_to_phys(void *x);
+		/* 通过虚拟地址可以获得对应的物理地址; */
+	/* 物理地址转换为虚拟地址 */
+	void *phys_to_virt(unsigned long x);
+		/* 通过物理地址可以获得对应的虚拟地址; */
+前提是物理地址和虚拟地址已经做好了映射;
+

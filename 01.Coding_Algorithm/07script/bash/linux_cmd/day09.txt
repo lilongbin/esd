@@ -1,0 +1,123 @@
+9.01 useradd命令
+可以为当前系统添加新的用户
+ # useradd username
+ # useradd -m -d /home/username -s /bin/bash -g group username
+-d指定用户的宿主目录,-m选项表示如果目录不存在则创建
+
+
+9.02 userdel命令
+用于删除系统用户
+ # userdel test
+ # userdel -r test 连同用户的宿主目录一同删除
+
+9.03 passwd命令
+用于设置用户的密码如果新创建的用户没有设置密码,则用户将不能等路
+ #  passwd username
+ #  passwd -S username可以显示用户的密码信息LocK还是PasswdSet
+超级用户都可以改变任何用户的密码
+ # echo 123456 | passwd --stdin user
+
+9.04 groupadd命令
+用于创建新的用于组
+ #  groupadd grp1
+ #  groupadd -g 400 grp2	指定组ID为400
+
+
+9.05 groupdel命令
+用于删除一个工作组,前提是待删除的工作组为空
+ #  groupdel grp1
+
+9.06 su命令
+用于切换用户身份
+ #  su username
+ #  su root 需要输入root的密码
+ #  su - 切换用户身份的同时切换用户的工作环境
+
+9.07 usermod命令
+用于改变用户的基本信息
+ #  finger user
+ #  usermod -s /bin/bash user 更改用户的登录sh
+ #  usermod -l new -m -d /home/new old 将用户名old更改为new,宿主目录也改变
+
+9.08 chfn命令
+用于改变用户的基本信息
+ #  chfn user
+依次输入用户的全名,办公地址办公电话和家庭电话
+
+9.09 chsh命令
+用于修改用户的登录sh
+ #  chsh -l显示当前系统可以使用的sh
+ #  chsh user
+显示当前使用的sh,提示输入要修改的sh
+
+9.10 finger命令
+用于显示用户的基本信息
+ #  finger user
+ #  finger 依表格的形式显示当前系统多有的用户信息
+
+
+9.11 gpasswd命令
+是Linux系统中组密码的设置,现在的主要功能是用来管理组成员列表
+ #  gpasswd -a user grp 向grp中添加用户user
+
+9.12 groupmod命令
+用户设置工作信息,可以设置工作组的组ID和组名称
+ #  groupmod -n new group1 改名字
+ #  groupmod -g 8888 group1 改ID号
+
+
+9.13 groups命令
+用于显示指定的用户所属的工作组
+ #  groups root
+ #  groups user
+
+9.14 pack命令
+用于键车密码文件的完整性/etc/passwd;/etc/shadow
+ #  pwck
+管理员可以根据警告信息判别用户是否被设置了正确的属性
+
+9.15 grpck命令
+用于验证组文件的完成性 /etc/group;/etc/gshadow
+ #  grpck
+如果没哟问题将不返回任何信息
+
+
+9.16 logname命令
+用于打印当前用户的登录名
+ #  logname
+ 通常在shell脚本中获取用户的登录身份
+
+9.17 newusers命令
+用于批量创建用户,必须提前创建一个文件文件,包含要创建的用户的信息,格式要与passwd文件的信息对应,第2列的密码要为明文方式存放
+ # cat users.list
+user100:test:5555:5555::/home/user100:/bin/bash
+user200:test:6666:6666::/home/user200:/bin/bash
+ # newusers users.list
+
+9.18 chpasswd命令
+用批处理的方式更改用户的密码
+ # chpasswd
+uesr100:123
+user200:456
+按Ctrl+c将接受输入的内容.用户名加冒号加明文密码
+
+9.19 nologin命令
+用于礼貌的拒绝用户的登录
+ # chsh -s /sbin/nologin user100
+用户登录时将被礼貌的拒绝,提示信息可以在/etc/nologin.txt文件定制
+
+
+9.20 pwconv命令
+用于创建影子密码文件,将密码文件迁移到/etc/shadow文件,新版Linux都已经实现,不必再使用
+
+
+9.21 pwunconv命令
+用于将用户加密的密码,还原到/etc/passwd文件,不推荐使用,因该文件任何用户可读,将不安全
+
+9.22 grpconv命令
+用于将/etc/passwd文件中的密码迁移到/etc/gshadow文件中,只有root可读
+
+9.23 grpunconv命令
+是grpconv命令的逆操作,不建议使用,密码将不安全
+
+

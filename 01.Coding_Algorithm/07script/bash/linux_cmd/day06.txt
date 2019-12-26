@@ -1,0 +1,24 @@
+6.01 ctrlaltdel命令
+用于设置ctrl+alt+del组合键的功能,大多数支持重启计算机
+ # ctrlaltdel soft	//指定安全的重启
+
+6.02 halt命令
+用于关闭Linux系统
+默认情况不会切断电源
+-p选项会切断电源//poweroff
+
+6.03 poweroff命令
+用于关闭计算机系统并关闭电源
+-h选项会在关闭系统之前将所有的硬件设备设置为备用模式,可以安全的关闭计算机
+
+6.04 reboot命令
+用于重新启动计算机
+在正常情况下会写入系统日志文件中
+
+6.05 shoutdown命令
+是Linux和Unix都支持的关机或重启指令
+ # shutdown -r now //立即重启计算机
+ # shutdown -h +10 "system will down in 10 mins"//10分钟以后关闭计算机并给出提示
+ # shutdown -h 06:30 //shutdown the system at 06:30
+在没有执行关机之前可以按Ctrl+c撤销关机操作
+

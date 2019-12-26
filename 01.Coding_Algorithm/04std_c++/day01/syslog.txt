@@ -1,0 +1,121 @@
+syslog机制负责记录内核和应用程序产生的日志信息，管理员可以通过查看日志记录，来掌握系统状况。
+syslog是Linux系统默认的日志守护进程。默认的syslog配置文件是/etc/sysctl.conf文件,有些系统已经默认为rsyslog.conf
+通常，syslog 接受来自系统的各种功能的信息，每个信息都包括重要级。/etc/syslog.conf 文件通知 syslogd 如何根据设备和信息重要级别来报告信息。
+
+linux记录的日志有哪些呢？
+/var/log/lastlog ：记录最后一次用户成功登陆的时间、登陆IP等信息
+/var/log/messages ：记录Linux操作系统常见的系统和服务错误信息
+/var/log/secure ：Linux系统安全日志，记录用户和工作组变坏情况、用户登陆认证情况
+/var/log/btmp ：记录Linux登陆失败的用户、时间以及远程IP地址
+/var/log/cron ：记录crond计划任务服务执行情况
+
+
+日志格式 
+规定syslog消息的UDP报文不能超过1024字节，并且全部由可打印的字符组成。完整的syslog消息由3部分组成，分别是PRI、HEADER和MSG。大部分syslog都包含PRI和MSG部分，而HEADER可能没有。 
+如下是一条syslog消息： 
+<31>Jun 12 19:50:07 zsir syslog_test[3910]: debug-level message. 
+
+<31>是PRI部分，其中高5位为Facility，低3位为Severity； 
+Jun 12 19:50:07 zsir是HEADER部分； 
+syslog_test[3910]: debug-level message.是MSG部分；
+
+http://www.cnblogs.com/skyofbitbit/p/3674664.html，这篇博文对syslog格式有更详细的说明
+
+日志生成 
+在linux系统中提供了四个函数用于生成系统日志：
+#include <syslog.h>
+void openlog(const char *ident, int option, int facility);
+void syslog(int priority, const char *format, ...);
+void closelog(void);
+
+#include <stdarg.h>
+void vsyslog(int priority, const char *format, va_list ap);
+
+openlog函数（打开日志设备） : 
+	ident - 标记，添加到每行日志前，通常用当前程序名。 
+	option - 选项，常用值为LOG_PID即包含每个消息的PID，更详细信息参考man syslog。 
+	facility - 记录日志的程序的类型，配置文件可根据不同的登录类型来区别处理消息，常用值LOG_DAEMON即其它系统守护进程，一般为自己创建的守护进程。更详细信息参考man syslog。
+
+syslog函数（生成日志） : 
+	priority - 优先级，说明消息的重要性，可取值如下： 
+		LOG_EMERG 系统不可用 
+		LOG_ALERT 消息需立即处理 
+		LOG_CRIT 重要情况 
+		LOG_ERR 错误 
+		LOG_WARNING 警告 
+		LOG_NOTICE 正常情况，但较为重要 
+		LOG_INFO 信息 
+		LOG_DEBUG 调试信息
+
+closelog函数（关闭日志设备）。
+
+vsyslog 函数（与syslog函数功能相同，具体用法参考man syslog）。
+
+C接口使用用例 
+#include <syslog.h>
+int main(int argc, char **argv)
+{
+    openlog("testapp", LOG_PID, LOG_DAEMON);
+
+    syslog(LOG_EMERG, "system is unusable");
+    syslog(LOG_ALERT, "action must be taken immediately");
+    syslog(LOG_CRIT, "critical conditions");
+    syslog(LOG_ERR, "error conditions");
+    syslog(LOG_WARNING, "warning conditions");
+    syslog(LOG_NOTICE, "normal, but significant, condition");
+    syslog(LOG_INFO, "informational message");
+    syslog(LOG_DEBUG, "debug-level message");
+
+    closelog();
+
+    return 0;
+}
+
+宏定义版：
+
+#include <stdio.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include <syslog.h>
+#define log_debug(fmt, ...)      syslog(LOG_DEBUG,   fmt, ##__VA_ARGS__)
+#define log_info(fmt, ...)       syslog(LOG_INFO,    fmt, ##__VA_ARGS__)
+#define log_notice(fmt, ...)     syslog(LOG_NOTICE,  fmt, ##__VA_ARGS__)
+#define log_warning(fmt, ...)    syslog(LOG_WARNING, fmt, ##__VA_ARGS__)
+#define log_err(fmt, ...)        syslog(LOG_ERR,     fmt, ##__VA_ARGS__)
+#define log_crit(fmt, ...)       syslog(LOG_CRIT,    fmt, ##__VA_ARGS__)
+#define log_alert(fmt, ...)      syslog(LOG_ALERT,   fmt, ##__VA_ARGS__)
+#define log_emerg(fmt, ...)      syslog(LOG_EMERG,   fmt, ##__VA_ARGS__)
+
+int main(int argc, char **argv)
+{
+    openlog("syslog_test", LOG_PID, LOG_DAEMON);
+
+    log_debug("debug-level message");
+    log_info("informational message");
+    log_notice("normal, but significant, condition");
+    log_warning("warning conditions");
+    log_err("error conditions");
+    log_crit("critical conditions");
+    log_alert("action must be taken immediately");
+    log_emerg("system is unusable");
+
+    closelog();
+
+    return 0;
+}
+
+
+日志处理 
+生成的日志将会发送到一个日志处理守护进程，这个守护进程通过其配置信息来决定日志的处理， 
+大致的处理有： 
+	1. 记录到系统日志中 
+	2. 输出到系统控制台上 
+	3. 转发给指定的用户 
+	4. 转发给syslog服务器 
+守护进程一般为syslogd，其配置文件为/etc/syslog.conf; 
+或为syslog-ng这个是升级版的日志处理守护进程，其配置文件为/etc/syslog-ng/syslog-ng.conf。 
+/etc/syslog.conf 参考资料 man syslog.conf 
+/etc/syslog-ng/syslog-ng.conf 参考资料 man syslog-ng.conf
+
+

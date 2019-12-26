@@ -1,0 +1,114 @@
+22.01 elinks命令
+纯文本的网页浏览器
+ # elinks www.baidu.com 可以使用光标键在超级链接之间切换,q退出
+ # elinks file:///root
+
+22.02 elm命令
+email的客户端管理程序,纯文本全屏操作模式
+ # elm
+
+22.03 ftp命令
+ftp协议的客户端工具
+ # ftp ftp.nyist.net
+ftp> ls
+ftp> help
+ftp> bye
+
+22.04 ipcalc命令
+简单的ip地址计算器
+ # ipcalc -b -n -m 218.28.87.18/28
+
+22.05 lftp命令
+文件传输客户端程序
+ # lftp ftp.redhat.com
+lftp> ls
+lftp> help
+
+22.06 lftpget命令
+ 通过调用lftp下载指定的文件
+ # ltfpget http://www.baidu.com/index.php
+ # lftpget ftp://ftp.redhat.com/pub/redhat/linux/README
+ # ls -l README
+
+22.07 lynx命令
+全屏的纯文本网页浏览器
+ # lynx www.redhat.com
+
+22.08 mailq命令
+用于显示邮件传输队列
+ # mailq
+/var/spool/mqueue: empry
+
+22.09 mailstat命令
+基于邮件日志文件,显示邮件到达的状态
+ # mialstat /var/log/maillog
+
+22.10 mail命令
+可以进行邮件的阅读和发送
+ # mail 收件;d删除,q退出
+ # mail test@test.com 交互式输入,新的空行里面第一个字符输入.可以结束内容输入
+
+
+22.11 rcp命令
+可以使两台Linux主机之间的文件复制操作就像在本地复制一样
+ # ssh 192.168.19.128 登录主机作为rcp的服务端
+ # vim /etc/hosts
+ 192.168.19.128 test_server
+ 192.168.19.129 test_client
+ # vim /etc/xinetd.d/rsh
+disable = no
+ # service xinetd restart
+ # useradd rcp_test
+ # vim /home/rcp_test/.rhosts
+test_client rcp_test
+ # su - rcp_test
+
+
+ # ssh 192.168.19.129 充当rcp的客户端
+ # vim /etc/hosts
+ 192.168.19.128 test_server
+ 192.168.19.129 test_client
+ # useradd rcp_test
+ # su - rcp_test
+$ pwd
+$ vim test100
+rcp_test from 192.168.19.129
+$ rcp test100 test_server:/home/rcp_test/
+
+22.12 rlogin命令
+可以使用户从当前终端登录到远程主机并且不需要输入密码
+
+22.13 rsh命令
+用于在不登录远程主机的情况下执行远程主机的命令,并将结果发回终端
+
+22.14 rexec命令
+可以远程执行指令
+
+22.15 telnet命令
+远程登录指令,C/S模型,明文传送密码
+
+22.16 ssh命令
+安全的远程登录命令
+ # ssh user@192.168.19.128
+
+22.17 tftp命令
+tftpserver的客户端工具
+ # tftp 192.168.19.128
+tftp> help
+tftp> get fstab 获取文件 
+
+22.18 wget命令
+从指定的网址中下载文件
+ # wget www.google.com
+
+22.19 ncftp命令
+ # ncftp ftp.redhat.com
+ncftp> help
+
+22.20 scp命令
+scp - secure copy (remote file copy program)
+以加密的方式在本地主机与远程主机之间拷贝文件
+ # scp test.txt root@10.42.100.20:/root/ 
+ # scp -P 999 /home/andy/test.txt root@10.42.100.20:/home/
+ # scp root@10.42.100.20:/etc/hosts root@/10.42.97.6:/root/abc-hosts
+

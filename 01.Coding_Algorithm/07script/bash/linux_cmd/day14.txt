@@ -1,0 +1,59 @@
+14.01 top命令
+以实时动态的形式实时展现系统资源的使用情况
+ # top
+默认每隔3s刷新一次,也可以按空格手动刷新
+运行时按k可以输入一个待结束的进程号
+
+14.02 uptime命令
+用于显示系统的运行时间和前一分钟内的平均负载情况
+ # uptime
+
+14.03 free命令
+用于显示系统中内存的使用情况
+ # free
+ # free -m 以MB为单位
+在Linux下可以用free查看内存,不过,在xen环境里只能看到该domain占用的内存;
+如果要看整个服务器的实际物理内存,可以用dmidecode命令;
+参数-t可以指定查看类型,例如查看内存:
+ # dmidecode -t memory | grep Size
+
+14.04 iostat命令
+用于报告系统的CPU以及IO的信息
+ # iostat -t 2  每个2秒钟刷新一次
+
+14.05 mpstat命令
+显示每个CPU的可用状态
+ # mpstat -P 1
+
+14.06 sar命令
+将指定的系统状态计数器显示到标准输出,运行状态统计工具
+ # sar -u 2 3  每隔2s共3次报告cpu的运行信息
+
+14.07 vmstat命令
+报告虚拟内存的状态信息
+ # vmstat
+ # vmstat -s 显示系统的各种事件统计和内存使用信息
+
+14.08 time命令
+用于统计给定的指令运行所花费的时间
+ # time fine / -name shadow
+
+14.09 tload命令
+以图形化的形式显示系统的平均负载时间到指定的终端
+ # tload /dev/pts/1 -d 3
+Ctrl+c结束
+
+14.10 lsof命令
+用于显示当前系统所有已经打开的文件列表
+ # lsof
+
+14.11 fuser命令
+用于显示指定进程所使用的文件或套接字
+ # fuser -n tcp -u 80
+
+14.12 cpuspeed命令
+用于在变频CPU上指定运行频率和电压
+ # /etc/init.d/cpuspeed status 
+ # /etc/init.d/cpuspeed start 
+
+

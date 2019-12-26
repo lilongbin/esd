@@ -1,0 +1,121 @@
+24.01 ab命令
+apache web服务器的处理性能测试工具
+ # ab http://10.42.100.20/
+
+24.02 apachectl命令
+apache web服务器的控制接口,可以关闭启动或重启apache服务
+ # apachectl status
+ # apachectl start
+ # apachectl configtest
+
+24.03 exportfs命令
+用于输出nfs系统
+ # service portmap start 远程过程调用
+ # service nfs start nfs是基于远程过程调用
+ # exportnfs :/home 将home共享出来
+ # shownmount -e localhost
+ #将要共享的文件保存到配置文件/etc/exports也可以
+
+24.04 ftpcount命令
+用于显示proftpd的连接用户数
+ # ftpcount
+
+24.05 ftpshut命令
+用于在指定的时间停止proftpd服务
+ # ftpshut now
+
+24.06 ftptop命令
+用于显示proftpd的连接状态
+ # ftptop
+ # service proftpd start
+ # ftptop
+
+24.07 ftpwho命令
+用于显示当前proftpd的连接会话
+ # ftpwho
+
+24.08 htdigest命令
+是apache web的内置配置工具
+ # htdigest -c /var/www/html/.htdigest test-realm test
+
+24.09 htpasswd命令
+apache的内置工具用于创建和更新认证的用户和密码文件
+ # htpasswd -c .passwd test
+
+24.10 httpd命令
+apache的守护进程
+ # httpd -l 显示编译的模块
+ # httpd -t 测试
+
+24.11 mailq命令
+用于打印待待发送的邮件队列
+ # mailq
+
+24.12 mysqldump命令
+是mysql数据库的备份工具
+ # mysqldump --host localhost --user root --password --all-databases > test.backup
+生成备份文件test.backup
+
+24.13 mysqladmin命令
+用于管理mysql服务器
+ # mysqladmin -h localhost -u root -p create newdb
+
+24.14 mysqlimport命令
+用于向mysql服务器指定的表导入数据
+ # mysql -u root -p test 以root用户登录到服务器打开test表
+> select * from test
+> quit
+ # vim test.txt
+100
+101
+102
+103
+104
+105
+ # mysqlimport -u root -p --local test test.txt
+
+24.15 mysqlshow命令
+用于显示mysql服务器中指定的数据库数据表和列信息
+ # mysqlshow -h localhost -u root -p -t mysql
+ # mysqlshow -h localhost -u root -p -t newdb
+
+24.16 mysql命令
+是mysql的客户端指令
+ # mysql -h localhost -u root -p
+> help
+> show database;
+
+24.17 nfsstat命令
+用于显示nfs客户端和服务器的工作状态
+ # nfsstat
+
+24.18 sendmail命令
+电子邮件传输代理服务器,使用smtp协议
+ # service sendmail restart
+
+24.19 showmount命令
+用于查询mountd守护进程,以显示nfs服务器的加载信息
+ # showmount -e 10.42.100.20
+
+24.20 smbclient命令
+连接远程smb服务器的客户端命令行工具
+ # smbclient -U user1 //10.42.100.20/user1
+> help
+> put test.txt 上传
+> get test.txt 下载
+> quit 退出
+
+24.21 smbpasswd命令
+用于添加,删除或重设用户的密码,前提是用户已经存在了
+ # smbpasswd -a lisi
+
+24.22 squidclient命令
+squid客户端管理工具
+ # squidclient mgr:menu 打印支持的所有客户端命令列表
+
+24.23 squid命令
+高性能的web客户端的代理服务器套件squid服务器的守护进程
+ # squid -z 创建缓存目录
+ # ls /var/spool/squid/
+
+

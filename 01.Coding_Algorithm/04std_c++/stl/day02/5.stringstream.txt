@@ -1,0 +1,90 @@
+5 stringstream类
+
+stringstream常用来安全的格式化若干个字符串,数值到一个缓冲区, 而不用担心溢出, 可以用来取代snprintf. 
+但是很多人都在使用stringstream的时候遇到因为stringstream内部的缓冲区没有正确的清空导致的问题. 
+
+那么把stringstream类内部的缓冲区正确的清空方式是什么呢? stringstream ss; 答案是: ss.str("");方法; 
+另外,如果需要把格式化后的字符串通过>>输出到字符串, 必须每次都调用clear()方法! 
+所以, 保险期间, 每次缓冲区格式化后,都通过clear(),str("")两个函数都调用,把stingstream类复位.
+
+streamstring在调用str()时,会返回临时的string对象;而因为是临时的对象,所以它在整个表达式结束后将会被析构;
+如果需要进一步操作string对象,先把其值赋给一个string变量后再操作;
+
+使用stringstream时的清空操作
+在C++中可以使用stringstream来很方便的进行类型转换,字符串串接,不过注意重复使用同一个stringstream对象时要先清空,
+而清空很容易想到是clear()方法,而在stringstream中clear()方法实际上是清空stringstream的状态(比如出错等),
+真正清空内容时需要使用.str("")方法;
+
+stringstream.clear()是什么呢?
+
+void clear ( iostate state = goodbit );
+Set error state flags
+Sets a new value for the error control state.
+All the bits in the control state are replaced by the new ones; The value existing before the call has no effect.
+If the function is called with goodbit as argument (which is the default value) all error flags are cleared.
+The current state can be obtained with member function rdstate.
+clear清空的的标志位!
+
+stringstream.str()出现了
+void str ( const string & s );
+copies the content of string s to the string object associated with the string stream buffer.
+The function effectivelly calls rdbuf()->str(). Notice that setting a new string does not clear the error flags
+currently set in the stream object unless the member function clear is explicitly called.
+可以利用stringstream.str("")来清空stringstream;
+
+使用时需要包含sstream头文件#include <sstream>
+
+
+/*****************************************
+ * Copyright (C) 2018 * Ltd. All rights reserved.
+ * 
+ * File name   : stringstream.cpp
+ * Author      : longbin
+ * Created date: 2018-08-10 11:16:23
+ * Description : 
+ *
+ *******************************************/
+
+#include <iostream>
+#include <sstream>
+
+using namespace std;
+
+int stringstream_test()
+{
+	stringstream stream;
+	int a, b;
+
+	// string to int
+	stream << "80";
+	stream >> a;
+	cout << "length() of stream: " << stream.str().length() << endl; //2
+
+	stream.clear(); //clear error state flag;
+	stream.str(""); //copy "" to string object;
+
+	cout << "length() of stream: " << stream.str().length() << endl; //0
+
+	stream << "90";
+	stream >> b;
+
+	cout << "length() of stream: " << stream.str().length() << endl; //2
+
+	cout << a << endl; //80
+	cout << b << endl; //90
+
+	return 0;
+}
+
+int main() {
+	stringstream_test();
+	return 0;
+}
+
+
+总结一下
+void clear ( iostate state = goodbit );//该方法绝非清空stringstream中的内容,而是清空该流的错误标记!
+void str ( const string & s );//该方法是重新给stringstream赋新值的意思
+
+http://www.cplusplus.com/reference/sstream/stringstream/
+

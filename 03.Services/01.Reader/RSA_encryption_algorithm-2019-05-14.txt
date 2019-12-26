@@ -1,0 +1,76 @@
+RSA算法的核心思想是基于分解质因数。
+可以很容易地选择两个非常大的素数并得到它们的乘积，反过来，给出一个非常大的合数，要分解质因数则是非常困难的，必须使用穷举算法。
+
+维基百科给出的RSA算法简介如下：
+
+假设Alice想要通过一个不可靠的媒体接收Bob的一条私人讯息。她可以用以下的方式来产生一个公钥和一个私钥：
+
+随意选择两个大的质数p和q，p不等于q，计算N=pq。
+根据欧拉函数，不大于N且与N互质的整数个数为(p-1)(q-1)
+选择一个整数e与(p-1)(q-1)互质，并且e小于(p-1)(q-1)
+用以下这个公式计算d：d × e ≡ 1 (mod (p-1)(q-1))
+将p和q的记录销毁。
+(N,e)是公钥，(N,d)是私钥。(N,d)是秘密的。Alice将她的公钥(N,e)传给Bob，而将她的私钥(N,d)藏起来。
+
+下面我们用Python编写一个最简单的RSA加密算法。
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+__author__ = 'Michael Liao (askxuefeng@gmail.com)'
+
+'''
+simplersa.py - a simple RSA encryption demo.
+'''
+
+def generate_keys(p, q):
+    numbers = (11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97)
+    N = p * q
+    C = (p-1) * (q-1)
+    e = 0
+    for n in numbers:
+        if n < C and C % n > 0:
+            e = n
+            break
+    if e==0:
+        raise StandardError('e not found')
+    # find d: e * d % C == 1
+    d = 0
+    for n in range(2, C):
+        if (e * n) % C == 1:
+            d = n
+            break
+    if d==0:
+        raise StandardError('d not found')
+    return ((N, e), (N, d))
+
+def encrypt(m, key):
+    C, x = key
+    return (m ** x) % C
+
+decrypt = encrypt
+
+if __name__ == '__main__':
+    pub, pri = generate_keys(47, 79)
+    L = range(20, 30)
+    C = map(lambda x: encrypt(x, pub), L)
+    D = map(lambda x: decrypt(x, pri), C)
+    print('keys:', pub, pri)
+    print('message:', L)
+    print('encrypt:', C)
+    print('decrypt:', D)
+我们选择素数47, 79，然后计算出密钥(3713, 11) (3713, 1631)，程序输出如下：
+keys: (3713, 11) (3713, 1631)
+message: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
+encrypt: [406L, 3622L, 3168L, 134L, 3532L, 263L, 1313L, 2743L, 2603L, 1025L]
+decrypt: [20L, 21L, 22L, 23L, 24L, 25L, 26L, 27L, 28L, 29L]
+可以看到，输入序列[20, 21, ... , 29]用公钥加密后再用私钥解密得到原始序列（加L是因为Python在运算中将整数扩展为长整数了）。
+
+无需担心RSA专利，该专利已于2000年9月过期。
+
+如果你准备用其他语言实现上述RSA算法，需要注意的是，Python的整数是不限制大小的，所以计算乘法不会有问题，而很多语言限制了整数的范围（32位或64位），计算结果如果超出范围高位会被直接截掉。例如，用Java时就必须用BigDecimal而不是long计算。
+
+由于有了RSA等非常安全的非对称加密算法，今天网上银行、电子商务才能迅速发展。我们在享受数字化时代的今天，必须感谢过去一代又一代的数学家为人类科学奠定的坚实的基础。
+
+参考文档
+https://www.liaoxuefeng.com/article/895919608296608
+

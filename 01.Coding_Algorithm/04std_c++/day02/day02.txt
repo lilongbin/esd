@@ -1,0 +1,584 @@
+参数的哑元,参数的默认值
+内联函数
+内存分配
+引用
+类型转换
+
+1. 函数参数的哑元
+	如果函数的形参只有类型名,没有形参名,称之为哑元;
+	作用:
+		向前兼容函数;
+			void decode(int key) {}	
+			void decode(int) {}//实际接收不到传入值
+			void decode(double key) {}	
+			void decode(double) {}
+		区分函数; //固定写法
+			Date date = {2014, 3, 13};
+			++date;
+			operator++() {}//前++
+			date++;
+			operator++(int) {}//后++,固定是int类型;
+/*
+ * 参数的哑元
+ */
+#include <iostream>
+using namespace std;
+/*void decode(int key) {
+	cout << "开始解码" <<endl;
+}*/
+void decode(int) {
+	//哑元,占住位置
+	//向前兼容函数
+	cout << "开始解码" << endl;
+}
+int main() {
+	decode(9527);
+}
+
+2. 参数的默认值(缺省参数)
+2.1 作用
+	在设计一个函数的参数时,可以给这个参数指定一个值;如果在调用函数时不给这个参数赋值,则参数使用指定的值,如果传入了值,则参数使用传入的值;
+	
+	能简化调用
+	简化函数的个数;
+2.2 举例
+	int getmax(int x, int y, int z = 0) {}
+	int getmax(int x, int y) {
+		return ((x < y) ? y : x);
+	}
+	如果以上两个函数同时存在,当传入两个参数时,就会引发冲突;因此要与函数重载避免冲突,只保留第一个函数即可;
+/*
+ * 函数参数默认值演示
+ */
+#include <iostream>
+using namespace std;
+int getmax(int x, int y = 0, int z = 0) { }
+int main() {
+	getmax(1,2,0);
+	getmax(1,2);
+	getmax(100);
+}
+2.3 函数缺省参数的注意事项
+	默认参数只能指定一次,一般在函数声明时指定,这时在函数定义时就不能再指定;
+	不要和重载构成冲突;
+	参数的缺省值必须靠右;(只有当一个参数右边的所有参数都有了默认值以后,才能给自己指定默认值);
+2.4 设计一个函数输出数组的值
+	笔试面试题
+	要求默认输出数组的前5个元素,如果数组大小不够5个,需要传入数组元素个数;并且输出默认以逗号分割数据,可以通过第3个参数指定分割符号;
+	可以使用参数的哑元,定义3个参数,后2个参数设置默认值;
+/*
+ * 函数默认参数
+ */
+#include <iostream>
+using namespace std;
+void printArr(int *parr, unsigned int size = 5, char dis = ',');
+int main() {
+	int arr[10] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+	printArr(arr, 3);
+	printArr(arr);
+	printArr(arr, 10);
+	printArr(arr, 10, '$');
+}
+void printArr(int *parr, unsigned int size, char dis) {
+	for (int i = 0; i <= size - 1; i++) {
+		cout << parr[i];
+		if (i == size - 1) {
+			break;
+		} else {
+			cout << dis;
+		}
+	}
+	cout << endl;;
+}
+	如果函数的声明和实现分开写,则应该在声明时指定默认值,实现时不可再指定默认值;
+
+3. 内联函数
+3.1 概念
+	把函数调用时直接用函数的二进制代码粘贴过去(和宏是有区别的),但具有函数的一切特性,编译器仍然当作函数进行检查;
+	提高执行效率,没有函数调用开销;
+3.2 适用情况
+	调用频繁,函数比较小,适合内联;
+		调用稀少或者函数比较大或无法实现内联的(如递归),不适合内联;
+	inline void testline(){}
+3.3 inline只是一种请求
+	inline请求成功与否看编译器;类似于C语言中的register关键字申请寄存器变量,成功与否看具体情况;
+	编译器可以在优化时请求g++ -S 04inline.cpp -O2
+	-O选项指定优化等级;
+	宏在C++中不提倡使用
+	宏存在着一些潜在的危险
+	C++中的面向对象不允许预处理器访问类的成员数据,意味着宏函数不能用作类的成员函数;
+	内联函数保持了函数的所有特点,但在需要的地方会像宏一样展开,没有调用函数的开销;
+	类中直接定义的函数自动被处理成内联函数,所以一般把内联函数放在头文件中;
+	inline是一种请求,实现方式取决于编译器;当函数较大或是递归的时候,无法实现内联;
+	递归无法实现内联;
+/*
+ * inline函数
+ */
+#include <iostream>
+using namespace std;
+inline int getmax(int x, int y) {
+	return x > y ? x : y;
+}
+int getmin(int x, int y) {
+	return x < y ? x : y;
+}
+int main() {
+	getmax(1, 2);
+	getmin(1, 2);
+}
+
+/*****************************************
+* File name   : inline.cpp
+*******************************************/
+#include <iostream>
+#include <string>
+#include <map>
+#include <vector>
+using namespace std;
+int getint()
+{
+	int i, j, k;
+	i = 6;
+	j = i + 1;
+	k = j + 1;
+	return k;
+}
+inline double getpi()
+{
+	return 3.14159;
+}
+
+/*
+ * 编译后执行nm命令查看符号表
+ * 0000000000400968 W _Z5getpiv
+ * 000000000040085d T _Z6getintv
+ */
+int main() {
+	int i = 0;
+	cout << "int is: " << getint() << endl;
+	for (i=0; i<100; i++)
+	{
+		cout << "double is: " << getpi() << endl;
+	}
+	return 0;
+}
+查看nm命令帮助可知其区别;
+T	该符号位于代码区text section
+W	The symbol is a weak symbol that has not been specifically tagged as a weak object symbol.
+
+4. 动态内存分配
+	C++中定义了两个新的操作符来动态生成和销毁对象;
+	动态申请使用new,并返回指向一个新对象的指针;
+	生成对象时要调用类的构造函数,如果构造函数有参数,在使用new操作符时也要提供,如;
+		my_class *pobj = new my_class; //生成新的my_class类对象;
+		my_class *pobj = new my_class(3);
+	动态生成的对象必须用delete操作符销毁,如;
+		delete pobj;
+	销毁对象时提供对象指针即可,如果指针值为0/NULL,则无操作;
+	用delete销毁对象会自动调用类的析构函数;
+	如果需要动态的生成对象的数组,则可以使用new[]操作符;
+		my_class *pobj = new my_class[5]; //生成5个my_class类对象组成的数组;
+	new[]操作符返回指向数组第一个元素的指针,如果类的构造函数有参数,则不能使用new[]操作符;
+	对应的销毁对象数组的操作符是delete[],如;
+		delete[] pobj;
+	销毁对象数组时一定要用delete[]操作符,不能使用delete;
+
+	C中的动态内存分配malloc()/calloc()/realloc(),free();
+	C++中使用new,delete或new[],delete[];
+		类型 *指针 = new 类型名; // 最后的类型名其实是C++的构造函数名;
+		delete 指针;
+			int *pi = new int;
+			delete pi;
+		
+		类型 *指针 = new 类型名[n];
+		delete[] 指针;
+			int *pi = new int[5];
+			delete[] pi;//不能使用delete pi[5];
+	定位内存分配//了解
+		char data[20];
+		int *parr = new int[5];//申请内存在堆区
+		int *p = new (data) int[5];//到了栈区,不用delete释放;
+/*
+ * new/delete练习
+ */
+#include <iostream>
+using namespace std;
+int main() {
+	int var_i;
+	int *pi = new int;	//不保证是0;
+	*pi = 10;
+	int *pi2 = new int (10);	//传入初始值,等价于以上2步;
+	cout << *pi2 << endl; //10
+	//cout << pi2 << endl; //0x9b28018
+	delete pi;
+	delete pi2;
+
+	//使用new[]申请5个int的内存,然后赋值,分别输出
+	int *parr = new int[5];
+	for (int i = 0; i < 5; i++) {
+		//parr[i] = i+1;//经典用法,正确,赞!
+		// *parr++ = i+1;//典型的错误,动了头指针
+		// 先执行p++,但是p的值会在语句结束时才变化;动了指针
+		*(parr + i) = i + 1;	//没有动指针;正确用法,赞!
+	}
+	for (int i = 0; i < 5; i++) {
+		cout << parr[i] << " ";
+	}
+	cout << endl;
+	delete[] parr;		//使用delete[]释放掉new[]申请的内存;
+	parr = NULL;		//把悬空指针设为空,好习惯;
+
+	union {
+		char data[20];	//栈区
+		int m;
+	};
+	cout << "----------------" << endl;
+	int *parr2 = new (data) int[5];	//把内存指向data执行的内存
+	cout << "data字符串: " << data << endl; //乱码
+	cout << "parr2: " << parr2 << endl;
+	cout << "(void*)data: " << (void *)data << endl;
+	cout << "&m: " << &m << endl;
+}
+
+5. C++中的reference引用
+5.1 概念
+	引用是变量或对象(大部分情况是变量)的别名;
+	C++同样支持C语言中的指针类型和*及&操作符,但又扩展了操作符&,赋予了&新的含义,即用来声明/定义引用类型;
+	引用就是一个存储空间的别名,因此定义引用时必须初始化为一个有效的存储空间;
+	int a;
+	int &b = a; //定义b为a的引用;b和a共享同一段内存空间;
+	定义引用并不会重新申请新的内存空间而是直接共享所对应变量的存储空间;
+	引用就是为一个变量所代表的存储空间再取一个名字;也就是说同一个存储空间可以对应多个别名,即可以有多个变量名;
+	变量的本质就是一段内存空间的别名;
+	引用的本质就是给某个变量所对应的存储空间再取一个别名,即一段存储空间可以对应多个别名(变量名);
+5.2 值传递和引用传递
+	//常见的笔试面试题
+	myswap1(int x, int y);//不可以完成交换
+	myswap2(int *x, int *y);//可以完成交换
+	myswap3(int& x, int& y);//声明参数为引用类型,和使用指针一个效果
+5.3 定义引用
+	定义引用类型变量时必须将其初始化为一个合法的变量;
+	定义语法:
+		类型 变量名;
+		类型& 引用名 = 变量名;
+	如:
+		int i = 10;
+		int& refi = i;//建立引用关系;
+		则refi和变量i都是同一个存储空间的别名;
+		并不会为refi重新分配存储空间;
+		操作i或refi都是在操作同一个内存空间;
+	引用一旦初始化,则终生为这个变量所用;终生服务概念;如定义某变量后某段地址空间和该变量名字将不会再改变;
+	C语言中的数组名与地址也是一旦分配不再改变;
+/*
+ * 引用的定义
+ */
+#include <iostream>
+using namespace std;
+int main() {
+	// int &ref; //错误,定义引用必须初始化;
+	int i = 9527;
+	int &refi = i;		//refi是i的引用/别名;
+	//再定义一个i变量的引用
+	int &refi2 = i;
+	// int &refi2 = refi; //也可以
+	cout << i << " " << refi << " " << refi2 << endl;
+	cout << "修改一个值" << endl;
+	refi = 12345;
+	cout << i << " " << refi << " " << refi2 << endl;
+
+	//验证引用的终生服务理念
+	int j = 10086;		//读'钩'
+	refi = j;		//把变量j的值赋值给引用refi,而不是引用j;这就是终生服务;
+	//理解引用的本质就是变量的别名,在使用时就是那个变量,
+	//本语句就跟i = j;赋值语句是一回事;
+	cout << "-----------" << endl;
+	cout << refi << endl;	//10086
+	j = 100;
+	cout << j << endl;	//100
+	cout << refi << endl;	//10086
+}
+	常引用的概念
+		int& 引用名 = 常量;//编译出错
+		const int& 引用名 = 常量;//可以,常引用
+5.4 引用的实现
+	引用就是一个存储空间的别名,因此定义引用时必须初始化为一个有效的存储空间;
+	定义引用不会重新申请存储空间而是直接使用所初始化变量的存储空间;		
+	引用就是为一个变量所代表的存储空间再取一个名字;也就是说同一个存储空间可以对应多个别名,即可以有多个变量名;
+	定义一个变量的引用名为ref后,不能将另一个变量的引用名也定义为ref;
+	int i, j;
+	int &ref = i; //定义ref为i的引用后,ref也就是一个普通的变量,只不过和i对应同一个存储空间;
+	//int &ref = j; //错误,变量重复定义;
+	//ref = j; //不是将ref重新定义为j的别名,而是简单的变量赋值操作;
+	
+5.5 引用的应用
+5.5.1 引用类型作为函数参数
+	可以减少数据的拷贝,直接共享原变量的存储空间;
+	可以在函数内部修改函数外部的数据;//这种传递就是引用传递
+	如果将函数参数定义为引用类型,则在函数内读写该参数等价于读写调用函数时传入的相应实际参数,因为他们对应着同一段内存空间;
+	传入的是变量名代表的存储空间,效果与传递指针一样,可以减少数据的拷贝;
+	如果传入普通变量,在函数内还要申请对应大小的内存来接收对应的值;
+/*
+ * 引用的本质就是变量(所对应存储空间)的别名
+ */
+#include <iostream>
+using namespace std;
+void swap(int &ia, int &ib) {
+	//定义函数用于交换两个变量的值,参数为引用类型;
+	//形参a和b与实参a和b是一回事,并没有为形参a和b重新分配存储空间;
+	int t;
+	t = ia, ia = ib, ib = t; //交换两个参数的值;
+	cout << &ia << ", " << &ib << endl;
+	// ia和a对应同一个存储空间;
+	// ib和b对应同一个存储空间;
+}
+int main() {
+	int a = 1, b = 2;
+	cout << &a << ", " << &b << endl;
+	swap(a, b); //a,b的值将被交换;a==2,b==1;
+	//只在函数声明定义时指定参数为引用类型,调用时正常使用参数本身;
+	//引用和变量对应同一块存储空间
+	int &ref1 = a;
+	int &ref2 = a;
+	int &ref3 = ref1;
+	cout << a << " " << ref1 << " " << ref2 << " " << ref3 << " " << endl;
+	cout << &a << " " << &ref1 << " " << &ref2 << " " << &ref3 << " " << endl;
+	// a,ref1,ref2,ref3都对应同一个存储空间,都是某个存储位置的别名;
+	return 0;
+}
+	
+	注意
+	引用类型的参数
+	如果没有const修饰,代表不能接收常量及const修饰的变量;
+	如果有const修饰,代表不能在函数内部修改数据,可以接收常量及const修饰的变量;
+
+//const int *p 等价于const int* p 等价于int const *p,
+//const修饰的是int,因此*p只读,普通变量不可通过指针p更改;
+//而int* const p,const修饰的是int*,指针只读,p指向不可改;
+//
+
+#include <iostream>
+using namespace std;
+int main() {
+	int i = 100;
+	const int *pi = &i;
+	//*pi = 200;//错误,不可以通过*pi修改变量的值;
+	int j = 300;
+	pi = &j;
+
+	//数组名和对应的内存的关系;
+	int* const myref = &i;	//指向不能改,i的值可以改;
+	*myref = 12345;
+	cout << *myref << endl;
+	char data1[20] = "abc123";
+	char data2[20] = "open123";
+	//data1 = data2; //不合法
+}
+
+5.5.2 函数返回值为引用类型
+	函数的返回值也可以是引用类型,这时注意不能返回形式参数或局部变量的引用,因为他们的生存周期到函数返回时结束,函数调用者已经无法使用;
+	函数的返回值如果是引用,则可以把函数的返回值作为左值;
+	引用类型作为返回值类型时,引用的变量必须保证在函数调用完成后生命期依然存在;不能返回局部变量的引用,可以返回堆/全局/静态/成员变量的引用;
+	int getmax(int x,int y);
+	gatmax(x, y)=123;//错误,一般的函数返回值不能做左值
+	//c++的基本类型沿用c的类型,但自定义的类型没有
+
+/*
+ * 函数返回引用类型并做左值
+ */
+#include <iostream>
+using namespace std;
+// int &ret_val() {
+int ret_val() {
+	int i = 10;
+	cout << "&i = " << &i << endl;
+	return i;
+	// 返回值为普通变量类型时,会把返回值放入一个临时空间然后赋值给调用者提供的存储空间;
+	// i -> tmp -> 调用者准备的空间;
+	// 返回值为引用类型时直接使用返回的变量所对应的存储空间供调用者使用;
+	// i -> [i] -> 调用者准备的空间;[i]即不开辟一个新的临时空间;
+	// 如果i是局部变量,这在函数返回时释放,调用者使用的是一个非法的空间;
+}
+// int getmax(int x, int y) {
+//	 return x > y ? x : y; //返回的是值
+// }
+int &getmax(int &x, int &y) {
+	return x > y ? x : y;	//返回的是值
+}
+int &getnum() {
+	//int temp = 100; //局部变量,不能返回对局部变量的引用;
+	static int temp = 100;
+	return temp;
+}
+int main() {
+	int i = ret_val();
+	cout << "&tmp = " << sizeof(ret_val()) << endl;
+	int x = 10;
+	int y = 123;
+	int var_res = getmax(x, y);
+	cout << "getmax(x, y)= " << var_res << endl;	//123
+	getmax(x, y) = 456;
+	cout << "x = " << x << endl;
+	cout << "y = " << y << endl;	//456
+	int &var_res1 = getnum(); //var_res1是temp的引用
+	cout << var_res1 << endl;
+}
+		
+5.6 引用和指针的联系与区别
+联系
+	引用在底层是指针封装实现的;
+	所以很多情况下指针可以用引用代替;如函数的参数,函数的返回值;
+区别
+    1.引用必须初始化,指针不必初始化;//最好初始化以防止悬空指针;
+    2.引用一旦初始化,就不能改变绑定的对象,但是可以改变对象的值;指针可以改变指向;
+    3.指针是一个实体变量,大小确定;引用是一个别名,大小和引用对象相关;
+    4.有二级指针(指针的指针),没有二级引用(引用的引用);
+		有int **;没有int&&;
+    5.有指针的引用,没有引用的指针;即有int*&,没有int&*;//二级指针用来改变指针的指向;
+    6.有指针的数组,没有引用的数组;int *data[10];可以;没有int& data[10];
+        int *data[10] = {&a, &b, &c};
+        int  data[10] = {a, b, c}; //a b c的值
+    7.有数组的引用
+        int data[3]; int(&rdata)[3];
+	引用类型没有数组和指针;
+	引用在函数传参时可以达到和指针一样的效果;
+
+/*
+ * 引用类型做形参可以减少数据的拷贝
+ * 简化调用,可以和指针达到一样的效果
+ */
+#include <iostream>
+using namespace std;
+void myswap1(int &x, int &y) {
+	//引用可以达到指针的效果
+	int temp = x;
+	x = y;
+	y = temp;
+}
+void printnum(const int &data) {
+	//c中加const防止修改变量;
+	//c++加const可以防止修改变量,还可以接受常量;
+	cout << data << endl;
+}
+int main() {
+	int x = 10;
+	int y = 20;
+	cout << "x = " << x << endl;
+	cout << "y = " << y << endl;
+	myswap1(x, y);
+	cout << "x = " << x << endl;
+	cout << "y = " << y << endl;
+	printnum(x);
+	printnum(y);
+	printnum(100);
+}
+	数组的引用(没有必要,了解即可)
+	在c语言中，数组作为函数参数时，实际上数组已经退化为指针; 
+	下面这三种用法是等价的:
+	int f1(int apples[]);
+	int f1(int apples[10]);
+	int f1(int* apples);
+	这样一来，在f1中是无法知道数组的大小的，开发者必须增加一个参数来传递数组大小,比如
+	int f1(int apples[], int size);
+	int f1(int apples[10], int size);
+	int f1(int *apples, int size);
+	
+	C++中定义了数组的引用,例如int (&a)[2],可以有效的防止数组退化;
+	也就是，数组作为函数参数传递过去后，仍然是一个数组。 语法：
+类型 (&引用名)[数组中元素数量] = 数组名;
+
+举例说明其用法
+#include <iostream>
+using namespace std;
+int f1(int (&a)[6])
+{
+    int count = 0;
+    for(int i=0; i < 6; i++)
+    {
+        count += a[i];
+    }
+    return count;
+}
+
+int main()
+{
+    int apples[6] = {2,3,4,5,6,7};
+    int count = f1(apples);
+    cout << "count: " << count << endl;
+    return 0;
+}
+
+如果将
+int apples[6] = {2,3,4,5,6,7};
+改为
+int apples[5] = {2,3,4,5,6};
+编译时将报错,说明编译时将进行数组长度的检查
+
+6. C++中的类型转换
+	static_cast<类型>(变量)//静态类型转换
+	在某一个方向上,可以做隐式类型转换
+	
+	dynamic_cast<类型>(变量)//动态类型转换
+	动态类型转换适合具有虚函数的父子类之间的指针或者引用进行转换;
+
+	const_cast<类型>(变量)
+	用于去掉const修饰
+	volatile const int data = 200;
+	
+	重新解释的类型转换
+	reinterpret_cast<类型>(变量)
+	最接近C的强制类型转换
+
+/*
+ * static_cast静态类型转换
+ */
+#include <iostream>
+using namespace std;
+int main() {
+	int *pi = new int (100);
+	void *vp = pi;
+	int *pi2 = static_cast <int *>(vp);
+	cout << *pi2 << endl; //100
+}
+/*
+ * const_cast类型转换
+ */
+#include <iostream>
+using namespace std;
+int main() {
+	const int data = 200;
+	//int *pdata = &data;//从类型‘const int*’到类型‘int*’的转换无效
+	int *pdata = const_cast <int *>(&data);
+	//去掉const修饰
+	*pdata = 9527;
+	cout << data << endl;	//200
+   	//在C++中有const修饰的data,后面用到data的地方直接使用初始值;
+	cout << *pdata << endl;	//9527
+
+	volatile const int data1 = 200; //加volatile会在需要时从内存中获取
+	int *pdata1 = const_cast <int *>(&data1);
+	*pdata1 = 9527;
+	cout << data1 << endl;	//9527
+	cout << *pdata1 << endl;	//9527
+	//reinterpret_cast<类型>(变量)与c语言的强制类型转换一样
+}
+
+7. C++之父给c程序员的建议
+	7.1 在C++中尽量少使用宏:
+		用const或enum定义明显的常量;
+		用inline代替带参的宏且能避免函数调用的额外开销;
+		用模板刻画一族函数或类型;
+		用namespace防止命名冲突;
+	7.2 变量随时用随时定义,以保证能立即对它进行初始化;
+	7.3 不要用malloc(),free();使用new/delete/new[]/delete[]更好;
+	7.4 避免使用void*(C++的STL泛型编程远优于void*)/指针算术/联合和强制类型转换(如果要类型转换,也要用C++提供4种转换运算符),大多数情况下,强制都是设计的缺陷;
+	7.5 尽量少用数组和C风格字符串,使用C++标准库中的string和STL容器可以简化程序;
+	7.6 更加重要的是,要建立使用面向对象的思想进行分析和设计的思维习惯,而不是设计一堆数据结构和一些底层的二进制数据;
+
+软件设计过程
+总体-部署图
+分层-架构图
+分组-组件图
+分类-类图
+分过程-时序图
+最开始的时候一定要从整体考虑，不要过早的陷入某些细节中;
+

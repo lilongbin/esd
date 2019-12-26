@@ -1,0 +1,291 @@
+ioctl()
+class_create()
+device_create()
+irq
+
+回顾:
+linux内核字符设备驱动实现过程
+	1.设备文件(设备节点)区别于普通的文本文件
+	2.设备节点创建
+	   #mknod /dev/myled c 250 0 
+	3.设备号:主设备号,次设备号
+	   主设备号:应用程序根据此号找到对应驱动
+	   次设备号:通过主设备号找到对应驱动,通过次设备号分区同类型的不同设备个体
+	   比如四个串口对应的设备节点信息
+	4.向内核申请设备号的方法:
+		1.静态申请
+			1.#cat /proc/devices找到一个空闲的主设备号
+			2.MKDEV(主设备号,次设备号);
+			3.register_chrdev_region()
+		2.动态申请
+			alloc_chrdev_region()让内核分配设备号
+	5.内核描述字符设备通过struct cdev数据结构
+	6.内核给字符设备驱动提供了相关的底层操作接口是由结构体struct file_operations来描述
+	7.如果让一个字符设备驱动具有硬件操作的方法就需要将cdev和file_operations进行关联,通过cdev_init()函数:cdev->ops = file_operations
+	8.对于一个字符设备驱动,关键就是围绕两个结构体对象cdev和file_operations;
+	9.cdev由字符设备驱动已经通过设备号将要注册的cdev添加到内核的cdev散列链表中,那么应用程序通过inode->i_rdev(设备号),以设备号为索引在cdev数组中找到对应的字符设备驱动cdev(这个过程是在sys_open),找到以后,内核再创建一个file对象,然后取出cdev中的ops给file->f_op,这样这个设备文件就有了自己对应的文件操作方法!最后判断file->f_op是否有open,如果有open调用这个底层驱动的open(led_open),如果没有open,没关系;直接返回到用户空间(成功的!)
+	10.struct inode,struct file
+	11.file_operations:
+			open
+			release
+      以上两个接口根据需求来指定是否需要初始化,如果没有指定,应用程序调用open永远返回成功,如果底层驱动有open的初始化,应用程序的open的返回值由底层驱动的open的返回值来决定;
+    read:读取数据
+    write:写设备
+		char __user *buf;buf指向用于缓冲区,所以在内核空间不能直接使用;
+		*buf = 1(直接赋值,错误!),需要使用如下函数完成用户空间和内核空间的数据拷贝:
+				copy_to_user(),copy_from_user(),get_user(),put_user()
+
+eject//弹出CDROM
+
++-------+
+| ioctl |
++-------+
+设备控制操作ioctl
+	如果该操作为空,并且ioctl系统调用传递任何事先未定义的请求,系统调用将返回一个错误;
+	该操作实现ioctl系统调用向设备发出特定控制命令的处理,几个ioctl命令被内核识别处理;
+	/*
+	 *	int (*ioctl)(struct inode *inode, struct file *filp,
+	 *							unsigned int cmd, unsigned long arg);
+	 *	inode	待操作的设备文件inode结构体指针
+	 *	filp	待操作的设备文件file结构体指针
+	 *	cmd		接收到的设备控制命令
+	 *	arg		控制命令可能携带的参数
+	 *	返回:成功返回0,失败返回负值;如果access_ok失败,ioctl返回-EFAULT;
+	 */
+	ioctl函数实现通常使用一个switch语句来判断不同命令码的操作,当没有匹配的命令码时,通常返回-EINVAL;
+	如果控制命令子参数是一个整数,可以直接使用;如果是指针,使用前应该检查该用户空间指针所指向的内存是否可以访问;
+
+案例:通过ioctl实现对所有LED的控制
+案例:通过ioctl实现对指定LED进行控制
+案例:学习ioctl的读过程  
+
+	int rdata;
+	int wdata;
+	int index;  
+	
+	ioctl(fd, LED_ON);
+	ioctl(fd, LED_OFF);    
+	
+	index = 1;
+	ioctl(fd, LED_ON1, &index);  
+	index = 2;
+	ioctl(fd, LED_ON1, &index); 
+	index = 1;
+	ioctl(fd, LED_OFF1, &index);  
+	index = 2;
+	ioctl(fd, LED_OFF1, &index); 
+	
+	ioctl(fd, LED_READ, &rdata);
+	printf("rdata = %d\n", );
+	
+	wdata = 0x55;
+	ioctl(fd, LED_WRITE, &wdata);
+
+vim分屏:
+	进入vim的可视状态:
+	vs led_drv.c	//左右分屏
+	sp led_drv.c	//上下分屏
+	
+	切换:ctrl + w+w	//切换区域
+
++--------------+
+| 设备文件创建 |
++--------------+
+设备文件创建
+	手动创建设备文件
+		-	不管是直接使用命令还是使用脚本,其实质都是调用mknod命令创建设备文件
+		#mknod filename type major minor
+		#mknod /dev/myled c 250 0
+	自动创建设备文件
+		-	实际上内核提供了一组函数可以用来在模块加载时在/dev目录下创建相应的设备节点,并在模块卸载时删除设备节点;
+			/* 找地 */
+		1.制作文件系统时,busybox要添加对mdev的支持:有/sbin/mdev
+			mdev其实最终还是调用mknod函数#man 2 mknod
+			/* 准备合适土壤 */
+		2.rootfs的/etc/rcS添加
+			mount -a
+		3.rootfs的/etc添加fstab文件
+		4.fstab文件中添加对sysfs和proc的支持
+			proc	/proc	proc	defaults	0	0
+			sysfs	/sys	sysfs	defaults	0	0
+			/* 种下一棵苹果树 */
+		5.rootfs的/etc/rcS添加:
+			echo /sbin/mdev	> /proc/sys/kernel/hotplug
+			mdev -s
+--------/etc/init.d/rcS---------
+#! /bin/sh
+#This is the first script called by init process
+/bin/mount -a
+mkdir /dev/pts
+mount -t devpts devpts /dev/pts
+echo /sbin/mdev > /proc/sys/kernel/hotplug
+mdev -s
+--------------------------------
+		6.驱动程序调用以下代码
+				/* 长树枝 */
+			struct class *mycls = class_create(THIS_MODULE, "tarena");
+			/*
+			 * struct class *class_create(struct module *owner, const char *name);
+			 *	owner	类别所属的模块,一般为THIS_MODULE
+			 *	name	类别的名称
+			 *	返回值:
+			 *		指向新创建的类别,创建或注册失败时为包装成指针的错误码
+			 *	头文件都是<linux/device.h>
+			 */
+			生成新目录/sys/class/tarena
+				/* 结苹果 */
+			device_create(mycls, NULL, MKDEV(major, minor), NULL, "myled");
+			/*
+			 * struct device *device_create(struct class *cls,
+			 *									struct class *parent,
+			 *									dev_t devt,
+			 *									void *drvdata,
+			 *									const char *fmt,...);
+			 *	cls		指向设备所属类别
+			 *	parent	指向父设备
+			 *	devt	设备号
+			 *	drvdata	指向给驱动的私有数据
+			 *	fmt		格式字符串,与后面的可变参数结合,用于设置设备名称
+			 *	返回值:
+			 *		指向新创建的设备,创建或注册失败时为包装成指针的错误码;
+			 *	这个函数只能用于创建属于某个类别的设备,并且必须提供一个设备号,所以一般用于为字符设备创建对应的设备模型中的设备,以纳入设备模型的管理体系;
+			 */
+			创建设备节点/dev/myled,主次设备号分别为major和minor
+
+在驱动卸载函数中要分别调用设备文件销毁和类销毁
+	设备文件的销毁
+			/* 摘苹果 */
+		删除设备对应的设备文件(设备节点)
+		void device_destroy(struct class *cls, dev_t dev);
+			-	cls	待销毁的设备所属设备类
+			-	dev	待销毁的设备的设备号(包括主设备号和次设备号)
+	类销毁
+			/* 砍树枝 */
+		销毁设备驱动创建的对应设备类
+		void class_destroy(struct class *cls);
+			-	cls	待销毁的设备类指针
+
+
+案例:按键驱动的第一版本
+          按下:上报0x51
+          松开:上报0x50
+
+测试步骤:
+	1.insmod btn_drv.ko
+	2../btn_test & //后台运行
+	3.top //查看CPU的利用率
+
+
+Linux内核定时器与中断
++-----+
+| irq |
++-----+
+为什么有中断
+	外设的处理速度慢于CPU
+	轮询/定期检查设备,但做不少无用功
+	中断更好
+硬件连接
+	按键->中断控制器->CPU
+	中断控制器:管理中断,优先级,信号
+中断定义
+	中断是指CPU在执行的过程中,出现了某些突变事件时CPU必须暂停执行当前的程序,转而处理突变事件,处理完毕后CPU又返回原程序被中断的位置并继续执行.
+中断处理流程
+	原主程序在执行过程中发生了中断请求1#,CPU会保存原主程序状态转而执行1#终端服务程序,在执行1#终端服务程序的过程中如果又发生了更高级别的中断2#,CPU会转而执行2#中断服务程序,执行完毕后返回被中断的1#中断出继续执行剩余的中断服务程序,执行完毕1#中断服务程序后返回原主程序被中断的位置继续执行原主程序;
+
+CPU中断屏蔽时中断控制器不给CPU发送中断信号;
+
+问:linux内核如何使用中断呢?
+	答:通过request_irq函数来实现申请中断和注册中断处理函数,一旦完成中断的申请和中断处理函数的注册以后,每当中断发生以后,内核就会执行注册的中断处理函数.
+中断申请和注册函数request_irq
+	/* 
+	 * int request_irq(int irq, irq_handle_t handler, unsigned int irqflags,
+	 *	       char *name, void *dev_id)
+	 * irq:中断号,中断号从32开始,0~31内核保留,IRQ_EINT(0);是有限资源
+	 *		EINT0:E表示extern,int即interrupt,0为对应的数字编号
+	 * handler:中断处理函数
+	 * irqflags:中断标志
+	 *    如果对于内部中断,这个字段一般指定为0即可
+	 *    如果对于外部中断,这个字段一般指定外设有效的触发方式:
+	 *		IRQF_TRIGGER_RISING:上升沿触变中断
+	 * 		IRQF_TRIGGER_FALLING:下降沿触变中断
+	 * 		IRQF_TRIGGER_HIGH:高电平触变中断
+	 * 		IRQF_TRIGGER_LOW:低电平触变中断
+	 *			如果指定双边沿触发:位或运算即可
+	 *  	IRQF_SHARED:表示多个设备共享中断
+	 * 		IRQF_SAMPLE_RANDOM:用于随机数种子的随机采样
+	 * name:中断名称,用于调试使用#cat /proc/interrupts可以查看
+	 * dev_id:给中断处理函数传递的参数信息(指针),如果传递参数,指定为NULL即可
+	 * 通常用于共享中断时传递设备结构体指针
+	 * 返回值:
+	 *		成功返回0,失败返回负值
+	 *		-EINVAL 表示申请的中断号无效或中断处理函数指针为空
+	 *		-EBUSY 表示中断已被占用并且不能共享
+	 */
+
+中断处理函数irqreturn_t()
+中断处理函数的原型:
+static irqreturn_t (*irq_handler_t)(int irq, void *dev_id);
+如
+static irqreturn_t button_isr(int irq, void *dev_id)
+{
+	int data = *(int *)dev_id;
+
+	printk("irq = %d, mydata = %#x\n", irq, data);
+	return IRQ_HANDLED;
+}
+	/*
+	 * static irqreturn_t(*irq_handler_t)(int irq, void *dev_id);
+	 * irq 中断号
+	 * dev_id 通常传递设备结构体指针,注册中断时传递来的参数信息
+	 * 返回值:
+	 *	IRQ_NONE 未作处理
+	 *	IRQ_HANDLED 正常处理应该返回该值
+	 */
+中断处理函数的注意事项
+	由于中断是随机发生,所以中断处理函数不属于任何进程,不会参与进程的调度;
+	执行速度要快而简洁,否则任何进程都无法获得运行资源;
+	中断栈大小为一页(4KB);(内核栈为8KB,早期内核是中断共享进程的8K内核栈);
+	中断处理函数不能向用户空间发送数据或者接收数据;用于空间与系统空间交换数据只能通过系统调用如read/write/ioctl等,要依靠驱动的file operations;
+	中断处理函数越快越好,最好是直接return;
+	不能调用可能引起阻塞的函数如copy_to_user/copy_from_user/kmalloc;
+
+共享中断
+	多个设备共用一根中断线连接到中断控制器,然后中断控制器连接到CPU
+共享中断编程注意事项
+	request_irq(...,...,irqflags,...,...);//irqflags必须是IRQ_SHARED
+	request_irq(...,...,...,...,dev_id);//dev_id必须是唯一的
+	注册的中断处理函数中不能使用disable_irq(unsigned int irq);
+	中断处理程序中必须能够区分它的设备是否产生中断,这个需要硬件的支持,然后只需在中断处理程序中判断处理即可;
+
+中断释放
+void free_irq(unsigned int irq, void *dev_id);
+	/*
+	 * irq 待释放的IRQ信号
+	 * dev_id 传递给中断处理函数的指针
+	 */
+	 对于共享中断dev_id必须是唯一的,否则内核就不知道释放哪一个中断处理程序;这个参数必须和request_irq注册时指定的参数一致;
+
+案例:采用中断来实现按键驱动
+实验步骤:
+1.去除官方的按键驱动
+   进入内核源码执行:
+   make menuconfig
+   	  Device Drivers  --->
+		  Input device support  --->   
+			  [*]   Keyboards  --->  
+			  	[*]   S3C gpio keypad support  //去除
+  make zImage
+  用新内核重新启动系统
+2.insmod btn_drv.ko
+3.cat /proc/interrupts //查看中断的注册信息
+中断号   中断触发次数	中断类型		中断名称
+            CPU0
+ 16:        258    		s3c-uart  		s5pv210-uart
+ 18:      13370    		s3c-uart  		s5pv210-uart
+ 32:          0  		s5p_vic_eint  	KEY_UP
+ 33:          0  		s5p_vic_eint  	KEY_DOWN
+4.操作按键,再通过cat /proc/interrupts查看中断的触发次数;
+通过查看/proc/interrupts中的中断触发次数可以很方便的调试;
+
+面试题:谈谈中断
+

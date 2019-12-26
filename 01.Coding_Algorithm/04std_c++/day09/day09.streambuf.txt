@@ -1,0 +1,896 @@
+1. 引入头文件fstream
+#include <fstream>
+fstream头文件定义了用于文件输入的类ifstream和文件输出的类ofstream
+参考文档 http://www.cplusplus.com/reference/fstream/
+ofstream: 写操作（输出）的文件类 (由ostream引申而来) 
+ifstream: 读操作（输入）的文件类(由istream引申而来) 
+fstream: 可同时读写操作的文件类 (由iostream引申而来)
+
+stream主要类之间的集成关系
+ios_base <|-- ios <|-- istream <|-- ifstream
+ios_base <|-- ios <|-- ostream <|-- ofstream
+ios_base <|-- ios <|-- istream <|-- iostream <|-- fstream
+                  <|-- ostream
+
+ios_base <|-- ios <|-- istream <|-- istringstream
+ios_base <|-- ios <|-- ostream <|-- ostringstream
+ios_base <|-- ios <|-- istream <|-- iostream <|-- stringstream
+                  <|-- ostream
+
+std::ifstream::ifstream
+输入流ifstream对象构造
+       default (1)	ifstream(); // 然后再用open()方法
+initialization (2)	explicit ifstream (const char* filename, ios_base::openmode mode = ios_base::in);
+
+std::ofstream::ofstream
+输出流ofstream对象构造
+       default (1)	ofstream(); // 然后再用open()方法
+initialization (2)	explicit ofstream (const char* filename, ios_base::openmode mode = ios_base::out);
+
+std::istringstream::istringstream
+输入流istringstream对象构造
+       default (1)	explicit istringstream (ios_base::openmode which = ios_base::in); // 然后再用str()方法
+initialization (2)	explicit istringstream (const string& str, ios_base::openmode which = ios_base::in);
+
+std::ostringstream::ostringstream
+输出流ostringstream对象构造
+       default (1)	explicit ostringstream (ios_base::openmode which = ios_base::out); // 然后再用str()方法
+initialization (2)	explicit ostringstream (const string& str, ios_base::openmode which = ios_base::out);
+
+
+重要方法原型
+void open (const char* filename,  ios_base::openmode mode = ios_base::out); //C++98 C++11
+void open (const string& filename,  ios_base::openmode mode = ios_base::out); // C++11
+	Return Value: none
+	If the function fails to open a file, the failbit state flag is set for the stream (which
+	may throw ios_base::failure if that state flag was registered using member exceptions).
+
+istream& read (char* s, streamsize n); //Extracts n characters from the stream and stores them in the array pointed to by s.
+ostream& write (const char* s, streamsize n); //Inserts the first n characters of the array pointed by s into the stream.
+
+std::istream::getline
+Extracts characters from the stream as unformatted input and stores them into s as a c-string(public member function)
+istream& getline (char* s, streamsize n );
+istream& getline (char* s, streamsize n, char delim );
+	Extracts characters from the stream as unformatted input and stores them into s as a c-string,
+	until either the extracted character is the delimiting character, or n characters have been
+	written to s (including the terminating null character).
+
+std::getline
+Get line from stream into string (function)
+(1)	istream& getline (istream& is, string& str, char delim);
+(2)	istream& getline (istream& is, string& str);
+	Extracts characters from is and stores them into str until the delimitation character
+	delim is found (or the newline character, '\n', for (2)).
+注意getline()函数和getline()方法的不同，特别是输出参数，方法对应char*类型而函数对应string类型；
+getline()方法的第一个参数是输出参数是char*类型；所以参数至少需要一个指针一个长度；
+getline()函数的第二个参数是输出参数是string&类型；所以参数除了istream之外可以只有一个string参数；
+
+////////////////////////////////////////////////////
+std::ifstream
+////////////////////////////////////////////////////
+Public member functions
+(constructor) Construct object (public member function )
+open		Open file (public member function )
+is_open		Check if file is open (public member function )
+close		Close file (public member function )
+rdbuf		Get stream buffer (public member function )
+operator= 	Move assignment (public member function )
+swap 		Swap internals (public member function )
+
+Public member functions inherited from istream
+operator>>	Extract formatted input (public member function )
+gcount		Get character count (public member function )
+get			Get characters (public member function )
+getline		Get line (public member function )
+ignore		Extract and discard characters (public member function )
+peek		Peek next character (public member function )
+read		Read block of data (public member function )
+readsome	Read data available in buffer (public member function )
+putback		Put character back (public member function )
+unget		Unget character (public member function )
+tellg		Get position in input sequence (public member function )
+seekg		Set position in input sequence (public member function )
+sync		Synchronize input buffer (public member function )
+
+Public member functions inherited from ios
+good		Check whether state of stream is good (public member function )
+eof			Check whether eofbit is set (public member function )
+fail		Check whether either failbit or badbit is set (public member function )
+bad			Check whether badbit is set (public member function )
+operator!	Evaluate stream (not) (public member function )
+operator bool Evaluate stream (public member function )
+rdstate		Get error state flags (public member function )
+setstate	Set error state flag (public member function )
+clear		Set error state flags (public member function )
+copyfmt		Copy formatting information (public member function )
+fill		Get/set fill character (public member function )
+exceptions	Get/set exceptions mask (public member function )
+imbue		Imbue locale (public member function )
+tie			Get/set tied stream (public member function )
+rdbuf		Get/set stream buffer (public member function )
+narrow		Narrow character (public member function )
+widen		Widen character (public member function )
+
+Public member functions inherited from ios_base
+flags		Get/set format flags (public member function )
+setf		Set specific format flags (public member function )
+unsetf		Clear specific format flags (public member function )
+precision	Get/Set floating-point decimal precision (public member function )
+width		Get/set field width (public member function )
+imbue		Imbue locale (public member function )
+getloc		Get current locale (public member function )
+xalloc		Get new index for extensible array [static] (public static member function )
+iword		Get integer element of extensible array (public member function )
+pword		Get pointer element of extensible array (public member function )
+register_callback	Register event callback function (public member function )
+sync_with_stdio		Toggle synchronization with cstdio streams [static] (public static member function )
+
+////////////////////////////////////////////////////
+std::ofstream
+////////////////////////////////////////////////////
+Public member functions
+(constructor)	Construct object (public member function )
+open			Open file (public member function )
+is_open			Check if file is open (public member function )
+close			Close file (public member function )
+rdbuf			Get stream buffer (public member function )
+operator= 		Move assignment (public member function )
+swap 			Swap internals (public member function )
+
+Public member functions inherited from ostream
+operator<<		Insert formatted output (public member function )
+put				Put character (public member function )
+write			Write block of data (public member function )
+tellp			Get position in output sequence (public member function )
+seekp			Set position in output sequence (public member function )
+flush			Flush output stream buffer (public member function )
+
+Public member functions inherited from ios
+good			Check whether state of stream is good (public member function )
+eof				Check whether eofbit is set (public member function )
+fail			Check whether either failbit or badbit is set (public member function )
+bad				Check whether badbit is set (public member function )
+operator!		Evaluate stream (not) (public member function )
+operator bool 	Evaluate stream (public member function )
+rdstate			Get error state flags (public member function )
+setstate		Set error state flag (public member function )
+clear			Set error state flags (public member function )
+copyfmt			Copy formatting information (public member function )
+fill			Get/set fill character (public member function )
+exceptions		Get/set exceptions mask (public member function )
+imbue			Imbue locale (public member function )
+tie				Get/set tied stream (public member function )
+rdbuf			Get/set stream buffer (public member function )
+narrow			Narrow character (public member function )
+widen			Widen character (public member function )
+
+Public member functions inherited from ios_base
+flags			Get/set format flags (public member function )
+setf			Set specific format flags (public member function )
+unsetf			Clear specific format flags (public member function )
+precision		Get/Set floating-point decimal precision (public member function )
+width			Get/set field width (public member function )
+imbue			Imbue locale (public member function )
+getloc			Get current locale (public member function )
+xalloc			Get new index for extensible array [static] (public static member function )
+iword			Get integer element of extensible array (public member function )
+pword			Get pointer element of extensible array (public member function )
+register_callback	Register event callback function (public member function )
+sync_with_stdio		Toggle synchronization with cstdio streams [static] (public static member function )
+
+// get size of file
+  std::ifstream infile("test.txt", std::ifstream::binary);
+  infile.seekg(0, infile.end);
+  long size = infile.tellg();
+  infile.seekg(0);
+
+2. 写文件
+	1)创建一个ofstream对象来管理输出流
+	2)将该对象与文件关联起来
+	3)使用cout方式使用该对象，唯一区别是输出将进入文件，而不是屏幕。
+	4)关闭到文件的连接
+示例如下：
+	ofstream fout;
+	fout.open("test.txt");
+	fout << "write something";
+	fout.close();
+创建对象和关联文件可使用构造函数合并到一步，以上代码等价于：
+	ofstream fout("test.txt");
+	fout << "write something";
+	fout.close();
+
+另一个例子：
+  std::ifstream infile ("test.txt",std::ifstream::binary);
+  std::ofstream outfile ("new.txt",std::ofstream::binary);
+
+  // get size of file
+  infile.seekg (0,infile.end);
+  long size = infile.tellg();
+  infile.seekg (0);
+
+  // allocate memory for file content
+  char* buffer = new char[size];
+
+  // read content of infile
+  infile.read(buffer,size);
+
+  // write to outfile
+  outfile.write(buffer,size);
+
+  // release dynamically-allocated memory
+  delete[] buffer;
+
+  outfile.close();
+  infile.close();
+	
+3. 读文件
+	1)创建一个ifstream对象来管理输入流
+	2)将该对象与文件关联起来
+	3)使用ifstream的方法读文件
+	4)关闭到文件的连接
+示例如下：
+	ifstream fin("test.txt");
+	char ch;
+	fin >> ch;//从文件中读取一个字符
+	char buf[80];
+	fin >> buf;//从文件中读取一个单词
+	/*
+     * getline()方法的第一个参数是输出参数是char*类型；所以参数至少需要一个指针一个长度；
+     * getline()函数的第二个参数是输出参数是string&类型；所以参数除了istream之外可以只有一个string参数；
+     */
+	fin.getline(buf, 80);//从文件中读取一行
+	string line;
+	getline(fin, line);//读取一行转换成字符串
+	fin.close();
+
+另一个例子：
+  std::ifstream is ("test.txt", std::ifstream::binary);
+  if (is) {
+    // get length of file:
+    is.seekg (0, is.end);
+    int length = is.tellg();
+    is.seekg (0, is.beg);
+
+    char * buffer = new char[length];
+
+    std::cout << "Reading " << length << " characters... ";
+    // read data as a block:
+    is.read(buffer, length);
+
+    if (is)
+      std::cout << "all characters read successfully.";
+    else
+      std::cout << "error: only " << is.gcount() << " could be read";
+    is.close();
+
+    // ...buffer contains the entire file...
+
+    delete[] buffer;
+  }
+
+4. 读写缓冲区
+fstream流管理对象在使用cout或cin方式读或写时，是通过缓冲区和文件进行交互的，而不是逐字节读取或写入文件的。
+
+关于close()函数，当流对象过期(如程序终止)时，到文件的连接自动关闭，也可使用close()显式关闭该连接。
+连接关闭后，将刷新缓冲区。
+
+与文件的连接关闭后，并不会删除流，fstream流对象和它管理的缓冲区仍然存在，可以将流重新连接到文件。
+
+5. 一个简单的读写文件示例
+#include<iostream>
+#include<fstream>
+#include<string>
+using namespace std;
+const string filename="test.txt";
+int main()
+{
+	ofstream fout(filename.c_str());
+	if(!fout.is_open())
+	{
+		cerr << "无法打开文件 " << filename << endl;
+		exit(0);
+	}
+	cout << "输入密码：";
+	float secret;
+	cin >> secret;
+	fout << secret << endl;
+	fout.close();
+
+	ifstream fin(filename.c_str());
+	if(!fin.is_open())
+	{
+		cerr << "无法打开文件 " << filename << endl;
+		exit(0);
+	}
+	cout << "输入的密码为：\n";
+	char ch;
+	while(fin.get(ch))
+		cout << ch;
+	fin.close();
+	return 0;
+}
+程序中is_open()函数，是用来检查文件是否被打开
+流对象的状态包括：
+	一切顺利，已达到文件尾，I/O操作失败等。如果一切顺利，流状态设置为0，否则设置为1。
+
+6. 打开多个文件
+	1)需要同时打开多个文件，则需要为每个文件创建一个流。
+	2)需要依次打开一组文件，可以只打开一个流，将它依次关联到各个文件。
+如下例所示：
+	ifstream fin;
+	fin.open("test.txt");
+	fin.close();
+	fin.clear();
+	fin.open("test2.txt");
+	fin.close();
+
+7. 文件模式
+	常量	含义
+	ios_base::in	打开文件，以便读取
+	ios_base::out	打开文件，以便写入
+	ios_base::ate	打开文件，并移到文件尾，和ios_base::app的区别是，后者只能在文件尾写入，前者只是将写入指针初始化在文件尾
+	ios_base::app	追加到文件尾
+	ios_base::trunc	如果文件存在，则清空文件内容
+	ios_base::binary	二进制文件
+	对于ifstream open()，默认的模式为ios_base::in
+	对于ofstream open()，默认的模式为ios_base::out|ios_base::trunc，打开并清空文件
+
+
+8. 二进制模式
+ios_base::binary 
+
+文件的存储类型有两种，文本格式或二进制格式。
+文本格式便于读取，而二进制格式更加精确，占用空间小，读取速度快。
+写操作：fout.write((char*)&T, sizeof T);
+读操作：fin.read((char*)&T, sizeof T);
+注意需要将类型实例地址，强制转换为char*类型;
+
+9. 随机存取
+
+随机存取是指，读写指针直接移动到文件的任何位置。
+跳转函数：
+istream & seekg(streamoff,ios_base::seekdir);//相对地址
+istream & seekg(streampos);//绝对地址
+第一个方法的意思是，离seekdir参数指定文件位置，距离streamoff的位置。
+其中，streamoff单位的是字节，seekdir表示文件的三个位置(顶端ios_base::beg，底端ios_base::end，当前位置ios_base::cur)
+
+第二个方法的意思是，离文件开头streampos的位置
+streampos表示文件中的绝对位置，单位是字节
+
+seekg() 移到文件开头
+tellg() 返回读写指针当前的位置
+
+下面，我们用二进制文件模式，写一个简单的随机存取示例：
+#include<iostream>
+#include<fstream>
+#include<iomanip>
+const int LIM=20;
+struct planet
+{
+	char name[LIM];
+	double population;
+	double g;
+};
+const char *file = "planets.dat";
+inline void eatline(){while(std::cin.get()!='\n') continue;}
+int main()
+{
+	using namespace std;
+	planet pl;
+	cout<<fixed;
+
+	fstream finout;
+	finout.open(file,ios_base::in|ios_base::out|ios_base::binary);
+	int ct = 0;
+	if(finout.is_open())
+	{
+		finout.seekg(0);
+		cout<<"contents of file "<<file<<endl;
+		while(finout.read((char *)&pl,sizeof pl))
+		{
+			cout<<ct++<<":"<<setw(20)<<pl.name<<":"
+				<<setprecision(0)<<setw(12)<<pl.population
+				<<setprecision(2)<<setw(6)<<pl.g<<endl;
+		}
+		if(finout.eof())
+			finout.clear();
+		else{
+			cerr<<"无法打开文件 "<<file<<endl;
+			exit(0);
+		}
+	}
+	else{
+		cerr<<"无法打开文件 "<<file<<endl;
+		exit(0);
+	}
+	cout<<"enter record number to change:";
+	long rec;
+	cin>>rec;
+	eatline();
+	if(rec<0||rec>=ct)
+	{
+		cerr<<"无效 index number"<<endl;
+		exit(0);
+	}
+	streampos place = rec*sizeof pl;
+	finout.seekg(place);
+	if(finout.fail())
+	{
+		cerr<<"无法找到 index number"<<endl;
+		exit(0);
+	}
+	finout.read((char *)&pl,sizeof pl);
+	cout<<"找到的 index number"<<endl;
+	cout<<rec<<":"<<setw(20)<<pl.name<<":"
+		<<setprecision(0)<<setw(12)<<pl.population
+		<<setprecision(2)<<setw(6)<<pl.g<<endl;
+	if(finout.eof())
+		finout.clear();
+	cout<<"输入name:";
+	cin.get(pl.name,LIM);
+	eatline();
+	cout<<"population:";
+	cin>>pl.population;
+	cout<<"g:";
+	cin>>pl.g;
+	finout.seekp(place);
+	finout.write((char*)&pl,sizeof pl)<<flush;
+	if(finout.fail())
+	{
+		cerr<<"写失败 index number"<<endl;
+		exit(0);
+	}
+
+	ct = 0;
+	finout.seekg(0);
+	cout<<"contents of file "<<file<<endl;
+	while(finout.read((char *)&pl,sizeof pl))
+	{
+		cout<<ct++<<":"<<setw(20)<<pl.name<<":"
+			<<setprecision(0)<<setw(12)<<pl.population
+			<<setprecision(2)<<setw(6)<<pl.g<<endl;
+	}
+	finout.close();
+	cout<<"Done.\n";
+	return 0;
+}
+
+程序中，我们使用了一个特别的流管理对象fstream，
+fstream继承自iostream,而iostream继承自istream和ostream
+因此fstream继承了两个缓冲区，一个用于输入，一个用于输出
+并能同步化两个缓冲区的处理。即输入指针和输出指针的位置始终相同。
+这样用一个流管理对象，就可以同时进行读和写。
+
+/////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
+////////////////////////经典示例/////////////////////////////
+/////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
+stringstream 例子
+std::stringbuf::str
+	string str() const;				// get
+	void str(const string& str);	// set
+
+// istringstream::str // Assignment from str
+#include <string>       // std::string
+#include <iostream>     // std::cout
+#include <sstream>      // std::istringstream
+
+int main () {
+  std::istringstream iss;
+  std::string strvalues = "32 240 2 1450";
+
+  iss.str(strvalues); // Assignment from strstrvalues
+
+  for (int n=0; n<4; n++)
+  {
+    int val;
+    iss >> val;
+    std::cout << val << '\n';
+  }
+  std::cout << "Finished writing the numbers in: ";
+  std::cout << iss.str() << '\n';
+  return 0;
+}
+
+// ostringstream::str // return a string
+#include <string>       // std::string
+#include <iostream>     // std::cout
+#include <sstream>      // std::ostringstream
+
+int main () {
+  std::ostringstream oss;
+  oss << "One hundred and one: " << 101;
+  std::string s = oss.str(); // return a string
+  std::cout << s << '\n';
+  return 0;
+}
+
+10. 流缓冲streambuf
+std::streambuf
+
+streambuf <|-- filebuf 文件缓冲
+streambuf <|-- stringbuf 字符串缓冲
+
+// std::ifstream::rdbuf
+filebuf* rdbuf() const;
+Get stream buffer, Returns a pointer to the internal filebuf object.
+返回指向内部filebuf对象的指针
+
+// read file data using associated buffer's members
+#include <iostream>     // std::cout
+#include <fstream>      // std::filebuf, std::ifstream
+
+int main () {
+  std::ifstream ifs ("test.txt", std::ifstream::binary);
+  std::filebuf *pbuf = ifs.rdbuf(); // get pointer to associated buffer object
+
+  // get file size using buffer's members
+  std::size_t size = pbuf->pubseekoff(0, ifs.end, ifs.in);
+  pbuf->pubseekpos(0, ifs.in);
+
+  // allocate memory to contain file data
+  char *buffer = new char[size];
+
+  pbuf->sgetn(buffer, size); // get file data: visit filebuf and copy to buffer
+
+  ifs.close(); //close filebuf
+
+  // write content to stdout
+  std::cout.write(buffer, size);
+  delete[] buffer;
+
+  return 0;
+}
+
+接口解读
+std::streambuf::pubseekoff
+streampos pubseekoff(streamoff off, ios_base::seekdir way,
+                      ios_base::openmode which = ios_base::in | ios_base::out);
+Set internal position pointer to relative position
+param way is Object of type ios_base::seekdir. It may take any of the following constant values: 
+value	offset is relative to...
+ios_base::beg	beginning of the stream buffer
+ios_base::cur	current position in the stream buffer
+ios_base::end	end of the stream buffer
+param which is Generally used to determine the position on which of the controlled sequences shall be modified: the input sequence, the output sequence, or both.
+It is an object of type ios_base::openmode that, for this function, may take any combination of the following significant constant values:
+value	position pointer affected
+ios_base::in	Modify current position in controlled input sequence
+ios_base::out	Modify current position in controlled output sequence
+
+Return The new position value of the modified position pointer.
+
+std::streambuf::pubseekpos
+streampos pubseekpos(streampos pos, ios_base::openmode which = ios_base::in | ios_base::out);
+Set internal position pointer to absolute position
+Return The new position value of the modified position pointer.
+
+
+// std::ofstream::rdbuf
+filebuf* rdbuf() const;
+Get stream buffer, Returns a pointer to the internal filebuf object.
+// copy a file using file stream buffers
+#include <fstream>      // std::filebuf, std::ifstream, std::ofstream
+#include <cstdio>       // EOF
+
+int main () {
+  std::ifstream ifs ("test.txt");
+  std::ofstream ofs ("copy.txt");
+
+  std::filebuf *inbuf  = ifs.rdbuf();
+  std::filebuf *outbuf = ofs.rdbuf();
+
+  /*
+   * int sbumpc();  		Get current character and advance to next position
+   * int sputc (char c);	Store character at current put position and increase put pointer
+   */
+  char c = inbuf->sbumpc();
+  while (c != EOF)
+  {
+    outbuf->sputc(c);
+    c = inbuf->sbumpc();
+  }
+
+  ofs.close();
+  ifs.close();
+
+  return 0;
+}
+
+// std::istringstream::rdbuf
+stringbuf* rdbuf() const;
+Get stream buffer, Returns a pointer to the internal stringbuf object, with which the object was associated on construction.
+返回指向内部stringbuf对象的指针，该对象在构造时与之关联。
+// istringstream::rdbuf
+#include <string>       // std::string
+#include <iostream>     // std::cout
+#include <sstream>      // std::istringstream, std::stringbuf
+
+int main () {
+  std::istringstream iss;
+  std::stringbuf *pbuf = iss.rdbuf();
+
+  // using stringbuf directly:
+  pbuf->str("Example string");
+
+  int size = pbuf->in_avail();
+
+  while(pbuf->in_avail()>0)
+    std::cout << static_cast<char>(pbuf->sbumpc());
+
+  return 0;
+}
+
+//std::ostringstream::rdbuf
+stringbuf* rdbuf() const;
+Get stream buffer
+Returns a pointer to the internal stringbuf object, with which the object was associated on construction.
+返回指向内部stringbuf对象的指针，该对象在构造时与之关联。
+// ostringstream::rdbuf
+#include <string>       // std::string
+#include <iostream>     // std::cout
+#include <sstream>      // std::ostringstream, std::stringbuf
+
+int main () {
+  std::ostringstream oss;
+  std::stringbuf *pbuf = oss.rdbuf();
+
+  // using stringbuf directly
+  pbuf->sputn("Sample string", 13);
+  std::cout << pbuf->str();
+
+  return 0;
+}
+
+使用的例子如下
+/*****************************************
+ * File name   : streambuf.cpp
+ *******************************************/
+#include <iostream>
+#include <string>
+
+#include <fstream>
+#include <sstream>
+
+using namespace std;
+
+void ostringstreambuf()
+{
+   cout << __func__ << "#################" << endl;
+   std::ostringstream oss;
+   std::stringbuf *pbuf = oss.rdbuf();
+
+   // using stringbuf directly
+   pbuf->sputn("Sample string", 13);
+   std::cout << "pbuf: " << pbuf->str();
+   std::cout << endl;
+   std::cout << "oss: " << oss.str();
+   std::cout << endl;
+   cout << __func__ << "#################" << endl;
+}
+
+void istringstreambuf()
+{
+   cout << __func__ << "#################" << endl;
+   std::istringstream iss;
+   std::stringbuf *pbuf = iss.rdbuf();
+
+   // using stringbuf directly:
+   pbuf->str("Example string");
+
+   int size = pbuf->in_avail();
+
+   while (pbuf->in_avail()>0)
+      std::cout << static_cast<char>(pbuf->sbumpc());
+   std::cout << endl;
+   std::cout << "pbuf: " << pbuf->str();
+   std::cout << endl;
+   std::cout << "iss: " << iss.str();
+   std::cout << endl;
+   cout << __func__ << "#################" << endl;
+}
+
+void ifilebuf()
+{
+   cout << __func__ << "#################" << endl;
+   std::ifstream ifs("config.txt", std::ifstream::binary);
+   std::filebuf *pbuf = ifs.rdbuf(); // get pointer to associated buffer object
+
+   // get file size using buffer's members
+   std::size_t size = pbuf->pubseekoff(0, ifs.end, ifs.in);
+   pbuf->pubseekpos(0, ifs.in);
+
+   // allocate memory to contain file data
+   char *buffer = new char[size];
+
+   pbuf->sgetn(buffer, size); // get file data: visit filebuf and copy to buffer
+   ifs.close(); //close filebuf
+
+   // write content to stdout
+   std::cout.write(buffer, size);
+   delete[] buffer; 
+   cout << __func__ << "#################" << endl;
+}
+
+void ofilebuf()
+{
+   cout << __func__ << "#################" << endl;
+   std::ifstream ifs ("config.txt");
+   std::ofstream ofs ("copy.txt");
+
+   std::filebuf *inbuf  = ifs.rdbuf();
+   std::filebuf *outbuf = ofs.rdbuf();
+
+   /*
+    * int sbumpc();       Get current character and advance to next position
+    * int sputc (char c); Store character at current put position and increase put pointer
+    */
+
+   char c = inbuf->sbumpc();
+   while (c != EOF)
+   {
+      cout << "write to outbuf: " << c << endl;
+      outbuf->sputc(c);
+      c = inbuf->sbumpc();
+   }
+
+   ofs.close();
+   ifs.close();
+   cout << __func__ << "#################" << endl;
+}
+
+int main() {
+   ostringstreambuf();
+   istringstreambuf();
+   ifilebuf();
+   ofilebuf();
+   return 0;
+}
+
+
+std::filebuf
+Public member functions
+(constructor)	Construct object (public member function )
+(destructor)	Destruct object (public member function )
+operator= 		Move-assignment (public member function )
+swap 			Swap file buffers (public member function )
+
+File association
+open		Open file (public member function )
+is_open		Check if a file is open (public member function )
+close		Close file (public member function )
+
+Public member functions inherited from streambuf
+Locales:
+pubimbue	Imbue locale (public member function )
+getloc		Get current locale (public member function )
+Buffer management and positioning:
+pubsetbuf	Set buffer array (public member function )
+pubseekoff	Set internal position pointer to relative position (public member function )
+pubseekpos	Set internal position pointer to absolute position (public member function )
+pubsync		Synchronize stream buffer (public member function )
+Input functions (get):
+in_avail	Get number of characters available to read (public member function )
+snextc		Advance to next position and get character (public member function )
+sbumpc		Get current character and advance to next position (public member function )
+sgetc		Get current character (public member function )
+sgetn		Get sequence of characters (public member function )
+sputbackc	Put character back (public member function )
+sungetc		Decrease current position (public member function )
+Output functions (put):
+sputc		Store character at current put position and increase put pointer (public member function )
+sputn		Put sequence of characters (public member function )
+
+// 构造
+std::filebuf::filebuf
+filebuf();
+Constructs a filebuf object
+
+std::stringbuf
+Public member functions
+(constructor)		Construct a string stream buffer object (public member function )
+str					Get/set the string content (public member function )
+
+Public member functions inherited from streambuf
+Locales:
+pubimbue		Imbue locale (public member function )
+getloc			Get current locale (public member function )
+Buffer management and positioning:
+pubsetbuf		Set buffer array (public member function )
+pubseekoff		Set internal position pointer to relative position (public member function )
+pubseekpos		Set internal position pointer to absolute position (public member function )
+pubsync			Synchronize stream buffer (public member function )
+Input functions (get):
+in_avail		Get number of characters available to read (public member function )
+snextc			Advance to next position and get character (public member function )
+sbumpc			Get current character and advance to next position (public member function )
+sgetc			Get current character (public member function )
+sgetn			Get sequence of characters (public member function )
+sputbackc		Put character back (public member function )
+sungetc			Decrease current position (public member function )
+Output functions (put):
+sputc			Store character at current put position and increase put pointer (public member function )
+sputn			Put sequence of characters (public member function )
+
+// 构造
+std::stringbuf::stringbuf
+       default (1)	explicit stringbuf (ios_base::openmode which = ios_base::in | ios_base::out);
+initialization (2)	explicit stringbuf (const string& str, ios_base::openmode which = ios_base::in | ios_base::out);
+Construct a string stream buffer object
+
+// stringbuf example
+#include <iostream>     // std::cout, std::ostream, std::hex
+#include <sstream>      // std::stringbuf
+#include <string>       // std::string
+
+int main ()
+{
+  std::stringbuf buffer;      // empty stringbuf
+  std::ostream os (&buffer);  // associate stream buffer to stream
+
+  // mixing output to buffer with inserting to associated stream:
+  buffer.sputn ("255 in hexadecimal: ",20);
+  os << std::hex << 255;
+
+  std::cout << buffer.str();
+
+  return 0;
+}
+
+考虑一个生产者，消费者的问题，线程A 生成的数据，线程B读取，可以解决的方案如下：
+1) 设立全局变量，缓冲数据，A,B都可以访问（在这种情况下，A 生产的时候要考虑缓冲区是否够用，B读取的时候要判断当前是否有有效数据可读，而且很难设计一个合理分配内存的缓冲区（想象A生产的数据有时很大，有时很小））
+
+2) 网络通信（TCP,UDP）
+
+3) 有了streambuf配合stream，A就像正常操作流一样往流对象里塞数据，而B就像正常操作流一样从流里面读数据，不用关心其他问题，
+只要这两个流的sterambuf 是同一个对象
+
+#include <iostream>
+#include <streambuf>
+#include <sstream>
+#include <fstream>
+#include <string>
+#include <cstring>
+#include <memory>
+#include <thread>
+using namespace std;
+
+stringbuf buf;
+istream in(&buf);
+ostream out(&buf);
+bool flag = false;
+
+void threadb() {
+	char data;
+	while (true) {
+		if (flag) {
+			// 缓冲buf既是输出缓冲又对应输入缓冲，从缓冲来的数据给data
+			in >> data;
+			cout << "thread B recv:" << data << endl;
+			flag = false;
+		}
+	}
+}
+int main() {
+	thread consumer(threadb);
+	char data;
+	while (true) {
+		// 从标准输入赋值给缓冲buf
+		cin >> data;
+		out << data;
+		flag = true;
+	}
+	return 0;
+}
+
+11. 总结
+输出流对象的主要方法：<< put write
+输出流对象的主要方法：>> get read getline peek putback
+文件流对象和string流对象都可以使用缓冲（文件是filebuf，string流对象对应stringbuf）,使用rdbuf()方法返回内部的buf对象指针并进行操作，内容会自动同步，派生类可以调用pubsync()方法进行同步（如果有输出缓冲没有同步）；
+流缓冲可以使用的主要方法：
+	位置管理：pubsetbuf pubseekoff pubseekpos
+	输入方法：in_avail sbumpc
+	输出方法：sputc sputn
+

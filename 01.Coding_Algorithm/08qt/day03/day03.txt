@@ -1,0 +1,35 @@
+一/定时器类
+	QTimer的对象可以对定时发出timeout信号(周期性)
+
+/*绘制事件处理函数,当绘制事件发生会自动调用该函数,用户不可以自己调用*/
+void paintEvent(QPaintEvent *)
+//窗口第一次显示,窗口发生变化时;repaint()通知重画;
+
+/*鼠标时间处理函数,当鼠标按下会调用这个函数*/
+void mousePressEvent (QMouseEvent * event);
+
+对于组件,使用信号基本就可以了;
+当实现一个组件或关注底层的数据时,用事件;
+
+/*键盘事件处理函数*/
+void keyPressEvent(QKeyEvent *event);
+
+贪吃蛇:
+游戏界面 包装成一个类
+成员变量:
+蛇		链表QList<QLabel*>
+食物	QLabel*
+蛇的移动方向	枚举
+蛇的移动步长	int
+定时器控制频率	QTimer
+蛇的最大长度	int
+功能:
+构造函数
+析构函数
+/*蛇移动,调用一次根据方向移动一个步长改变x,y坐标*/
+void snakeMove();
+/*改变蛇移动的方向*/
+void keyPressEvent(QKeyEvent *event);
+/*产生新食物的函数*/
+QLabel* getNewFood();
+

@@ -1,0 +1,54 @@
+10.01 arch命令
+用于打印当前主机的CPU架构
+ # arch
+i686
+已经不再推荐使用,推荐使用uname -m命令
+
+10.02 cdrecord命令
+是Linux中的光盘刻录命令,通常先获取iso文件
+ # mkisofs -o home.iso -J -r -v -V home_backup /home
+创/home的home.iso文件
+ # cdrecord -eject speed=16 dev=0.1.0 home.iso 用16倍速0.1.0刻录机完成自动弹出
+
+10.03 eject命令
+用于弹出连接在当前Linux主机上可被软件控制的可移动介质
+ # eject -d  显示默认的外围设备
+ # eject cdrom 弹出光盘
+
+10.04 volname命令
+用于显示指定的iso9660设备的卷名称,通常指cdrom光盘
+ # volname /dev/cdrom
+CentOS-6.6
+
+
+10.05 lsusb命令
+用于显示系统中usb设备的列表
+-t选项可以得到树形层次关系
+
+
+10.06 lspci命令
+用于显示当前主机的pci设备的信息,包括pci总线
+ # lspci -t 可以得到他们之间的树形层次信息
+
+
+10.07 setpci命令
+可以用来配置pci设备的基本信息,需要root权限
+-vD 进入测试模式,显示详细信息
+-d指定设备
+ # setpci -vD -d *:* latency_timer=40
+
+10.08 hwclock命令
+用于显示或设置硬件时钟RTC,通常用date命令设置系统时钟
+ # hwclock
+ # date
+系统时钟与硬件时钟异步运行
+ # hwclock --systohc 将系统时钟同步到硬件时钟
+ # hwclock --set --date="9/22/14 20:08:08" 设置时钟
+
+10.09 systool命令
+用于显示系统中设备信息,通常基于总线类或拓扑结构显示的
+ # systool
+ # systool -b usb 显示usb总线的信息
+
+
+

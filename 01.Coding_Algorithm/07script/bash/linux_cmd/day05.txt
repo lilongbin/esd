@@ -1,0 +1,199 @@
+5.01 echo命令
+用于打印给定的变量值或字符串
+ # echo $PATH
+ # echo "hello"
+ # echo "hello $HOME"
+
+5.02 kill命令
+用于给指定的作业或进程发信号,默认是15号SIGTERM
+ # kill -l	//列出系统中信号的类别
+打开vim然后按Ctrl+z将vim中止而不退出,用jobs命令可以查看
+ # kill -9 %1	//%1表示的是作业1
+或#kill -9 vim的pid号
+
+5.03 alias命令
+用于显示和定义shell命令的别名
+ # alias	//可以显示系统环境变量中已经定义的命令别名
+ # alias mycmd='ls -l'	//将mycmd定义为ls -l的别名后可以直接使用
+如果向让定义的命令别名在重启后也生效,可以把定义语句写入启动脚本
+ # unalias mycmd	//可以撤销命令别名
+
+5.04 unalias命令
+用于取消alias定义的命令别名
+ # alias mycmd='ls -l'
+ # unalias mycmd
+
+5.05 jobs命令
+用于显示当前shell中的任务列表,任务也叫作业
+ # jobs
+ # wc		//Ctrl+z产生一个后台作业
+ # jobs	//查看
+ # find / name passwd > out.txt &	//放后台运行
+ # jobs	//查看
+
+5.06 bg命令
+用于将指定的作业放到后台运行
+ # wc		//按Ctrl+z挂起
+ # jobs	//查看挂起的作业号
+ # bg 1	//将挂起的1号作业放到后台运行
+
+5.07 fg命令
+用于将后台作业放到前台运行
+ # jobs
+ # fg 1	//将挂起的1号作业放到前台运行
+
+5.08 set命令
+用于显示或修改shell中已经设置的变量和变量的值
+ # set
+
+5.09 unset命令
+用于删除shell中定义的变量或函数
+ # declare -x var1='Linux'
+ # echo $var1
+ # unset $var1
+
+5.10 env命令
+用于在指定的环境中执行指定的指令
+ # env -i  fdisk -l	//-i指定新的环境,没有fdisk指令所以无法执行
+ # env -i /sbin/fdisk -l	//指定了fdisk指令的绝对路径,可以执行
+ # env -i PATH=/sbin fdisk -l //在新的环境变量中可以执行
+
+5.11 type命令
+用于判断给定的命令是内部的还是外部的
+ # type ll ls fdisk ps
+ # type cd
+当我们遇到一个指令的时候,可以用type命令判断
+
+5.12 logout命令
+用于退出当前登录的shell
+ # logout
+也可以直接使用Ctrl+z直接退出
+
+5.13 exit命令
+用于退出当前登录的shell
+ # exit
+
+5.14 export命令
+可以将变量输出为环境变量或这打印当前系统中的所有环境变量
+ # abc=1234
+ # echo $abc	//现在abc只是shell的普通变量,还不是环境变量
+ # export -p | grep abc
+ # export abc	//declare -x abc=1234
+ # export -p | grep abc
+
+5.15 wait命令
+用于等待某个作业或进程
+如有个3号作业
+ #  wait %3 //3号作业执行完毕自动回到$符下
+常用于shell编程中
+
+5.16 history命令
+可以显示当前输入的命令历史列表
+ # history
+在命令历史列表中可以用!加编号再次执行对应的命令
+
+5.17 read命令
+可以从标准键盘读取变量的值
+ # read var1	//要求从键盘输入var1的值
+ # echo $var1
+ # echo var1 var2 var3
+ # read var1 var2 var3	//赋值输入时中间用空格隔开
+ # echo $var1 $var2 $var3
+
+5.18 enable命令
+用于激活或关闭指令的内部命令
+ # alias
+ # type alias		//alias是个内部命令
+ # enable -n alias	//暂时停用alias
+ # enable alias	//恢复alias的使用
+
+5.19 exec命令
+用于调用并执行指定的指令,可以调用其他的指令完成特定的任务,在shell脚本中调用其他的shell脚本
+ # cat test.sh
+exec -c ls
+ # /bin/bash test.sh
+
+5.20 ulinit命令
+用于显示限制用户对shell资源的访问
+ # ulimit -a //显示目前的资源
+open files                      (-n) 1024
+ # ulimit -n 2048	//可以将打开文件的个数有1024个该为2048个
+
+5.21 umask命令
+用来设置shell中的权限掩码
+ # umask //显示当前shell的umask
+
+5.22 shopt命令
+用于显示或设置shell的特性选项
+ # shopt	//查看
+ # cd Deskto	//报错
+ # shopt -s cdspell	//打开cd的自动拼写检查
+ # cd Deskto
+Desktop
+/* 可以自动帮我们修正cd目录的错误 */
+
+5.23 help命令
+用于显示内部指令的帮助信息
+用man查看内部命令的帮助信息是会显示bash的所有命令列表
+对于内部命令可以使用help命令查看
+ # help cd
+
+5.24 bind命令
+用于显示和设置命令行中的键盘绑定功能
+ # bind -l	//显示命令行中支持的功能列表
+ # bind -q insert-comment	//使用-q查询
+/bin/bash: line 0: bind: warning: line editing not enabled
+insert-comment can be invoked via "\e # ".
+/* 表示使用Alt+Shit+ # 可以在行首加入 # 并自动换行 */
+
+5.25 builtin命令
+用于调用shell中的内部指令执行并返回执行的结果
+ # builtin alias	//显示的指定使用shell的内部命令而不是我们自定义的shell函数
+
+5.26 command命令
+调用指定的指令并执行,将忽略shell中与调用的指令重名的shell函数
+ # command fdisk -l	//如果有一个shell函数也叫fdisk,将忽略
+
+5.27 declare命令
+用于显示的声明一个shell变量
+ # declare var1="hello"
+ # echo $var1
+ # decare -r var=123	//声明var为只读型shell变量
+
+5.28 dirs命令
+用于显示和清空目录堆栈中的内容
+ # dirs	//显示当前目录堆栈中的内容
+ # push /etc
+ # push /sbin
+ # push /bin
+ # dirs -v
+
+5.29 pushd命令
+用于向目录堆栈中压入新的目录
+ # pushd /usr/local
+[/usr/local] # dirs -v
+/* 我们每次pushd后当前工作目录也会变化 */
+
+5.30 popd命令
+用于从目录堆栈中弹出一个目录
+ # dirs -v
+ # pushd /etc
+ # pushd /bin
+ # pushd /sbin
+ # popd	//当前目录也会变化
+
+5.31 readonly命令
+用于定义只读的shell变量和shell函数
+ # readonly var1=123
+ # var1=456	//出错
+ # readonly -p //打印系统中全部的只读变量列表
+
+5.32 fc命令
+用于编辑给定的历史命令,保存之后立即执行
+ # history
+/* 如第670个是ifconfig指令 */
+ # fc 670	//修改为如下
+ifconfig eth0
+保存后会自动执行该指令
+
+

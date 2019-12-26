@@ -1,0 +1,44 @@
+25.01 scp命令
+以加密的方式在本地主机和远程主机之间进行文件拷贝
+ # scp test.txt root@10.42.100.20:/root/
+ # scp root@10.42.100.20:/etc/hosts root@10.42.97.6:/root/ 
+
+25.02 sftp命令
+用于加密的文件传输,交互的文件传输,用于代替传统的ftp命令
+ # sftp 10.42.100.20
+sftp> help
+sftp> lls 查看客户端的文件列表
+
+25.03 ssh命令
+openssh套件的客户端工具,安全的远程登录工具
+ # ssh root@10.42.100.20
+ # ssh -l uesr 10.42.100.20
+ # ssh root@10.24.100.20 /sbin/fdisk -l
+
+25.04 sshd命令
+ssh的服务端
+ # service sshd status
+ # /usr/sbin/sshd -d 以调试的模式运行
+
+25.05 ssh-keygen命令
+可以生成管理和转换ssh认证密钥对,同时有公钥和私钥
+ # ssh-keygen -t rsa
+ # ssh-keygen -l 显示生成的密钥对
+
+25.06 ssh-keyscan命令
+用于收集主机的ssh公钥,仅支持ssh协议的版本1
+ # ssh-keyscan -v 10.42.100.20
+
+25.07 sftp-server命令
+stftp的服务端程序,sshd的子服务
+ # vim /etc/ssh/sshd_config
+
+25.08 iptstat命令
+可以以top的风格显示iptables的工作状态
+ # iptstat
+
+25.09 nmap命令
+网络探测和安全审核工具
+ # nmap  10.42.100.20
+
+

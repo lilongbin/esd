@@ -1,0 +1,431 @@
+tasklet
+workqueue
+swi
+timer
+
+
+回顾:
+1.Linux字符设备驱动
+	ioctl
+	自动创建设备节点
+	1.首先必须有mdev,来自于文件系统->busybox(默认);
+		mdev最终还是调用mknod函数#man 2 mknod
+		which is mdev 
+	2.在etc/init.d/rcS脚本中要有:
+		mount -a
+		echo /sbin/mdev > /proc/sys/kernel/hotplug
+	3.又依赖于etc/fstab
+		proc /proc proc defaults 0 0
+		sysfs /sys sysfs defaults 0 0 
+	4.在驱动程序中:
+		class_create();
+		device_create();
+		device_destroy();
+		class_destroy();
+
+	手工创建:mknod 
+2.中断
+	为什么有中断
+
+中断的硬件触发流程:
+外设:
+	有操作或者有数据可用,那么就会产生一个电信号,这个电信号给中断控制器;
+中断控制器:
+	中断控制器接收到外设发来的电信号以后,进行进一步的处理,判断这个中断是否使能或者禁止,判断它的优先级等,如果需要给CPU发送一个信号,那么这时中断控制器就给CPU发送一个电信号;
+CPU:
+	CPU接收到中断控制器发送来的电信号以后,无条件跳转到异常向量表的入口(异常向量表自己来定义),后续CPU就处理对应的中断;
+
+中断的处理流程:
+	主程序
+	中断服务程序
+	异常向量表
+	响应(保存现场)
+	中断优先级问题
+	返回(恢复现场)
+3.linux内核如何处理中断
+	3.1 内核已经在初始化的时候,将异常向量表建好了,异常向量表的地址在
+		0xffff0000
+	3.2 内核关于保护现场和恢复现场也都已经实现
+	3.3 对于驱动来说,只需完成中断服务程序即可. 
+4.linux内核中如何注册中断服务程序
+	request_irq(中断号, 中断处理函数, 中断触发标志, 中断名称, 传递参数);
+	每当中断号对应的中断发生,内核就会执行对应的中断处理函数;
+
+5.中断处理程序在编程的时候要注意哪些事情
+	1.中断处理函数不隶属于任何进程,所以也就不参与进程之间的调度;
+	2.中断处理函数要求执行的速度要快;如果不快,其他进程无法获取CPU的资源,影响系统的并发能力. 
+	3.中断处理函数不能与用户空间进行数据交换;如果中断给用户进行数据交换,要配合系统调用函数(file_operations);
+	4.在中断处理函数中,不能调用引起休眠的函数copy_to_user/copy_from_user/kmalloc,因为这些函数会进行内存的拷贝;在拷贝的时候,有可能空闲页不够,就会引起拷贝过程进入休眠状态,等待空闲页出现.
+
+共享中断
+	多个设备共用一根中断线连接到中断控制器(irq相同),然后中断控制器连接到CPU;
+共享中断编程注意事项:
+	request_irq(irq,...,irqflags,...,...);/* irqflags必须是IRQ_SHARED */
+	request_irq(irq,...,...,...,dev_id);/* dev_id必须是唯一的 */
+	/* 共享中断给中断处理函数传递的参数不能相同,因为irq已经相同 */
+	对于共享中断的dev_irq必须是唯一的,否则内核无法区分;
+	注册的中断处理函数中不能使用disable_irq(unsigned int irq);否则其他设备不能用;
+	中断处理程序中必须能够区分对应设备是否产生中断,这需要硬件的支持,然后只需在中断处理程序中判断处理即可;
+
+中断释放
+void free_irq(unsigned int irq, void *dev_id);
+	/*
+	 * irq 待释放的IRQ信号
+	 * dev_id 传递给中断处理函数的指针
+	 */
+	 对于共享中断dev_id必须是唯一的,否则内核就不知道释放哪一个中断处理程序;这个参数必须和request_irq注册时指定的参数一致;
+
+6.在某些场合,中断处理函数有可能会处理相对比较耗时,比较多的事情,就会长时间的占有CPU的资源,对系统的并发能力和响应能力有很大的影响;
+	比如网卡的数据包的读取过程.
+	网卡通过中断线连接到CPU,内存直接连接到CPU;CPU要不断地将网卡内部的硬件缓冲区中的数据读取到内存中;
+	为了解决这个问题,内核将中断处理程序分为顶半部和底半部两个部分:
+
+顶半部(Top Half):
+	完成即可能少的比较紧急的任务,往往只是简单的读取寄存器中的中断状态并清除中断标志后进行"登记中断"工作,也就是将底半部处理程序挂到该设备的底半部执行队列中; CPU会在适当的时间去执行登记好的底半部内容.
+	顶半部其实就是中断处理函数,这个过程不可中断;
+
+底半部(Bottom Half):
+	将完成中断事件的绝大多数任务,该部分任务不是非常紧急,并且相对比较耗时,该过程可以被新的中断打断;
+	做相对比较耗时,不紧急的事情,这个过程可被中断.
+
+Linux内核实现底半部的机制主要有
+	tasklet		/* 工作在中断上下文,不可被调度或休眠 */
+	工作队列	/* 工作在进程上下文,可以被调度和休眠 */
+	软中断		/* 工作在中断上下文*/
+
+在内核源码中执行:
+	/* 做一个源码数据库,方便看代码进行跳转 */
+#ctags -R * 
+	/* 搜索关键词 */
+#grep "DECLARE_TASKLET" * -Rn
+将光标放在要找得字符上,然后按:ctrl+]跳转,用ctrl+t返回;
+
+忙等待:CPU原地空转;
+睡眠:让出CPU运行资源;
+
++---------+
+| tasklet |
++---------+
+使用
+1.tasklet对应的数据结构
+	struct tasklet_struct {
+		void (*func)(unsigned long); //处理函数(耗时,不紧急的事情)
+		unsigned long data; //给处理函数传递的参数,一般传递指针
+	};
+2.分配,初始化tasklet_struct;
+	定义在<linux/interrupt.h>中
+	DECLARE_TASKLET(taskletname, tasklet_func, data);
+		taskletname		待定义的tasklet名字
+		tasklet_func	tasklet处理函数
+		data		待传入tasklet处理函数的参数
+	tasklet处理函数
+		void tasklet_func(unsigned long data);
+	tasklet调用
+		在中断处理函数中调用tasklet_schedule()函数
+		void tasklet_schedule(struct tasklet_struct *taskletname);
+			参数其实是链表的某节点指针;
+		如果要指定高优先级可以用tasklet_hi_schedule()将底半部等级在另外一个高优先级的链表中;
+3.在顶半部中断处理函数中,调用tasklet_schedule(&mytasklet)完成登记tasklet的工作,一旦完成登记,中断处理函数就可以立即返回,CPU就会在适当的时间去执行底半部tasklet的处理函数,完成耗时,不紧急的事情. 
+	tasklet仍然工作在中断上下文中. 
+
+案例:
+	将按键驱动采用tasklet机制来实现,了解掌握顶半部和底半部的执行顺序.
+
+软中断的优先级比硬件中断的优先级要低
+
+在某些场合,需要在底半部实现休眠的工作,那么使用tasklet就没法满足这个种需求,因为tasklet工作在中断上下文中,不能引起休眠. 所以这个时候需要使用工作队列来将复杂,耗时的工作推后执行. 
+
+注意休眠是给进程用的,不是用于中断的;
+阻塞就是休眠,休眠就是阻塞;
+
++----------+
+| 工作队列 |
++----------+
+工作队列(worker queue)是Linux kernel中将工作推后执行的一种机制;
+这种机制和tasklet不同之处在于工作队列是把推后的工作交由一个内核线程去执行,因此工作队列的优势就在于它允许重新调度甚至休眠;工作队列工作在进程上下文;
+工作队列是2.6内核开始引入的机制,在2.6.20之后工作队列的数据结构发生了一些变化,被拆分成两个部分;
+
+1.工作队列涉及的相关数据结构
+	定义在<linux/workqueue.h>
+	工作(要延后执行的事)的数据结构
+	struct work_struct {
+		atomic_long_t data;	/* 记录工作状态和指向工作者线程的指针 */
+		struct list_head entry; /* 工作数据链成员 */
+		work_func_t func;	/* 工作处理函数,由用户实现 */
+	};
+	工作数据类型定义在<linux/workerqueue.h>中
+	typedef void (*work_func_t)(struct work_struct *work);
+		/* 工作函数原型 */
+		/* 工作和延迟工作的处理函数原型的参数都是work_struct *work */
+		/* 请看下面,延迟工作的数据结构在工作的数据结构上加了定时器 */
+	延时工作(能够指定运行时间间隔)的数据结构
+	struct delayed_work {
+		struct work_struct work; /* 工作结构体 */
+		struct timer_list timer; /* 推后执行的定时器 */
+	}; /* 处理延时执行的工作的结构体 */
+
+	初始化工作
+	INTT_WORK(struct work_struct *work, work_func_t func);
+		/* 初始化工作队列并指定工作队列处理函数 */
+	INIT_DELAYED_WORK(struct delayed_work *work, work_func_t func);
+		/* 初始化延迟工作队列并指定工作队列处理函数 */
+	
+	调度工作
+	int schedule_work(struct work_struct *work);
+		/* 调度工作,即把工作处理函数提交给缺省的工作队列和工作者线程 */
+	int schedule_delayed_work(struct delayed_work *work, unsigned long delay);
+		/* 调度延迟工作,即把工作处理函数提交给缺省的工作队列和工作者线程,并指定延迟时间(同内核定时器延迟处理) */
+
+	刷新工作队列
+	void flush_schedule_work(void);
+		/* 刷新缺省工作队列,此函数会一直等待,直到队列中所有工作都被执行完毕 */
+
+	取消延迟工作
+	int cancel_delayed_work(struct delayed_work *work);
+		/* 取消缺省工作队列中处于等待状态的延迟工作 */
+
+	取消工作
+	int cancel_work_sync(struct work_struct *work);
+		/* 取消缺省工作队列中处于等待状态的工作,如果工作处理函数已经开始执行,该函数会阻塞直到工作处理函数完成 */
+
+使用步骤
+首先注册中断和编写中断处理函数(顶半部);
+1.分配工作或延时工作
+   struct work_struct btn_work;
+   或者
+   struct delayed_work btn_dwork;
+2.初始化工作或延时工作
+   INIT_WORK(&btn_work, btn_work_func); /* 指定工作的处理函数 */
+   或者
+   INIT_DELAYED_WORK(&btn_dwork, btn_dwork_func); /* 指定延时工作的处理函数 */
+
+3.在顶半部中断处理函数中登记工作或者延时工作
+	schedule_work(&btn_work); 
+		/* 登记工作,内核会将这个工作交给内核默认的工作队列和内核线程去执行(CPU会在适当的时候去执行); */
+	或者
+	schedule_delayed_work(&btn_dwork, 5*HZ);
+		/* 登记延时的工作,并且指定延时的工作处理函数在5秒以后去执行. 如果延时时间还没有到,又重新登记,会覆盖上一次登记的延迟工作;延迟工作的处理函数的执行时间就被修改为新的5S,可以实现按键去抖. */
+ 
+切记:如果使用schedule_work或者schedule_delayed_work进行登记,都是将工作或者延迟工作交给内核默认的工作队列(双链表)和内核线程去执行;
+
+注意:工作队列运行在进程上下文中,允许休眠;
+
+内核默认的处理工作队列的线程:通过ps命令查看到events/0
+
+工作者线程
+	用ps命令查看会发现有些命令是用[]括起来的,说明这个线程是内核线程;否则是用户线程;
+	工作者线程本质上是一个普通的内核线程,在默认情况下,每个CPU均有一个类型为"events"的工作者线程,当调用schedule_work时,这个工作者线程会被唤醒去执行工作链表上的所有工作;
+	以上操作均是采用缺省工作者线程来实现工作队列,其优点是简单易用,缺点是如果缺省工作队列负载太重,执行效率会很低,这就需要我们创建自己的工作者线程和工作队列;
+	如果调用schedule_work或者schedule_delayed_work会增加内核默认的工作队列的负载,对于工作的执行效率会降低,那么这时候可以创建自己的工作队列和内核线程处理自己的工作或者延时工作:
+
++------------------------------+
+| 创建自己的工作队列和内核线程 |
++------------------------------+
+工作队列数据类型定义
+	定义在内核源代码kernel/workqueue.c中
+	struct workqueue_struct{
+		...;
+		struct list_head list;
+		const char *name;
+		...;
+	};
+	创建工作队列
+	struct workqueue_struct *create_workqueue(const char *name);
+		/* 创建新的工作队列和相应的内核线程,name用于该内核线程的命名 */
+		/* 返回指针类型 */
+		/* 创建工作队列后还要进行工作队列和工作处理函数的关联 */
+	调度工作
+	int queue_work(struct workqueue_struct *wq, struct work_struct *work);
+		/* 第一个参数就是上一步创建的自己的工作队列 */
+		/* 调度工作,类似于schedule_work()函数,将指定work提交给指定工作队列wq */
+	调度延迟工作
+	int queue_delayed_work(struct workqueue_struct *wq,
+			struct work_struct *work, unsigned long delay);
+		/* 调度工作,类似于schedule_work()函数,将指定延迟工作work提交给指定工作队列wq,并指定延迟时间(同内核定时器延迟处理) */
+	刷新工作队列
+	void flush_workqueue(struct workqueue_struct *wq);
+		/* 刷新指定工作队列wq,此函数会一直等待,直到队列中所有工作都被执行完成 */
+	销毁工作队列
+	void destroy_workqueue(struct workqueue_struct *wq);
+		/* 销毁指定工作队列wq */
+
+案例
+03btn_workqueue
+驱动加载后用ps命令可以看到生成的内核线程[mybutton/0];
+
++--------+
+| 软中断 |
++--------+
+目的是实现异步执行;可以真正地实现并行;
+软件实现的模拟硬件的中断,优先级低于硬件中断,高于普通的进程;
+
+tasklet是基于软中断实现的,二者的区别:
+	1.同一个tasklet同一时刻只能在一个CPU上运行,但对于软中断,同一时刻可以在多个CPU上执行,真正地实现并发;
+	2.因要实现并发,在设计软中断的处理函数时,要求其函数具有可重入性(尽量避免使用全局变量,如果使用全局变量,记得要进行互斥访问的保护); 
+	3.软中断的实现必须静态编译,不能采用模块化动态加载;
+	相同点是它们都工作在中断上下文中,不能做休眠. 
+	/* 工作队列运行在进程上下文,可以休眠! */
+
+int g_data;
+int test(int data){
+	g_data = data;
+}
+函数test不具备可重入性;因函数内部有全部变量,在被多次调用后,尤其是在进程被抢占时,全局变量g_data具有不确定性;
+所以尽量不适用全局变量;
+如果必须使用全局变量,就要使用互斥访问机制,保证数据的原子性,但影响了效率;
+
+网络数据包的接收采用软中断机制;
+
++-----------------+
+| linux内核定时器 |
++-----------------+
+1.硬件定时器:硬件定时器能够一周期性的频率自发的给CPU发出时钟中断;
+2.硬件定时器的频率由HZ来决定,如果HZ=100,表明1秒发生100次时钟中断;
+时钟中断处理程序
+	更新系统运行时间(自系统启动开始所经过时间);
+	更新实际时间;
+	检查当前进程是否用尽了自己的时间片,如果用尽重新调度;
+	运行超时的定时器,更新资源消耗和CPU时间的统计值;
+3.节拍率HZ
+	系统定时器频率,与体系结构相关,系统启动根据HZ设置定时器硬件;
+	HZ = 100 (ARM平台);
+	1秒产生100次时钟中断;
+节拍tick
+	它是HZ的倒数,也就是每发生一次硬件定时器中断的时间间隔.
+	tick = 1/HZ,发生一次时钟中断的时间间隔,如果HZ=100,1tick=10ms;
+4.jiffies
+	它是Linux内核的全局变量(32位,unsigned long),用来记录自开机以来经过了多少次个ticks(或时钟中断),每发生一次硬件定时器中断,jiffies+1;
+	extern unsigned long volatile jiffies;
+	/* 告诉编译器不要优化,每次用到jiffies变量时都从随时读取,而不是从保存的缓存读取 */
+	1s内时钟中断的次数为HZ;jiffies一秒内增加也为HZ;
+	系统时间以秒为单位就等于jiffies/HZ;
+	以秒为单位的时间转化为jiffies: Seconds * HZ;
+	将jiffies转化为以秒为单位的时间: jiffies / HZ;
+	/* jiffy 瞬间,刹那 */
+5.内核几乎都使用jiffies来表示时间概念
+	内核中将秒转化为jiffies用的多一些
+	unsigned long time_stamp = jiffies;
+	unsigned long next_tick = jiffies + 1;
+	unsigned long later = jiffies + 5 * HZ;
+	unsigned long fration = jiffies + HZ / 10;
+	HZ = 100时,497天jiffies(32位)溢出;
+	jiffies用于记录流失的时间,去jiffies_64低32位;jiffies_64用于时间管理,避免溢出;
+6.既然有硬件定时器中断,必然在linux内核中有对应的时钟中断处理函数,
+这个函数中做:
+  1.更新jiffies;
+  2.更新年月日时分秒实际时间;
+  3.判断进程的时间片;
+  4.检查有没有到期的定时器;
+  5.做一些资源和数据的统计等;
+7.注意jiffies的回绕问题
+	unsigned long 最大为42 9496 7295,继续增大回绕为0;
+	linux内核为了解决这个回绕问题,提供了两个宏:
+	#define time_after(a, b)  ((long)(b) - (long)(a))
+	#define time_before(a, b) ((long)(a) - (long)(b))
+	a:jiffies;
+	b:需要对比的值;
+电脑关机后会有硬件RTC运行,记录运行的时间;
+
+Linux内核定时器的作用
+	Linux内核定时器指定某个函数(定时器函数)在特定的未来某个时刻执行;
+	内核定时器注册的处理函数只执行一次(不是循环执行的);
+
+内核定时器定义
+	定义在<linux/timer.h>中
+	定时器是放在内核链表中的
+	struct timer_list {
+		struct list_head entry; /* 内核使用 */
+		unsigned long expires;  /* 超时时的jiffies值,如:jiffies + 3*HZ */
+		void (*function)(unsigned long); /* 超时处理函数,注意要对形参进行数据类型的转换 */
+		unsigned long data; /* 内核调用超时处理函数时传递给它的参数,data存放指针 */
+		struct tvec_base *base; /* 内核使用 */
+	};
+
+静态初始化定时器
+	TIMER_INITIALIZER(_function, _expires, _data);
+		/* _function	定时器处理函数
+		 * _expires		定时器超时jiffies值
+		 */
+定义定时器
+	DEFINE_TIMER(_name, _function, _expires, _data);
+		/* _name	待定义的内核定时器变量名称 */
+动态初始化定时器
+	void init_timer(struct timer_list *timer);
+		/* timer	待初始化的内核定时器 */
+
+添加定时器
+	void add_timer(struct timer_list *timer);
+		/* timer	待添加到内核的内核定时器 */
+删除定时器
+	该函数在定时器超时前将定时器删除;
+	实际上,在定时器超时后,系统会自动将其删除;
+	void del_timer(struct timer_list *timer);
+		/* timer	待删除的内核定时器 */
+修改定时器
+	int mod_timer(struct timer_list *timer, unsigned long expires);
+		/* timer	待修改的内核定时器
+		 * expires	待修改内核定时器的新超时值
+		 * 返回:	返回0表示定时器处于不活跃状态,
+		 *			返回1表示定时器处于活动状态
+		 */
+
+内核代码中的延时函数:短延时/毫秒延时/长延时/睡眠延时
+
+短延时
+	该类型的延时都是忙等待
+	纳秒级延时
+	void ndelay(unsigned long nsecs);
+	微秒级延时
+	void udelay(unsigned long usecs);
+	毫秒级延时
+	void mdelay(unsigned long msecs);
+毫秒延时
+	在内核中,最好不要直接使用mdelay()函数,这将无谓的耗费CPU资源,应该使用下列函数(这些函数会使得调用进程睡眠由函数参数指定的时间):
+毫秒级延时
+	void msleep(unsigned int millisecs);
+	unsigned long msleep_interruptible(unsigned int millisecs);
+秒级延时
+	void ssleep(unsigned int seconds);
+长延时
+	对于精度要求不高的延时,可以直接比较当前的jiffies值和目标jiffies值,直到未来的jiffies达到目标jiffies;
+	unsigned long time_before(unsigned long source, unsigned long target);
+	unsigned long time_after(unsigned long target, unsigned long source);
+
+睡眠延时
+	睡眠延时显然是比忙等待更好的处理方式,睡眠延时在等待的时间到来之前进程处于休眠状态,CPU资源可以被释放供其他进程使用;
+	signed long schedule_timeout(signed long timeout);
+		/* timeout	需要睡眠jiffies计数值,用HZ来计算
+		 * 返回值:
+		 * 返回非0表示超时时间到达返回,返回0表示进入可打断的睡眠时被打断返回
+		 *
+		 */
+	在调用schedule_timeout前应该修改进程状态;
+
+使用
+1.分配一个定时器
+	struct timer_list mytimer;
+2.初始化定时器
+	init_timer(&mytimer);
+	mytimer.function = mytimer_func; /* 指定定时器的处理函数 */
+	mytimer.expires = jiffies + 3*HZ; /* 超时时间为3s以后 */
+	mytimer.data = (unsigned long )&mydata; /* 给超时处理函数传递的参数是mydata的地址,要注意在超时处理函数中进行数据类型的转换 */
+
+3.向内核添加并启动定时器,定时器就会开始倒计时;
+到期以后,内核就会执行定时器处理函数,然后将定时器删除;如果想让定时器处理函数循环执行,在定时器处理函数中重新添加和启动定时器即可. 
+	add_timer(&mytimer);
+
+4.如果想修改定时器的超时时间,可以使用mod_timer(&mytimer, jiffies + 5*HZ);将超时时间由3s以后改为5s以后. 
+	mod_timer = del_timer + expires = jiffies + 5*HZ + add_timer();
+切记:虽然mod_timer相当于上面三个步骤,但不能使用上面三步骤来实现mod_timer,因为上面三步骤不是原子操作,有可能会产生竞态问题,而mod_timer保证原子性;
+
+5.删除定时器del_timer
+
+案例:加载驱动后,每搁2000ms打印一句"hello,kernel"
+案例:加载驱动后,每搁2000ms闪烁一次灯
+案例:加载驱动后,能够动态修改闪烁的频率,100ms,500ms,1000ms,2000ms,提示采用内核模块参数的知识,不能使用字符设备驱动框架!
+
+内核提供了一个宏用于毫秒转jiffies
+msecs_to_jiffies(毫秒数);  msecs_to_jiffies(500); //500ms
+500ms以后的时间:jiffies + msecs_to_jiffies(500);
+
+

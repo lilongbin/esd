@@ -1,0 +1,234 @@
+this指针
+const对象和const函数
+析构函数,拷贝构造函数
+new/delete
+static成员
+
+一/this指针
+	指向当前对象地址的指针称为this指针;创建对象后会自动将当前对象的地址赋值给this指针;
+	如果在构造函数中,this指向(正在构建的)对象的首地址;
+	在成员函数中,this代表(调用这个函数的)对象的首地址;
+	一个对象的大小是由成员变量决定的;成员函数放在代码区;
+二/this指针的使用
+	1.当函数的参数和成员变量重名时,可以使用this区分;
+	2.可以用来返回当前对象的数据;可以返回指针/值/引用;
+	3.this指针作为函数参数相关的数据;
+		可以传递指针/值/引用;
+	定义在类内的函数,在类内调用不用考虑函数的顺序;
+	定义在类外的函数,在类内调用时要考虑声明的顺序;
+	class A;//声明类型A
+	class A{};//定义类型A
+三/const对象和const函数
+	const Animal a;//const对象
+	成员函数
+	void show() const {}//const函数
+	const对象只能调用const函数;
+	非const对象优先调用非const函数,也可以调用const函数;
+	const函数和非const函数可以构成重载关系
+	mutable的成员可以被const函数写
+	void callfun(const A& a){
+		a.fun//只能调用const函数
+	}
+
+四/析构函数
+	和类型名同名,函数名前有个波浪号~
+	任何类型都只有一个无参的析构函数;
+	析构函数没有返回值类型;
+	在对象销毁前会自动调用析构函数,也可以人为的调用析构函数;
+	析构函数负责销毁和释放资源;
+
+	何时需要自定义析构函数?
+	有堆内存分配时;
+五/拷贝构造函数
+	复制另外一个对象:根据原来的一个对象,复制出另外一个对象;
+	浅拷贝:只拷贝值,不开辟独立的内存空间;
+	深拷贝:各个对象都开辟有自己独立的内存;
+	产生拷贝的时机:
+		1.用同类型的对象去初始化一个对象时;
+		2.对象类型作为函数参数时;//非引用对象类型;
+		3.函数返回对象类型;//使用匿名临时对象,简化编程;
+六/new/delete和malloc/free的区别
+	new比malloc多做了如下工作:
+		如果类型的成员变量是类类型,new会自动构建成员;
+		new自动调用构造函数;
+		new自动处理类型转换;
+	delete比free多调用了析构函数;
+七/static成员
+	static和普通成员的区别:
+		普通类型的成员必须通过对象去调用;//
+		static成员不使用对象就可以直接访问;访问前在数据前加上  类名::
+	static函数中没有this指针,所以static函数不能直接访问到普通成员变量;
+	static成员一般起共享和计数功能;属于类级别的;
+
+	注意://静态成员变量必须在类外进行初始化;可以放在初始化参数列表中进行;
+	静态函数中不能直接访问非静态成员(线程封装的雏形)
+
+静态函数使用例子
+/*
+ * static中构造this访问普通成员
+ */
+#include <iostream>
+using namespace std;
+class A{
+	public:
+	/*
+	 * static void show() {
+	 *     play();//不可以直接访问
+	 * }
+	 */
+	/* 线程封装的雏形 */
+	static void show(A *mythis){
+		mythis->play();
+	}
+	void play(){
+		cout << "this is play()" << endl;
+	}
+};
+int main(){
+	A a;
+	//A::show();//错误：没有对象无法调用成员函数‘void A::play()’
+	A::show(&a);
+}
+
+应用:实现单例模式?整个程序中只有一个这个类型的实例对象
+
+要求:
+	整个类型只有一个对象//静态成员变量?只有一份实例
+	防止类外创建对象//私有构造函数和拷贝函数;
+	静态函数提供外界访问接口//
+有懒汉式和饿汉式
+	饿汉式:立即创建对象;
+	懒汉式:需要时才创建;适合不频繁使用的大对象
+
+
+/*****************************************
+ * Copyright (C) 2019 * Ltd. All rights reserved.
+ * File name   : singleton.hpp
+ * Created date: 2019-07-25 18:45:05
+ *******************************************/
+#ifndef _SINGLETON_H
+#define _SINGLETON_H
+
+template <class T>
+class Singleton
+{
+private:
+	static T* m_pInstance;
+	Singleton(const Singleton& src){(void)src;}
+	Singleton &operator=(const Singleton& src){(void)src;}
+
+	class Garbo
+	{
+		public:
+			~Garbo()
+			{
+				if (Singleton::m_pInstance)
+				{
+					delete Singleton::m_pInstance;
+					Singleton::m_pInstance = NULL;
+				}
+			}
+	};
+	static Garbo garbo;
+
+protected:
+	Singleton(){}
+	~Singleton(){}
+
+public:
+	static T* getInstance()
+	{
+		if (NULL == m_pInstance)
+		{
+			m_pInstance = new T();
+		}
+		return m_pInstance;
+	}
+};
+
+template <class T>
+T* Singleton<T>::m_pInstance = NULL;
+#endif //SINGLETON_H
+
+/*****************************************
+* Copyright (C) 2019 * Ltd. All rights reserved.
+* File name   : sequenceId.hpp
+* Created date: 2019-07-25 18:47:48
+*******************************************/
+
+#ifndef _SEQUENCEID_H
+#define _SEQUENCEID_H
+#include "singleton.hpp"
+#include <iostream>
+#include <thread>
+#include <mutex>
+
+/*
+ * usage:
+ * Header_SequenceID * m_sequence = Header_SequenceID::getInstance();
+ * id = m_sequence->getSequenceId();
+ * */
+class Header_SequenceID:public Singleton<Header_SequenceID>
+{
+	friend class Singleton<Header_SequenceID>;
+	public:
+	~Header_SequenceID();
+	unsigned int getSequenceId();
+	bool initSequenceId();
+
+	private:
+	Header_SequenceID();
+	std::mutex m_mutex;
+	unsigned int m_sequenceId;
+};
+
+#endif //SEQUENCEID_H
+
+/*****************************************
+* Copyright (C) 2019 * Ltd. All rights reserved.
+* File name   : sequenceId.cpp
+* Created date: 2019-07-25 18:54:12
+*******************************************/
+#include <iostream>
+#include <string>
+#include <map>
+#include <vector>
+#include "sequenceId.hpp"
+
+Header_SequenceID::Header_SequenceID()
+{
+	m_sequenceId = 0;
+}
+
+Header_SequenceID::~Header_SequenceID()
+{
+	m_sequenceId = 0;
+	/* destory mutex */
+}
+
+unsigned int Header_SequenceID::getSequenceId()
+{
+	unsigned int id = 0;
+
+	if (0 == m_sequenceId)
+	{
+		(void)initSequenceId();
+	}
+	/* mutex lock */
+    m_mutex.lock();
+	id = m_sequenceId++;
+	/* mutex unlock */
+    m_mutex.unlock();
+
+	return id;
+}
+
+bool Header_SequenceID::initSequenceId()
+{
+	bool ret = false;
+	/* mutex attr */
+	/* mutex init */
+	/* mutex create */
+	return ret;
+}
+

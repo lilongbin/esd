@@ -1,0 +1,778 @@
+3 map
+
+Map是STL的一个关联容器,它提供一对一(其中第一个可以称为关键字,每个关键字只能在map中出现一次,第二个称为该关键字的值)的数据处理能力,
+由于这个特性,在我们处理一对一数据的时候提供快速通道;这里说下map内部数据的组织,map内部自建一颗红黑树(一种非严格意义上的平衡二叉树),
+这颗树具有对数据自动排序的功能,所以在map内部所有的数据都是有序的,后边我们会见识到有序的好处;
+
+3.1 map简介
+map是一类关联式容器;它的特点是增加和删除节点对迭代器的影响很小,除了那个操作节点,对其他的节点都没有什么影响;
+对于迭代器来说,可以修改实值,而不能修改key;
+
+3.2 map的功能
+自动建立Key - value的映射;key和value可以是任意你需要的类型;
+根据key值快速查找记录,查找的复杂度是Log(N),如果有1000个记录,最多查找10次,1,000,000个记录,最多查找20次;
+快速插入Key -Value 记录;
+快速删除记录
+根据Key 修改value记录;
+遍历所有记录;
+
+3.3 使用map
+使用map得包含map类所在的头文件
+#include <map>  //注意,STL头文件没有扩展名.h
+
+map对象是模板类,需要关键字和存储对象两个模板参数:
+std:map<int,string> personnel;
+这样就定义了一个用int作为key,并拥有相关联的string类型的value.
+为了使用方便,可以对模板类进行typedef类型定义,
+typedef map<int, CString> MAP_INT_CSTRING;
+MAP_INT_CSTRING enumMap;
+
+
+3.4 map的构造函数
+
+map共提供了6个构造函数,我们通常用如下方法构造一个map:
+map<int, string> mapStudent;
+
+map的基本操作函数:
+     C++ maps是一种关联式容器,包含"键-值"对
+     begin()         返回指向map头部的迭代器
+     clear()        删除所有元素
+     count()         返回指定元素出现的次数
+     empty()         如果map为空则返回true
+     end()           返回指向map末尾的迭代器
+     equal_range()   返回特殊条目的迭代器对
+     erase()         删除一个元素
+     find()          查找一个元素
+     get_allocator() 返回map的配置器
+     insert()        插入元素
+     key_comp()      返回比较元素key的函数
+     lower_bound()   返回键值>=给定元素的第一个位置
+     max_size()      返回可以容纳的最大元素个数
+     rbegin()        返回一个指向map尾部的逆向迭代器
+     rend()          返回一个指向map头部的逆向迭代器
+     size()          返回map中元素的个数
+     swap()           交换两个map
+     upper_bound()    返回键值>给定元素的第一个位置
+     value_comp()     返回比较元素value的函数
+
+C++定义map类型的模板迭代器
+template <typename K, typename V>
+using MapIterator_T = typename std::map<K, V>::iterator;
+//typename std::map<K, V>::iterator MapIterator_T;  //error
+
+	template <typename K, typename V>
+void show(map<K, V>& m)
+{
+	cout << "[" << __func__ << "] ";
+	// auto it = m.begin();
+	MapIterator_T<K, V> it = m.begin();
+	for (it = m.begin(); it != m.end();)
+	{
+		cout <<  it->first << ": " << it->second;
+		it++;
+		if (it != m.end())
+		{
+			cout << ", ";
+		}
+	}
+	cout << endl;
+}
+
+void test()
+{
+	map<int, string> mis1; // (1)
+	show(mis1);
+	mis1[1] = "good";
+	mis1[9] = "map";
+	show(mis1);            //1: good, 9: map
+}
+
+3.5 数据的插入
+
+在构造map容器后,我们就可以往里面插入数据了;这里讲4种插入数据的方法:
+进行map的insert操作时,记住元素类型是pair类型;
+map<string, string> map_name_major;
+map_name_major.insert({"xiaoli", "computer"});
+map_name_major.insert(make_pair("xiaohua", "handwriting"));
+map_name_major.insert(pair<int, string> ("xiaohong", "math"));
+map_name_major.insert(map<int, string>::value_type("xiaolan", "electic"));
+map_name_major["xiaohuang"] = "computer";
+
+以上用法,虽然都可以实现数据的插入,但是它们是有区别的,当map中已经存在要插入的关键字时,insert操作是插入数据不了的,
+但是用数组方式就不同了,它可以覆盖以前该关键字对应的值;
+
+
+
+3.6 map的大小
+
+在往map里面插入了数据,我们怎么知道当前已经插入了多少数据呢,可以用size函数
+int size = map_name_major.size();
+
+
+3.7 数据的遍历
+
+这里也提供三种方法,对map进行遍历
+第一种:应用前向迭代器
+第二种:应用反相迭代器
+map<string, string>::iterator iter;
+for (iter = map_name_major.begin(); iter != map_name_major.end(); iter++)
+{
+    cout << "key: " << iter->first << "\tvalue: " << iter->second << endl;
+}
+第三种,用数组的形式,适用于key是int的情况;
+
+
+3.8 查找并获取map中的元素(包括判定这个关键字是否在map中出现)
+
+第一种:用count函数来判定关键字是否出现,其缺点是无法定位数据出现位置,由于map的特性,一对一的映射关系,就决定了count函数的返回值只有两个,
+要么是0,要么是1,出现的情况,当然是返回1了
+
+第二种:用find函数来定位数据出现位置,它返回的一个迭代器,当数据出现时,它返回数据所在位置的迭代器,
+如果map中没有要查找的数据,它返回的迭代器等于end函数返回的迭代器;
+查找map中是否包含某个关键字条目用find()方法,传入的参数是要查找的key,在这里需要提到的是begin()和end()两个成员,
+分别代表map对象中第一个条目和最后一个条目,这两个数据的类型是iterator.
+
+map<string, string>::iterator iter;
+iter = map_name_major.find(key);
+if (iter != map_name_major.end())
+{
+    cout << "Hit " << iter->first << ": " << iter->second << endl;
+}
+else
+{
+    cout << key << ": Not in map" << endl;
+}
+
+通过map对象的方法获取的iterator数据类型是一个std::pair对象,包括两个数据 iterator->first和 iterator->second分别代表key和value;
+
+
+3.9 从map中删除元素
+
+移除某个map中某个条目用erase();
+该成员方法的定义如下:
+iterator erase(iterator it);//通过一个条目对象删除
+iterator erase(iterator first,iterator last)//删除一个范围
+size_type erase(const Key& key);//通过关键字删除
+clear()就相当于enumMap.erase(enumMap.begin(),enumMap.end());
+
+这里要用到erase函数,它有三个重载了的函数,下面在例子中详细说明它们的用法
+// case 1
+// map_name_major.erase(key);
+
+// case 2
+map<string, string>::iterator iter;
+iter = map_name_major.find(key);
+if (iter != map_name_major.end())
+{   
+    map_name_major.erase(iter);
+}
+
+3.10 map中的swap用法
+map中的swap不是一个容器中的元素交换,而是两个容器所有元素的交换;
+
+3.11 排序map中的sort问题
+
+map中的元素是自动按Key升序排序,所以不能对map用sort函数;
+这里要讲的是一点比较高深的用法了,排序问题,STL中默认是采用小于号来排序的,以上代码在排序上是不存在任何问题的,因为上面的关键字是int型,
+它本身支持小于号运算,在一些特殊情况,比如关键字是一个结构体,涉及到排序就会出现问题,因为它没有小于号操作,insert等函数在编译的时候过
+不去,下面给出两个方法解决这个问题;
+
+第一种<重载,程序举例;
+#include <iostream>
+#include <string>
+#include <map>
+using namespace std;
+typedef struct tagStudentinfo {
+    int      niD;
+    string   strName;
+    bool operator < (tagStudentinfo const& _A) const {
+        //这个函数指定排序策略,按niD排序,如果niD相等的话,按strName排序
+        if (niD < _A.niD) { return true; }
+        if (niD == _A.niD) { return strName.compare(_A.strName) < 0; }
+        return false;
+    }
+} Studentinfo, *PStudentinfo;
+
+int main() {
+    int nSize;
+    map<Studentinfo, int> mapStudent;
+    map<Studentinfo, int>::iterator iter;
+
+    Studentinfo studentinfo;
+    studentinfo.niD = 1;
+    studentinfo.strName = "student_one";
+    mapStudent.insert(pair<Studentinfo, int>(studentinfo, 90));
+                                                                                                                            
+    studentinfo.niD = 2;
+    studentinfo.strName = "student_two";
+    mapStudent.insert(pair<Studentinfo, int>(studentinfo, 80));
+
+    for (iter=mapStudent.begin(); iter!=mapStudent.end(); iter++) {
+        cout<<iter->first.niD<<' '<<iter->first.strName<<' '<<iter->second<<endl;
+    }
+    return 0;
+}
+
+
+第二种仿函数的应用,这个时候结构体中没有直接的小于号重载,程序说明
+
+#include <iostream>
+#include <map>
+#include <string>
+using namespace std;
+typedef struct tagStudentinfo {
+    int      niD;
+    string   strName;
+} Studentinfo, *PStudentinfo; //学生信息
+
+class sort {
+    public:
+        bool operator() (Studentinfo const &_A, Studentinfo const &_B) const {
+            if (_A.niD < _B.niD) { return true; }
+            if(_A.niD == _B.niD) { return _A.strName.compare(_B.strName) < 0; }
+            return false;
+        }
+};
+
+int main() {
+    map<Studentinfo, int, sort>mapStudent;
+    map<Studentinfo, int>::iterator iter;
+
+    Studentinfo studentinfo;
+    studentinfo.niD = 1;
+    studentinfo.strName = "student_one";
+    mapStudent.insert(pair<Studentinfo, int>(studentinfo, 90));
+
+    studentinfo.niD = 2;
+    studentinfo.strName = "student_two";
+    mapStudent.insert(pair<Studentinfo, int>(studentinfo, 80));
+    for (iter=mapStudent.begin(); iter!=mapStudent.end(); iter++) {
+        cout<<iter->first.niD<<' '<<iter->first.strName<<' '<<iter->second<<endl;
+    }
+    return 0;
+}
+
+由于STL是一个统一的整体,map的很多用法都和STL中其它的东西结合在一起,比如在排序上,这里默认用的是小于号,即less<>,
+还要说明的是,map中由于它内部有序,由红黑树保证,因此很多函数执行的时间复杂度都是log2N的,如果用map函数可以实现,
+而STL Algorithm也可以完成的功能,建议用map自带函数,效率高一些;
+
+/*****************************************
+* map 演示
+*******************************************/
+
+#include <iostream>
+
+#include <string>
+#include <map>
+#include <vector>
+using namespace std;
+
+map<string, string> map_name_major;
+
+void map_show()
+{
+	map<string, string>::iterator iter;
+	for (iter = map_name_major.begin(); iter != map_name_major.end(); iter++)
+	{
+		cout << "key: " << iter->first << "\tvalue: " << iter->second << endl;
+	}
+}
+
+void map_insert()
+{
+	pair<map<string, string>::iterator, bool> insert_ret_val;
+
+	// map_name_major.insert({"xiaoli", "computer"}); //-std=c++11
+	insert_ret_val = map_name_major.insert(make_pair("xiaohua", "handwriting"));
+	if (insert_ret_val.second == true) {
+		cout << "insert successfully." << endl;
+	} else {
+		cout << "insert failed." << endl;
+	}
+
+	insert_ret_val = map_name_major.insert(pair<string, string> ("xiaohong", "math"));
+	if (insert_ret_val.second == true) {
+		cout << "insert successfully." << endl;
+	} else {
+		cout << "insert failed." << endl;
+	}
+
+	insert_ret_val = map_name_major.insert(map<string, string>::value_type("xiaolan", "electric"));
+	if (insert_ret_val.second == true) {
+		cout << "insert successfully." << endl;
+	} else {
+		cout << "insert failed." << endl;
+	}
+
+	map_name_major["xiaohuang"] = "computer";
+}
+
+void map_modify()
+{
+	string key = "xiaohong";
+	string value = "computer";
+
+	cout << "map modify begin" << endl;
+	/* 数组方式赋值操作时,如果key已存在会直接覆盖 */
+	cout << "key: "  << key << endl;
+	cout << "value: " << map_name_major[key] << " -> ";
+	map_name_major[key] = value;
+	cout << map_name_major[key] << endl;
+	cout << "map modify end" << endl;
+}
+
+void map_find(string key)
+{
+	map<string, string>::iterator iter;
+	iter = map_name_major.find(key);
+	if (iter != map_name_major.end())
+	{
+		cout << "Hit " << iter->first << ": " << iter->second << endl;
+	}
+	else
+	{
+		cout << key << ": Not in map" << endl;
+	}
+}
+
+void map_remove(string key)
+{
+	cout << "will remove: " << key << endl;
+	// case 1
+	// map_name_major.erase(key);
+
+	// case 2
+	map<string, string>::iterator iter;
+	iter = map_name_major.find(key);
+	if (iter != map_name_major.end())
+	{
+		map_name_major.erase(iter);
+	}
+}
+
+int main() {
+	map_insert();
+	map_show();
+	map_modify();
+	map_show();
+	map_find("xiaolan");
+	map_remove("xiaohong");
+	map_show();
+	return 0;
+}
+
+map类方法使用示例
+/*****************************************
+ * Copyright (C) 2018 * Ltd. All rights reserved.
+ * 
+ * File name   : map.cpp
+ * Author      : longbin
+ * Created date: 2018-08-07 10:42:02
+ * Description : 
+ *
+ *******************************************/
+
+#include <iostream>
+
+#include <string>
+#include <map>
+#include <vector>
+using namespace std;
+
+#define printvar(x)    do { cout << "[" << __func__ << "] " << #x << ": " << (x) << endl; } while (0);
+#define printmap(x) do { cout << "[" << __func__ << "] " << #x << ": "; show(x); } while (0);
+
+template <typename K, typename V>
+using MapIterator_T = typename std::map<K, V>::iterator;
+//typename std::map<K, V>::iterator MapIterator_T;  //error
+
+	template <typename K, typename V>
+void show(map<K, V>& m)
+{
+	cout << "[" << __func__ << "] ";
+	// auto it = m.begin();
+	MapIterator_T<K, V> it = m.begin();
+	for (it = m.begin(); it != m.end();)
+	{
+		cout <<  it->first << ": " << it->second;
+		it++;
+		if (it != m.end())
+		{
+			cout << ", ";
+		}
+	}
+	cout << endl;
+}
+
+void map_construct()
+{
+	// empty (1)    explicit map (const key_compare& comp = key_compare(),
+	//                            const allocator_type& alloc = allocator_type());
+	// range (2) template <class InputIterator>
+	//              map (InputIterator first, InputIterator last,
+	//                      const key_compare& comp = key_compare(),
+	//                         const allocator_type& alloc = allocator_type());
+	// copy (3)     map (const map& x);
+	// move (4)     map (map&& x); //c++11
+	//              map (map&& x, const allocator_type& alloc); //c++11
+	// initializer list (5)	 map (initializer_list<value_type> il,
+	//                            const key_compare& comp = key_compare(),
+	//                            const allocator_type& alloc = allocator_type()); //c++11
+
+	// (1) empty container constructor (default constructor)
+	// (2) range constructor // Constructs a container with as many elements as the range [first,last).
+	// (3) copy constructor // Constructs a container with a copy of each of the elements in x.
+	// (4) move constructor (and moving with allocator) // Constructs a container that acquires the elements of x.
+	// (5) initializer list constructor // Constructs a container with a copy of each of the elements in il.
+
+	map<int, string> mis1;     // (1)
+	printmap(mis1);
+	mis1[1] = "good";
+	mis1[3] = "value";
+	mis1[6] = "c++";
+	mis1[9] = "map";
+	printmap(mis1);            //1: good, 3: value, 6: c++, 9: map
+
+	map<int, string> mis2(mis1.begin(), mis1.end()); // (2)
+	printmap(mis2);            //1: good, 3: value, 6: c++, 9: map
+
+	map<int, string> mis3(mis2); // (3)
+	printmap(mis3);            //1: good, 3: value, 6: c++, 9: map
+
+	map<int, string> mis5({
+			{1, "good"}, {3, "value"}, {6, "c++"}, {9, "map"}
+			});                // (5) c++11
+	printmap(mis5);            //1: good, 3: value, 6: c++, 9: map
+}
+
+void map_OperatorEQ()
+{
+	// copy (1)  map& operator= (const map& x);
+	// move (2)	 map& operator= (map&& x); //c++11
+	// initializer list (3)	map& operator= (initializer_list<value_type> il);//c++11
+	// Copy container content
+	// Assigns new contents to the container, replacing its current content.
+
+	cout << "[" << __func__ << "]" << endl;
+	map<int, string> mis1;
+	map<int, string> mis2;
+	mis1[1] = "good";
+	mis1[3] = "value";
+	mis1[6] = "c++";
+	mis1[9] = "map";
+
+	mis2 = mis1;     // (1)
+	printmap(mis2);  //1: good, 3: value, 6: c++, 9: map
+	mis1 = map<int, string>();
+	printmap(mis1);  //mis1 is now empty
+
+	map<int, string> mis3 = {
+		{1, "good"}, {3, "value"}, {6, "c++"}, {9, "map"},
+	};               // (3) c++11
+	printmap(mis3);  //1: good, 3: value, 6: c++, 9: map
+	printmap(mis3);  //1: good, 3: value, 6: c++, 9: map
+}
+
+void map_begin_end()
+{
+	// iterator begin();
+	// const_iterator begin() const;
+	// Return iterator to beginning
+	// Returns an iterator referring to the first element in the map container.
+
+	// iterator end();
+	// const_iterator end() const;
+	// Return iterator to end
+	// Returns an iterator referring to the past-the-end element in the map container.
+
+	map<int, string> mis;
+	mis[1] = "good";
+	mis[3] = "value";
+	mis[6] = "c++";
+	mis[9] = "map";
+
+	map<int, string>::iterator it;
+	for (it = mis.begin(); it != mis.end(); it++)
+	{
+		printvar(it->first);
+		printvar(it->second);
+	}
+}
+
+void map_empty()
+{
+	// bool empty() const;
+	// Test whether container is empty
+	// Returns whether the map container is empty (i.e. whether its size is 0).
+
+	map<int, string> mis;
+	printvar(mis.empty()); //1
+	mis[1] = "good";
+	mis[3] = "value";
+	mis[6] = "c++";
+	mis[9] = "map";
+
+	while (!mis.empty())
+	{
+		printvar(mis.begin()->first);
+		printvar(mis.begin()->second);
+		cout << "mis.erase(mis.begin())" << endl;
+		mis.erase(mis.begin());
+	}
+}
+
+void map_size()
+{
+	// size_type size() const;
+	// Return container size
+	// Returns the number of elements in the map container.
+
+	map<int, string> mis;
+	printvar(mis.size()); //0
+	mis[1] = "good";
+	mis[3] = "value";
+	mis[6] = "c++";
+	mis[9] = "map";
+	printvar(mis.size()); //4
+}
+
+void map_OperatorAt()
+{
+	// mapped_type& operator[] (const key_type& k);
+	// Access element
+	// If k matches the key of an element in the container, the function returns a reference to its mapped value.
+	// If k does not match the key of any element in the container, the function inserts a new element
+	// with that key and returns a reference to its mapped value. Notice that this always increases the
+	// container size by one, even if no mapped value is assigned to the element (the element is constructed
+	// using its default constructor).
+	// A similar member function, map::at, has the same behavior when an element with the key exists,
+	// but throws an exception when it does not.
+
+	map<int, string> mis;
+	mis[1] = "good";
+	mis[3] = "value";
+	mis[6] = "c++";
+	printmap(mis); //1: good, 3: value, 6: c++
+
+	printvar(mis[9]); //inserts a new element with 9 and returns a reference to its value;
+	printmap(mis); //1: good, 3: value, 6: c++, 9: 
+}
+
+void map_at()
+{
+	//c++11
+	// mapped_type& at (const key_type& k);
+	// const mapped_type& at (const key_type& k) const;
+
+	// Access element
+	// Returns a reference to the mapped value of the element identified with key k.
+	// If k does not match the key of any element in the container, the function throws an out_of_range exception.
+
+	map<int, string> mis;
+	mis[1] = "good";
+	mis[3] = "value";
+	mis[6] = "c++";
+	printmap(mis);
+	mis.at(3) = "at(3)";
+	printmap(mis);
+	// mis.at(9) = "map"; //std::out_of_range
+}
+
+void map_insert()
+{
+	// single element (1)  pair<iterator,bool> insert (const value_type& val);
+	// with hint (2)       iterator insert (iterator position, const value_type& val);
+	// range (3)      template <class InputIterator>
+	//                     void insert (InputIterator first, InputIterator last);
+	// Insert elements
+	// Extends the container by inserting new elements, effectively increasing the container size
+	// by the number of elements inserted.
+
+	// Member type value_type is the type of the elements in the container, defined in map
+	// as pair<const key_type, mapped_type> (see map member types).
+
+	map<int, string> mis1;
+	mis1.insert(std::pair<int, string>(1, "good"));  // (1)
+	mis1.insert(std::pair<int, string>(3, "value")); // (1)
+	printmap(mis1);
+
+	std::pair<std::map<int, string>::iterator, bool> ret;
+	ret = mis1.insert(std::pair<int, string>(3, "insert")); // (1)
+	cout << "[" << __func__ << "] insert ret.second: " << ret.second << endl; //1
+	if (ret.second)
+	{
+		cout << "[" << __func__ << "] insert successfully" << endl;
+	}
+	else
+	{
+		cout << "[" << __func__ << "] key: " << ret.first->first
+			<< " already existed, with a value of: " << ret.first->second << endl;
+		//key: 3 already existed, with a value of: value
+	}
+
+	std::map<int, string>::iterator it = mis1.begin();
+	mis1.insert(it, std::pair<int, string>(6, "c++")); // (2)
+	mis1.insert(it, std::pair<int, string>(9, "map")); // (2)
+	printmap(mis1); //1: good, 3: value, 6: c++, 9: map
+
+	std::map<int, string> mis2;
+	mis2.insert(mis1.begin(), mis1.find(6));           // (3)
+	printmap(mis2); //1: good, 3: value
+}
+
+void map_erase()
+{
+	// (1)  void erase (iterator position);
+	// (2)  size_type erase (const key_type& k);
+	// (3)  void erase (iterator first, iterator last);
+	// Erase elements
+	// Removes from the map container either a single element or a range of elements ([first,last)).
+
+	std::map<int, string> mis;
+	std::map<int, string>::iterator it;
+
+	mis[1] = "good";
+	mis[3] = "value";
+	mis[6] = "c++";
+	mis[9] = "map";
+	printmap(mis);     //1: good, 3: value, 6: c++, 9: map
+
+	it = mis.find(3);
+	if (it != mis.end())
+	{
+		mis.erase(it); // (1)
+	}
+	printmap(mis);     //1: good, 6: c++, 9: map
+
+	mis.erase(6);      // (2)
+	printmap(mis);     //1: good, 9: map
+
+	it = mis.find(0);
+	mis.erase(it, mis.end()); // (3)
+	printmap(mis);     //1: good, 9: map
+	it = mis.find(1);
+	mis.erase(it, mis.end()); // (3)
+	printmap(mis);     //
+}
+
+void map_clear()
+{
+	// void clear();
+	// Clear content
+	// Removes all elements from the map container (which are destroyed), leaving the
+	// container with a size of 0.:x
+
+	std::map<int, string> mis;
+
+	mis[1] = "good";
+	mis[3] = "value";
+	mis[6] = "c++";
+	mis[9] = "map";
+	printmap(mis);        //1: good, 3: value, 6: c++, 9: map
+
+	mis.clear();
+	printmap(mis);        //
+	printvar(mis.size()); //0
+
+	mis[6] = "c++";
+	mis[9] = "map";
+	printmap(mis);        //6: c++, 9: map
+	printvar(mis.size()); //2
+}
+
+void map_find()
+{
+	// iterator       find (const key_type& k);
+	// const_iterator find (const key_type& k) const;
+	// Get iterator to element
+	// Searches the container for an element with a key equivalent to k and returns an iterator to it if found,
+	// otherwise it returns an iterator to map::end.
+	// Two keys are considered equivalent if the container's comparison object returns false reflexively
+	// (i.e., no matter the order in which the elements are passed as arguments).
+	// Another member function, map::count, can be used to just check whether a particular key exists.
+
+	map<int, string> mis;
+	map<int, string>::iterator it;
+
+	mis[1] = "good";
+	mis[3] = "value";
+	mis[6] = "c++";
+	mis[9] = "map";
+	printmap(mis); //1: good, 3: value, 6: c++, 9: map
+
+	it = mis.find(6);
+	if (it != mis.end())
+	{
+		cout << "[" << __func__ << "] findout: " << it->first << ", value: " << it->second << endl;
+	}
+
+	printvar( mis.end() != mis.find(0) ); //0
+	printvar( mis.end() != mis.find(1) ); //1
+	printvar( mis.end() != mis.find(3) ); //1
+	printvar( mis.end() != mis.find(6) ); //1
+	printvar( mis.end() != mis.find(9) ); //1
+
+	printvar(mis.find(1)->second);        //good
+	printvar(mis.find(3)->second);        //value
+	printvar(mis.find(6)->second);        //c++
+	printvar(mis.find(9)->second);        //map
+}
+
+void map_count()
+{
+	// size_type count (const key_type& k) const;
+	// Count elements with a specific key
+	// Searches the container for elements with a key equivalent to k and returns the number of matches.
+	// Because all elements in a map container are unique, the function can only return 1 (if the element
+	// is found) or zero (otherwise).
+	// Two keys are considered equivalent if the container's comparison object returns false reflexively
+	// (i.e., no matter the order in which the keys are passed as arguments).
+
+	std::map<int, string> mis;
+	mis[1] = "good";
+	mis[3] = "value";
+	mis[6] = "c++";
+	mis[9] = "map";
+	printmap(mis); //1: good, 3: value, 6: c++, 9: map
+
+	unsigned int i;
+	for (i = 0; i <= 9; i++)
+	{
+		cout << "[" << __func__ << "] mis.count(" << i << "): " << mis.count(i) << endl;
+	}
+	// mis.count(0): 0
+	// mis.count(1): 1
+	// mis.count(2): 0
+	// mis.count(3): 1
+	// mis.count(4): 0
+	// mis.count(5): 0
+	// mis.count(6): 1
+	// mis.count(7): 0
+	// mis.count(8): 0
+	// mis.count(9): 1
+}
+
+int main() {
+	map_construct();
+	map_OperatorEQ();
+
+	map_begin_end();
+
+	map_empty();
+	map_size();
+
+	map_OperatorAt();
+	map_at();
+
+	map_insert();
+	map_erase();
+	map_clear();
+
+	map_find();
+	map_count();
+	return 0;
+}
+
+参考链接
+https://www.cnblogs.com/fnlingnzb-learner/p/5833051.html
+http://www.cplusplus.com/reference/map/map/

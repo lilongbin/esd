@@ -1,0 +1,39 @@
+16.01 startx命令
+用于在纯文本界面启动x窗口界面
+ # startx
+
+16.02 xauth命令
+用于显示和编辑被用于连接x服务器的认证信息
+ # xauth info 显示授权文件信息
+ # xauth list
+
+16.03 xhost命令
+用于控制哪些x客户端能够在x服务器上显示图形界面
+ # xhost 显示当前配置
+ # xhost + www.nyist.edu.cn
+ # xhost
+
+16.04 xinit命令
+是xwindow的初始化脚本程序,一般是通过startx调用
+ # xinit 没有任何参数,如果xinitrc配置文件不存在,就会启动一个xterm终端
+没有使用startx启动的界面友好,因为startx在调用xinit时会传递配置参数
+
+16.05 xlsatoms命令
+用于显示x定义的原子成分
+ # xlsatoms
+ # xlsatoms -name CURSUR
+
+16.06 xlsclients命令
+显示在当前x服务器上的运行的x客户端
+ # xlsclients
+
+16.07 xlsfonts命令
+用于显示在当前x服务器上可以使用的字体列表
+ # xlsfonts
+
+16.08 xset命令
+用于设置xwindow系统的用户偏好
+ # xset -q 显示相关信息
+ # xset b on c on 其中b和c分别表示蜂鸣器和键盘按键音
+
+

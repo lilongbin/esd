@@ -1,0 +1,193 @@
+
+1.01 ls命令
+默认显示当前路径下的所有文件列表,如果要显示其他路径的内容需要跟上一个路径,可以是相对路径也可以是绝对路径.
+如果要显示文件的详细信息,需要使用ls的长格式输出-l选项
+ # ls -l /dev/
+	1 权限;-普通文件,d目录,l链接文件,c字符设备文件,b块设备文件
+	2 链接数
+	3 属主
+	4 属组
+	5 大小
+	6 修改时间
+	7 文件名
+会对不同的文件进行加亮显示,蓝色显示的一般表示目录,浅蓝色表示的是链接文件,绿色表示的是可执行文件.
+所有以.开头的文件都是隐藏的;如果要将一个文件具有隐藏属性只要将文件名改名为以.开头即可;
+ls -a选项可以显示出所有文件,包括隐藏文件;
+-a和-l选项是可以组合使用的;
+ls -i选项可以显示对应的目录文件的索引节点号inode;
+如果两个文件的inode相同,则这两个文件对应的其实是同一个文件;
+
+1.02 cd命令
+用于切换用户当前目录change directory
+cd 后面跟我们要切换的目标路径
+在Linux里面有三种方式可以快速切换到用户主目录
+cd不加任何参数;cd ~也可以切换到用户主目录;另外cd $HOME也可以快速返回用户主目录;
+cd命令的使用频率非常高;
+
+1.03 cp命令copy
+可以将一个或多个文件组织到一个目录
+ # cp source target
+当目录是一个路径的时候表示将文件的名称保留,否则有可能会对拷贝的结果改名;
+souce可以是一个文件,也可以是多个文件;当source是多个文件的时候target一定要是路径,否则无法完成复制;
+cp默认是不复制目录的,如果要复制目录,需要加-r选项;-r和-R是等价的;
+如果复制的目标文件已经存在,使用-i选项可以要求用户确认是否覆盖;
+source还可以使用通配符,缩短输入长度,增加灵活性,提高效率;
+cp还可以实现ln创建链接文件的功能
+cp还可以创建硬链接文件
+ # cp -l source hardlink
+硬链接文件的inode是相同的,实际对应同一个文件;
+cp还可以创建符号链接
+ # cp -s source symlink
+符号链接和源文件的inode是不同的;
+
+
+1.04 mv命令
+用来对文件移动或改名
+ # mv source target
+当source和target都是文件名或者都是文件名时为改名
+当target是路径名时表示移动文件,此时source可以是多个文件
+
+1.05 pwd指令
+用于显示当前目录的绝对路径
+
+1.06 rm命令
+用于删除文件或目录
+ # rm filename
+-i选项可以进行删除前确认
+-f选项可以强制删除不给出确认信息
+-r选项可以递归删除非空目录;-R与-r等效;
+
+1.07 mkdir命令
+用于创建空目录
+ # mkdir dir
+使用-p选项可以一次创建多级目录
+
+1.08 rmdir命令
+用于删除空目录
+默认无法删除非空目录
+ # rm -rf directory	//可以删除非空目录
+-p选项可以删除多级空目录,要求子目录下不能有其他文件存在;
+
+1.09 chgrp命令
+用来改变文件的属组
+ # chgrp newgrp file
+使用-R选项可以改变目录及其子文件的属组
+ # chgrp -R newgrp dir
+
+1.10 chmod命令
+用来改变文件的权限
+u,user;g,group;o,others;a,all;
+ # chmod u=rwx,g=rw,o=rw file
+ # chmod u+x file
+ # chmod a+x file
+ # chmod 644 file
+
+1.11 chown命令
+改变文件的属主和属组
+ # chown owner file
+ # chown owner:grp file
+ # chown -R owner file
+
+1.12 find命令
+可以查找文件
+在linux中使用频率比较高
+ # find / -name passwd	/* 从/开始查找name为passwd的文件,并把结果输出 */
+还可以对查找的结果进行操作
+ # find ./ -name day01.txt -exec ls -l {} \; 
+/* 表示对find查找的name为day01.txt的文件调用ls -l命令,{}代表find的结果 */
+ # find ./ -depth -type d -empty //查找空文件夹
+ # find ./ -depth -type f -empty //查找空文件
+ # find ./ -name test.txt	//查找文件名为test.txt的文件
+ # find ./ -name "*.txt"	//查找后缀为txt的文件
+ # find ./ -name "*.txt" -perm 644	//查找具有特定权限且有且定扩展名的文件
+ # find ./ -perm 664		//查找具有特定权限的文件
+ # find ./ -name "file.*"	//查找不知道扩展名只使用文件名来查找文件
+ # find ./ -mtime 2	//查找2+1天(*24hour)内修改过的文件
+ # find -atime 0	//查找24小时内存取过的文件
+ # find ./ -user root	//查找所有者的文件
+ # find ./ -name test.txt | xargs rm //查找并删除查找到的文件
+
+
+1.13 ln命令
+用来为文件创建链接,硬链接(链接)或符号链接(软链接);
+ # ln src linkname
+ # ln -s dir linkname
+硬链接不能跨越分区或文件系统,符号链接则没有此限制;
+硬链接也不能针对目录来创建,符号连接则无次限制;
+软链接文件存储的是源文件名
+
+1.14 whereis命令
+用来定位指令的二进制程序,源代码文件,man手册的位置;
+ # whereis ls
+ls: /bin/ls /usr/share/man/man1p/ls.1p.gz /usr/share/man/man1/ls.1.gz
+
+1.15 which命令
+用于查找并显示给定指令的绝对路径
+ # which vi
+alias vi='vim'
+	/usr/bin/vim
+第一行是系统为vi设置的命令别名,第2行是vi保存的真正路径
+ # which fdisk
+/sbin/fdisk
+which指令查找的路径是基于环境变量$PATH执行的,如果我们的指令在$PATH的一个目录下就可以被查找并显示出来,否则无法查询到;
+
+1.16 file命令
+用于探测给定文件的文件类型
+ # file filename
+file会从自己的数据库文件中查找对应的文件的文件信息;
+
+1.17 touch命令
+可以用来创建空文件或改变已存在文件的时间属性;
+ # touch newfile
+ # touch file{1,2,3,4,5,6,7,8,9}
+ # touch oldfile
+
+1.18 locate命令
+用来查找文件的保存路径,在执行之前首先要用updatedb命令更新数据库,以后会从数据库中直接查询,因此速度会比较快;
+ # updatedb
+ # locate passwd
+在使用locate前最好更新数据库,查找的结果才会比较准确;
+
+1.19 dd命令
+可以对文件进行复制并进行格式转换
+ # dd if=test.sh of=new.sh //简单复制
+ # dd if=test.sh conv=ucase of=new.sh //会在拷贝时转换大小写
+ # dd if=/dev/cdrom of=mycd.iso //可以将光盘制作为mycd.iso文件
+ # dd if=/dev/fd0 of=myfloppy.img //可以做软盘的镜像文件
+
+1.20 updatedb命令
+用于更新locate对应的数据库
+第一次会比较慢,以后会比较快;
+
+1.21 dirname命令
+返回文件的路径
+ # dirname /usr/bin/sort
+ /usr/bin
+ # dirname stdio.h
+ .
+在shell脚本中可能会用到
+
+1.22 packchk命令
+用来检查文件名中是否可移植
+ # pathchk /etc/httpd/conf/httpd.conf
+返回空表示不可移植
+
+1.23 unlink命令
+用于删除指定的普通文件并且是直接调用unlink函数删除特定文件;
+不能删除目录
+
+1.24 basename命令
+用于去除文件名中的路径和后缀信息,直接获取文件名
+ # basename /etc/httpd/conf/httpd.conf
+httpd.conf
+ # basename /etc/httpd/conf/httpd.conf .conf
+httpd
+
+1.25 rename命令
+用于批量重命名文件
+将file1,file2,file3,file4,file5,file6中的file批量改为linux
+ # rename file linux file*
+共有3个参数第1个表示替换前的部分,第2个是替换后的部分,第3个指定对哪些文件替换;
+
+
+

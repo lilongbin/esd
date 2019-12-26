@@ -1,0 +1,376 @@
+Linux 内核的配置
+zImage(用在TPAD上)
+为TPAD定制内核
+make menuconfig(配置界面)
+     drivers/char/xxx.c
+  Kconfig(定义配置界面)(arch/arm/Kconfig)
+     config  XXX   //定义CONFIG_XXX
+          bool  "xxx  config"  或者  tristate "xxx config"
+          depends  on   YYY
+          select  ZZZ
+          help
+                 xxx help 
+  
+ [ ]xxx  config
+ [*]xxx config  //表示当前此选项对应的文件要编译进内核
+      -->CONFIG_XXX = y
+ [ ]xxx config  //表示当前此选项对应的文件要编译进内核
+      -->CONFIG_XXX is  not set
+        
+ <>xxx  config
+ <*>xxx config  //表示当前此选项对应的文件要编译进内核
+   -->CONFIG_XXX = y
+ < >xxx config  //表示当前此选项对应的文件要编译进内核
+   -->CONFIG_XXX is  not set
+ <M>xxx config //表示当前此选项对应的文件编译成模块
+    -->CONFIG_XXX = m
+.config(保存了整个内核的配置结果)
+    CONFIG__XXX =y
+    CONFIG__YYY =y
+    ......
+编译内核
+   make 
+   make zImage
+   makefile: drivers/char/Makefile
+      obj-($CONFIG_XXX) += xxx.o//xxx.c
+
+文件
+Kconfig:定义变量
+make menuconfig:给变量赋值
+makefile:使用变量
+
+make
+make  zImage
+make  uImage
+arch/arm/boot/zImage
+                         uImage
+uImage: uboot默认只能引导uImage
+    uImage = 64字节的头 + zImage
+
+uboot
+u-boot_CW210_1.3.4/tools/mkimage.c
+     mkimage制作uImage的工具
+  1.将mkimage拷贝 $PATH
+       cp   mkimage    /usr/sbin
+  2.将mkimage所在路径添加至$PATH
+
+编译内核:
+   内核源码目录:
+   make zImage  ===>make uImage
+   arch/arm/boot/uImage
+
+10个
+arch/arm
+drivers
+    DM9000
+    Nand  Flash
+
+文件系统
+uboot
+Linux内核
+挂载根文件系统
+运行init进程
+
+我们现在所用的文件系统是做好提供给大家
+/home/tarena/workdir/rootfs/rootfs
+
+如何构建文件系统
+根目录:/
+bin:存放所有用户都可以使用的基本命令
+sbin:存放的是系统命令,只有管理员能够使用
+usr:存放了用户的命令,文档
+dev:存放的是设备文件,设备文件是Linux系统中特有的文件类型,在Linux系统中,所有的设备都是通过访问设备文件来实现的. 
+     fd = open("路径及文件名",权限)
+     串口:
+          打开串口设备文件:fd = open("/dev/ttys0");
+          发送数据:write(fd, buf, 1);
+          接收数据:read(fd,buf1,1);
+etc:存放是各种配置文件
+       inittab: init进程时的配置文件
+       fstab:    当执行 mount  -a 命令时,用到的配置文件    
+proc:是一个空目录,常作为proc文件系统的挂载点. 
+        proc文件系统是虚拟的文件系统,它没有实际的存储设备,里面的目录,文件都是临时产生的,用来表示系统的运行状态. 
+        mount  /dev/cdrom   /mnt  (挂载命令)
+        cd   /mnt       
+sys:是一个空目录,常作为sys文件系统的挂载点. 
+mnt:是一个空目录,作为文件系统的挂载点. 
+tmp:是一个空目录,存放临时文件
+lib:存放共享库
+var:存放系统的日志文件和服务程序的临时文件
+home:用户目录
+
+构建最小的根文件系统
+bin/
+sbin/
+usr/
+dev/
+lib/
+
+1.通过busybox创建了bin/  sbin/  usr/  linuxrc
+busybox开源软件
+瑞士军刀
+将众多的命令集合进一个很小的可执行程序,与GNU工具相比,所提供的选项的较少,但是能够满足一般的应用. 
+busybox为各种小型或嵌入式系统提供了一个比较完整的工具集. Busybox是按照模块进行设计,可以很容易的加入/删除某些命令,或者增减某些命令的选项. (可配置)
+
+cd  /home/tarena/workdir/tools
+tar -jxvf busybox-1.19.4.tar.bz2
+
+  1.修改Makefile
+   190  ARCH = arm
+   164  CROSS_COMPILE= arm-linux-
+  2.make menuconfig配置(使用默认配置,保存)
+  3.编译make
+  4.安装make install
+       在busybox源码目录下生成_install目录
+   
+2.创建dev目录
+     #cd   _install
+     #mkdir dev
+     #cd dev
+     #sudo	mknod	console				c		5			1
+			命令	设备文件名	当前设备类型	主设备号	次设备号
+     字符型设备  c
+     块设备      b
+     网络设备
+      串口:4个
+        设备号:
+            主设备号:表示了一类设备  10
+            次设备号:0  1  2   3
+        10   0    UART0
+        10   1    UART1
+        10   2    UART2
+        10   3    UART3
+
+     #sudo mknod null c 1 3     
+
+3.创建lib目录  共享库
+   bin  sbin    --->busybox可执行程序
+   #arm-linux-readelf   -d   bin/busybox
+
+Dynamic section at offset 0xdf1a0 contains 25 entries:
+  Tag        Type                                   Name/Value
+ 0x00000001 (NEEDED)                     Shared library: [libm.so.6]
+ 0x00000001 (NEEDED)                     Shared library: [libc.so.6]
+确定了busybox使用的动态库是libm.so.6  libc.so.6
+--->库在哪里?
+在交叉编译器
+#cd /home/tarena/workdir/toolchains/opt/S5PV210-crosstools/4.4.6/arm-concenwit-linux-gnueabi/concenwit/usr/lib
+#sudo cp -rvf ld-2.10.1.so ld-linux.so.3 libc.so.6 libc.so libc-2.10.1.so libm.so.6 libm.so libm-2.10.1.so /home/tarena/workdir/tools/busybox-1.19.4/_install/lib/
+   2  ld
+   3  libm
+   3  libc
+修改bootargs环境变量
+tarena # setenv  bootargs  root=/dev/nfs init=/bin/sh nfsroot=192.168.1.8:/home/tarena/workdir/tools/busybox-1.19.4/_install ip=192.168.1.6:192.168.1.8:192.168.1.1:255.255.255.0::eth0:on sonsole=ttySAC0
+
+修改/etc/exports文件
+ /home/tarena/workdir/tools/busybox-1.19.4/_install *(rw,sync,no_root_squash)
+#sudo /etc/init.d/nfs-kernel-server restart
+
+构建最小的根文件系统
+bin
+sbin
+usr
+dev
+lib
+
+busybox
+配置make menuconfig
+编译make
+安装make install _install
+
+bin sbin  usr linuxrc
+dev 
+    mknod   手动创建设备文件
+    mknod   console   c   5  1
+    mknod   null    c  1  3
+lib
+    arm-linux-readelf   -d   bin/busybox
+    libc.so.6
+    libm.so.6
+    与交叉编译器
+文件系统的路径
+ /home/tarena/workdir/rootfs/rootfs
+---->
+ /home/tarena/workdir/tools/busybox-1.19.4/_install
+
+修改bootargs:
+   init=/linuxrc   -->  init=/bin/sh
+   nfsroot=192.168.1.8:/home/tarena/workdir/tools/busybox-1.19.4/_install
+
+修改NFS服务:
+    vi /etc/exports
+	/home/tarena/workdir/tools/busybox-1.19.4/_install *(rw,sync,no_root_squash)
+    打开/home/tarena/workdir/tools/busybox-1.19.4/_install目录访问权限
+    sudo /etc/init.d/nfs-kernel-server  restart
+
+bootargs  
+     init=/bin/sh
+     init=/linuxrc
+执行busybox自身的init程序:
+ /etc/inittab配置文件
+格式:
+<id>:<runlevels>:<action>:<process>
+
+<id>:控制台,省略
+<runlevels>:运行级别,省略
+<action>:表示如何控制这个子程序的方式,8种方式:
+  1.sysinit:表示系统启动后最先执行,只执行一次,init进程等待它结束才继续执行其他动作. 
+  2.wait:系统执行完sysinit进程之后执行,只执行一次. 
+  3.once:系统执行完wait进程之后执行,只执行一次. 
+  4.respawn:系统执行完once,init进程监测发现子程序退出时,重新启动
+  5.askfirst:系统执行完respawn,与respawn相似,不同的是"please press enter to active this console"
+  6.shutdown:当关机时执行
+  7.restart:
+  8.ctraltdel:按下ctrl+alt+del组合键时执行
+<process>:要执行的程序,它可以是程序,也可以是脚本. 
+                  如果-,表示该程序是可交互的程序
+
+#cd _install
+#mkdir etc
+#cd etc
+#sudo  vi inittab
+::sysinit:echo "hello!"
+ ---->
+::sysinit:/etc/init.d/rcS
+::askfirst:-/bin/sh
+::shutdown:/bin/umount -a
+
+#mkdir init.d
+#cd init.d
+#sudo vi rcS
+     echo "hello!"  //1.输出"hello!"
+     /bin/mount  -a //2.执行了mount  -a
+     ...
+	 ...
+#sudo chmod 777 rcS
+
+mount  -a
+fstab
+#cd etc/
+#sudo vi fstab
+
+fstab配置文件 mount  -a
+device		mount-point	type	options		dump	fsck-order
+proc		/proc		proc	defaults	0		0
+sysfs		/sys		sysfs	defaults	0		0
+
+device: 设备文件,就是要挂载的设备 
+mount-point:挂载点
+type:文件系统类型   
+options :挂载的参数
+dump:忽略
+fsck-order:忽略
+
+修改bootargs
+tarena#setenv bootargs root=/dev/nfs init=/linuxrc nfsroot=192.168.1.8:/home/tarena/workdir/tools/busybox-1.19.4/_install ip=192.168.1.6:192.168.1.8:192.168.1.1:255.255.255.0::eth0:on console=ttySAC0
+
+NFS 网络文件系统用在调试阶段
+文件系统类型选择
+Nand Flash
+选择crmafs类型
+    sudo  mkfs.cramfs   _install   rootfs.cramfs
+    cp   rootfs.cramfs   /tftpboot
+
+烧写过程:
+tarena# tftp  50008000  rootfs.cramfs
+tarena# nand erase  a00000  1000000
+tarena# nand write  50008000  a00000 1000000
+修改bootargs:
+tarena# setenv bootargs  root=/dev/mtdblock3 init=/linuxrc console=ttySAC0  rootfstype=cramfs
+tarena# save
+tarena# reset
+
+让内核支持该类型的文件系统:
+cd   linux-2.6.35.7
+make   menuconfig
+做如下配置:
+     File systems  --->  
+           [*] Miscellaneous filesystems  --->  
+                <*>   Compressed ROM file system support (cramfs) 
+make  zImage
+cp    arch/arm/boo/zImage    /tftpboot
+表示zImage是可以支持cramfs类型文件系统. 
+
+基于RAM(内存)文件系统
+ramdisk
+是将一部分固定大小的内存当作分区来用,它并非是一个实际的文件系统,而是将一个实际的文件系统装入内存的机制,并且可以作为文件系统. 
+此类型的文件系统比较简单,将一些经常访问而不会改变的文件,通过ramdisk放在内存中,可以明显提高访问速度. 
+如果制作:
+sudo  dd  if=/dev/zero  of=initrd.img  bs=1k  count=8192
+sudo  mkfs.ext2  -F  initrd.img
+sudo  mkdir  /mnt/initrd
+sudo  mount  -t  ext2  -o  loop   initrd.img  /mnt/initrd
+sudo  cp  _install/?*   /mnt/initrd  -rf
+sudo  umount  /mnt/initrd
+gzip  --best  -c  initrd.img  >ramdisk.img
+cp  ramdisk.img   /tftpboot
+
+修改bootargs:
+tarena# setenv  bootcmd  nand read  50008000  500000  500000\;tftp 50800000  ramdisk.img\;bootm 50008000
+tarena# setenv bootargs root=/dev/ram  rw  initrd=50800000,8M console=ttySAC0
+tarena# saveenv
+tarena# reset
+
+让内核支持ramdisk
+make  menuconfig  
+     Device Drivers  --->
+          [*] Block devices  --->
+                 (16)    Default number of RAM disks                        
+             (8192)  Default RAM disk size (kbytes)
+make zImage
+ftp:day05/ramdisk/zImage
+
+initramfs
+cd  _install
+sudo  chmod  777  .ash_history 
+
+将内核与文件系统做在一起
+ make  menuconfig
+    General setup  ---> 
+       [*] Initial RAM filesystem and RAM disk (initramfs/initrd) support 
+       (/home/tarena/workdir/tools/busybox-1.19.4/_install) Initramfs so
+ make zImage
+ cp   arch/arm/boot/zImage   /tftpboot
+ 
+修改bootagrs:
+tarena# setenv bootcmd  tftp 50008000 zImage\;bootm 50008000
+tarena# setenv bootargs root=/dev/ram rw  rdinit=/linuxrc  console=ttySAC0
+
+_install/
+NFS
+Nand Flash :cramfs   mkfs.cramfs
+RAM :ramdisk  initramfs
+
+bootcmd
+bootargs
+
+第三方库的移植
+lib    libm.so.6   libc.so.6    ---->bin/sbin/usr/
+Ubuntu下生成     TPAD 上运行
+Qt库                     Qt库
+QT源码--->配置并编译生成   基于TPAD 的Qt库
+配置
+
+Linux系统移植
+uboot
+    命令
+    环境变量
+Linux 内核
+    开发板文件
+    make menuconfig
+       Kconfig
+       Makefile
+文件系统
+
+
+
+
+
+
+
+
+
+
+
+
+    

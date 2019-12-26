@@ -1,0 +1,75 @@
+2.01 vi命令
+可以打开并编辑文件
+打开后的初始模式是命令模式,从命令模式按i/I/o/O/a/A键中的任何一个按键可以切换到插入模式;在任何时候按Esc键返回到命令模式;
+在命令模式下按:可以进入到底行模式;
+:w保存
+:q退出
+:wq保存后退出等价与:x
+ZZ也可以保存并退出vi
+hjkl可以进行光标的移动
+yy可以复制当前行到缓冲区,p可以把缓冲区的内容粘贴到光标所在行的下一行;
+dd可以剪切/删除一行
+x可以删除一个字符
+v可以进行列选;V可以进行行选;
+ggVG全选文本
+可以把alias vi='vim'写入到~/.bashrc文件
+:set nu可以显示行号
+u可以进行撤销操作undo
+Ctrl+r恢复操作
+可以将各种配置命令写入vim的配置文件~/.vimrc
+set nu
+set ts=4
+set softtabstop=4
+set shiftwidth=4
+set cindent
+set autoindent
+set incsearch
+syntax on
+
+2.02 emacs编辑器
+功能强大,但有一定难度
+打开emacs的命令是
+ # emacs filename
+ 退出emacs的快捷键是Ctrl+x,然后Ctrl+c两套组合键;
+
+2.03 ed命令
+是Linux中的行编辑器
+ #ed filename打开要编辑的文件
+首先会显示当前文件的字节数	177
+然后输入要查看文件的行号	5
+然后输入i进入输入模式		i
+输入hello this is a shell script!回车
+输入.切换到命令模式
+输入w保存对文件的修改
+然后会显示编辑后的文件字节数
+输入q退出ed
+ed命令适合于编辑较大的文件,不需要一次把文件的所有内容全部加载到内存;
+
+2.04 ex命令
+是vi编辑器的单行运行模式,等价于#vi -e
+ #ex filename
+输入行号
+会显示对应行号的内容
+
+2.05 jed命令
+是为程序员准备的文本编辑器,支持语法加亮
+按<F10>可以显示菜单项
+
+2.06 pico命令
+是功能强大的全屏文本编辑器
+ # pico filename
+类似与nano编辑器
+ # nano filename
+
+2.07 sed命令
+是一个流编辑器,经常使用在shell脚本程序设计中
+ # sed -e '1d' filename	//在流输出的时候删除第1行内容
+ # sed -e '1.4d' filename	//在流输出的时候删除第1-4行内容
+sed功能强大,是shell脚本编程中重要的文字处理工具
+
+2.08 joe命令
+是功能强大的纯文本编辑器
+可以用Ctrl+k+h组合键来显示帮助信息
+ # joe filename
+
+

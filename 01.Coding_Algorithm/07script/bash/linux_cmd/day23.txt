@@ -1,0 +1,73 @@
+23.01 iptables命令
+Linux中内置的防火墙用户空间管理工具
+ # iptables -L
+ # iptables -L -t nat
+ # iptables -L -t filter
+
+23.02 iptables-save命令
+用于保存当前Linux防火墙的配置
+ # iptables-save -t filter > iptables.backup
+
+23.03 iptables-restore命令
+用于恢复用iptables-save保存的防火墙配置
+ # iptables-restore < iptables.backup
+
+23.04 ip6tables命令
+ipv6协议的防火墙用户空间管理工具
+ # ip6tables -L
+ # ip6tables -L -t nat
+ # ip6tables -L -t filter
+
+23.05 ip6tables-save命令
+用于保存当前ipv6的Linux防火墙的配置
+ # ip6tables-save -t filter > ip6tables.backup
+
+23.06 ip6tables-restore命令
+用于恢复用ip6tables-save保存的防火墙配置
+ # ip6tables-restore < ip6tables.backup
+
+23.07 ip命令
+用于显示和操作当前Linux主机的路由,网络设备和邻居等
+ # ip link list 显示连接的网络设备信息
+ # ip -s link list 显示详细信息
+ # ip route list 显示路由表信息
+ # ip neith list 显示当前主机的邻居表
+ # ip help
+ # ip link help
+
+23.08 tcpdump命令
+网络监听工具
+ # tcpdump -i eth0 监听所有经过eth0的数据
+
+23.09 arpd命令
+用来收集免费arp信息,将收集到的信息保存到指定的文件
+ # arpd -b /var/tmp/arpd.db 
+ # arpd -l -b /var/tmp/arpd.db
+
+23.10 arptables命令
+用于操作主机的arp包过滤规则
+ # arptables -L
+ # arptables -A IN -s 182.168.0.222 -j DROP
+ # arptables -L
+
+23.11 lnstat命令
+用于显示Linux系统当前的网络状态
+ # lnstat
+ # lnstat -d 显示网络状态的来源文件
+
+23.12 nstat命令
+简单的监视Linux内核中的snmp counters and network interface statistics
+ # nstat
+
+23.13 ss命令
+用于显示Linux系统中活动的套接字信息
+ # ss
+ # ss -l
+ # ss -s
+
+23.14 iptraf命令
+实时的监视网卡流量
+ # iptraf
+
+
+

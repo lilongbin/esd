@@ -1,0 +1,432 @@
+concurrency
+race condition
+atomic
+spinlock
+semaphore
+
+为什么要将中断处理程序分解为顶半部和底半部?
+答:
+	有时候,中断处理程序可能会做大量的工作,相对比较耗时,对于系统的并发能力和响应能力有很大的影响,所以需要进行拆分. 
+
+顶半部和底半部如何理解,分别做了哪些事情?
+答:
+	顶半部其实就是中断处理函数,处理一些比较紧急的事情,并且这个过程是不可中断的,执行的速度要快;
+	底半部就是处理以前中断处理程序中比较耗时,比较繁琐的事情.
+	底半部的执行顺序要晚于顶半部. 这个过程是可中断的. 
+
+底半部的实现方式
+答:有tasklet,工作队列,软中断
+	tasklet和软中断都是工作在中断上下文,不能休眠;
+	工作队列工作在进程上下文,可以进行休眠操作;
+	tasklet是基于软中断实现的;又有别于软中断,同一个tasklet不能同时运行在多个CPU上,但是软中断可以实现真正的并发;
+
+面试:谈谈中断:
+	1.为什么有中断
+	2.中断的硬件处理过程
+	3.中断的软件处理过程
+	4.Linux内核中断的实现机制
+	中断处理函数有四个要求:不可被调度;要快速执行;不与用户空间数据交互;不调用可能引起休眠的函数;
+	5.顶半部和底半部
+
+Linux内核定时器:
+	1.定时器硬件:周期性的自发产生时钟中断
+	2.HZ
+	3.tick
+	4.时钟中断处理程序:
+		更新jiffies;更新实际时间;判断进程时间片;检查有无到期定时器;统计;
+	5.jiffies
+	6.struct timer_list:
+		expires
+		function
+		data
+	7.init_timer/add_timer/mod_timer/del_timer
+
++-------------------+
+| Linux的并发和竞态 |
++-------------------+
+concurrency and race condition
+
+案例:如果要求设备只能被一个应用程序所打开访问,如何实现
+两个串口软件能同时打开同一个串口硬件设备吗
+
+驱动实现过程:
+static int open_cnt = 1;
+int uart_open(struct inode *inode, struct file *file)
+{
+	if (--open_cnt != 0) {
+		printk("has been open !\n");
+		open_cnt++;
+		return -EBUSY;
+	}
+	printk("open success !\n");
+	return 0;
+}
+应用程序操作:
+if (--open_cnt != 0) {
+	printk("has been open !\n");
+}
+printk("open success !\n");
+正常情况:(按时间顺序)
+A进程:
+	读取:open_cnt = 1;
+	修改/写回:open_cnt = 0;
+	结果:打开成功
+B进程:
+	读取:open_cnt = 0;
+	修改/写回:open_cnt = -1;
+	结果:打开失败
+但Linux内核支持任务抢占,因此会有异常情况
+A进程:
+	读取:open_cnt = 1;
+B进程:
+	读取:open_cnt = 1;
+	修改/写回:open_cnt = 0;
+	结果:打开成功
+A进程:
+	修改/写回:open_cnt = 0;
+	结果:打开成功
+一个变量的修改需要经过三个步骤:读取,修改,写回;
+
+通过此案例引出并发和竞态问题
+相关概念:
+	并发:多个执行单元同时发生;
+	竞态:并发的多个执行单元对共享资源的访问导致的竞争状态;
+	共享资源:硬件资源和软件上的全局变量;
+	互斥访问:一个执行单元访问共享资源时,其他执行单元被禁止访问;
+	临界区(CriticalSection):访问共享资源的代码区;临界区需要以某种互斥机制加以保护;
+
+6.主要并发情况
+	1对称多处理器(SMP)的多个CPU之间
+		由于它们使用共同的系统资源(共享总线),访问共同的外设和存储;
+	2单CPU内核进程之间的抢占
+		由于内核支持抢占调度,如果一个进程在内核执行的时候可能被另外一个更高优先级的进程打断,进程与抢占它的进程访问共享资源的情况类似于SMP多核CPU;
+	3中断(硬中断,软中断,Tasklet)与进程之间
+		中断可以打断正在执行的进程,如果中断处理程序访问进程正在访问的资源,则竞态也会发生;
+	4中断和中断;
+		中断本身也可能被新的更高优先级的中断打断,因此,多个中断本身之间也可能引起并发而导致竞态;
+	切记:如果在写代码时,有以上竞态发生,一定要注意进行互斥访问控制;
+
+7.解决竞态的方法:
+解决竞态问题的途径是保证对共享资源的互斥访问;
+在Linux系统中设备设备驱动程序中可以采用的互斥机制有:
+	中断屏蔽;	/* 不能处理多核竞态 */
+	原子操作;	/* 由CPU底层保证,处理所有情况 */
+	自旋锁;		/* 不能处理中断,衍生自旋锁可以处理所有情况 *//*忙等待*/
+	信号量;		/* 可以处理所有情况 *//*睡眠等待or立即返回*/
+
+使用
++----------+
+| 中断屏蔽 |
++----------+
+	是在单核CPU情况下避免竞态的一种简单方法,在进入临界区之前屏蔽中断,退出临界区之后恢复中断;
+	一般情况下,CPU都具备屏蔽中断和打开中断的功能,此项功能可以保证正在执行的内核路径不被中断处理程序抢占,可以防止某些竞态条件的发生;
+	屏蔽中断之后,中断与进程之间的并发不再发生,由于Linux内核的进程调度等操作都依赖于中断来实现,内核强悍进程之间的并发不再发生;
+	中断屏蔽要求CPU有关闭中断的功能;
+解决哪些情况的竞态:
+	进程和进程的抢占
+	中断和进程
+	中断和中断
+不能解决多核竞态问题
+
+中断控制操作
+	定义在<linux/irqflags.h>中
+	local_irq_disable()/local_irq_enable()
+	前者关闭中断,后者打开中断,两者必须成对使用;
+
+一般使用方法:
+local_irq_disable();	/* 关闭中断 */
+critical section code;	/* 执行临界区代码 */
+local_irq_enable();		/* 打开中断 */
+
+	local_irq_save()/local_irq_restore()
+	前者关闭中断并保存中断状态,后者恢复前者关闭中断时保存的中断状态并打开中断;两者成对使用;
+	以上函数用于在临界区之前屏蔽中断,执行完临界区再使能中断;
+
+例子:
+unsigned long flags;
+local_irq_save(flags);		/* 关闭中断,并且将中断状态保存在flags中 */
+临界区代码
+local_irq_restore(flags);	/* 打开中断,并且恢复中断状态 */
+
+使用注意事项:
+	由于系统的异步IO,进程调度等很多重要的系统操作都依赖于中断,所以中断对于内核的运行至关重要,在屏蔽中断期间所有的中断都无法得到处理;
+	因此长时间屏蔽中断相当危险,有可能造成数据丢失,甚至系统崩溃;
+	所以要求临界区的代码执行速度要快,更不能有休眠的操作;
+
++----------+
+| 原子操作 |
++----------+
+	该操作绝不会在执行完毕前被任何其他任务或事件打断;
+	原子操作依赖底层CPU的原子操作来实现,所有这些函数都与CPU架构密切相关;
+如果所操作的变量不是共享资源,就不要使用原子操作;
+1.解决哪些情况的竞态?
+  所有的竞态都能解决
+2.在Linux内核中提供两类原子操作:
+
+位原子操作:
+	在驱动代码中,如果要对一个共享资源进行位操作,并且有竞态的情况,需要使用内核提供的位原子操作的相关方法,保证对这个共享资源的操作是原子的,避免竞态;
+	内核提供的位原子操作的方法:
+	定义在arch/arm/include/asm/bitops.h中
+	置位set_bit(nr, void *addr);
+		-将addr地址内数据的第nr位置1;
+	清除位clear_bit(nr, void *addr);
+		-将addr地址内数据的第nr位清零;
+	反转位change_bit(nr, void *addr);
+		-将addr地址内数据的第nr位反置;
+	测试位int test_bit(nr, void *addr);
+		-获取addr地址内数据的第nr位的值;
+	测试并操作
+		-int test_and_set_bit(nr, void *addr);
+		-int test_and_clear_bit(nr, void *addr);
+		-int test_and_change_bit(nr, void *addr);
+
+	案例:在驱动的入口函数将0x5555->0xaaaa,不允许使用change_bit
+	#include <asm/bitops.h>
+
+整型原子操作:
+	在驱动代码中,如果使用一个整型变量的共享资源,这时候最好拷贝整型原子操作相关的内容,而不是标准的整型相关的数据类型的操作(int a; a+1, a++, a--,这些操作都不是原子的);
+	如果使用整型原子变量对应的数据类型定义一个变量,并且使用内核提供的操作整型原子变量的方法就能保证对这个数的操作是原子的;
+
+	定义在arch/arm/include/asm/atomic.h中
+	整型原子变量数据类型的定义
+	typedef struct {
+		volatile int counter;
+	} atomic_t;
+
+使用
+设置整型原子变量的值:
+	atomic_t v = ATOMIC_INIT(i);	/* 定义一个原子变量v并初始化为i; */
+	atomic_set(atomic_t *v, int i);	/* 设置原子变量v的值为i */
+获取原子变量的值:
+	int atomic_read(atomic_t *v);	/* 返回原子变量的值 */
+原子变量加减操作:
+	atomic_add(int i, atomic_t *v); /* 原子变量的值增加i */
+	atomic_sub(int i, atomic_t *v); /* 原子变量的值减少i */
+原子变量自增自减:
+	atomic_inc(atomic_t *v);	/* 原子变量的值自增1 */
+	atomic_dec(atomic_t *v);	/* 原子变量的值自减1*/
+测试并操作:
+	int atomic_inc_and_test(atomic_t *v);
+	int atomic_dec_and_test(atomic_t *v);
+	int atomic_sub_and_test(int i, atomic_t *v);
+	对原子变量执行自增自减或减操作(没有加操作)后测试其是否为0;如果为0返回true,否则返回false;
+操作并返回:
+	int atomic_add_return(int i, atomic_t *v);
+	int atomic_sub_return(int i, atomic_t *v);
+	int atomic_inc_return(atomic_t *v);
+	int atomic_dec_return(atomic_t *v);
+	对原子变量执行加减自增自减操作,并返回操作后的新值;
+这些函数的内部实现利用了两条原子操作指令集:ldrex,strex,就保证了对数据访问是原子的. 也就说明ldr,str不具有原子性;一般编译器对于a++,汇编以后都是用的ldr,str这两条指令,而不使用ldrex,strex,因为这两条指令会降低运行效率;
+
+案例:利用整型原子变量的操作实现按键驱动只能被一个应用程序所打开
+
+测试步骤:
+insmod btn_drv.ko
+./btn_test & //后台运行 A进程
+./btn_test  //B进程
+./btn_test //C进程
+每个进程都会首先调用open->btn_open
+
++--------+
+| 自旋锁 |
++--------+
+	自旋锁最多只能被一个执行单元持有;
+	自旋锁不会引起进程的休眠,如果一个进程A试图获取一个已经被持有的自旋锁,那么这个进程A就会一直进行空循环,一直忙等待下去,等待自旋锁的持有者是否已经释放了锁;
+	"自旋"近似于在"原地转圈"的意思;
+	进程的等待是忙等待,不是睡眠等待;
+	自旋锁要加在共享资源之上,如有锁要对应有自行车;
+1.自旋锁对应的数据类型:
+	定义在<linux/spinlock_types.h>中
+	typedef struct {
+		raw_spinlock_t raw_lock;
+		...
+	}spinlock_t;
+	typedef struct {
+		volatile unsigned int lock;
+	} raw_spinlock_t;
+
+2.如何使用自旋锁:
+	2.1定义自旋锁
+	spinlock_t lock;
+	2.2初始化自旋锁
+	spin_lock_init(&lock);	/* 动态初始化自旋锁 */
+	自旋锁在使用前必须初始化
+	2.3获取自旋锁:
+	spin_lock(spinlock_t *lock);
+	spin_lock(&lock);
+	/* 如果成功,立即获得自旋锁,并马上返回;
+	 * 如果没有获取自旋锁,执行单元将一直自旋在那里(忙等待),直到持有自旋锁的执行单元释放该锁 */
+	或者
+	int spin_trylock(spinlock_t *lock);
+	spin_trylock(&lock);
+	/* 试图获取锁;
+	 * 如果获取自旋锁,返回true;如果没有获取锁,立即返回false;
+	 * 其返回值直接决定着是否可以对临界区进行访问;
+	 * 所以对这个函数一定要对其返回值做判断,由返回值决定是否需要对临界区进行访问 */
+	
+	2.4执行临界区的代码(操作共享资源);
+	2.5释放自旋锁
+		spin_unlock(spinlock_t *lock);
+		spin_unlock(&lock);
+		/* 必须和获取锁的函数spin_lock()或spin_trylock()成对使用,
+		 * 否则,别的进程永远无法获得锁
+		 */
+3.自旋锁能够解决哪些场合的竞态问题
+	除了中断都能解决,如果要涉及中断的竞态问题,需要使用衍生自旋锁;
+自旋锁一般使用方法
+	spinlock_t lock;	/* 定义自旋锁 */
+	...
+	spin_lock_init(&lock); /* 初始化自旋锁 */
+	...
+	spin_lock(&lock); /* 获取自旋锁 */
+	critical section code; /* 执行临界区代码 */
+	spin_unlock(&lock); /* 释放自旋锁 */
+
++------------+
+| 衍生自旋锁 |
++------------+
+	虽然自旋锁可以保证临界区不被别的CPU或本CPU的抢占进程打扰,但是还会被中断或中断底半部的影响;
+	所以产生如下衍生:
+	spin_lock_irq(spinlock_t *lock);/* local_irq_disable()+spin_lock() */
+	spin_unlock_irq(spinlock_t *lock);/* spin_unlock()+local_irq_enable() */
+	spin_unlock_irqsave(spinlock_t *lock, unsigned long flags);
+		/* lock_irq_save()+spin_lock() */
+	spin_unlock_irqrestore(spinlock_t *lock, unsigned long flags);
+		/* spin_unlock()+local_irq_restore() */
+	衍生自旋锁可以处理所有情况;
+	
+获取锁:
+	spin_lock_irq(&lock); /* 关闭中断和获取自旋锁 */
+	或者
+	unsigned long flags;
+	/* 关闭中断保存中断状态到flags中,然后获取自旋锁 */
+	spin_lock_irqsave(&lock, flags);
+	
+释放锁:
+	spin_unlock_irq(&lock);
+	或者
+	spin_unlock_irqrestore(&lock, flags);
+注意:衍生自旋锁能够解决所有的竞态问题;
+
+注意:一般自旋锁要和共享资源关联使用;
+
+自旋锁使用的注意事项:
+	只有当占用锁的时间极短的情况下才可以使用;
+	由于获取锁是一直等待,所以临界区较大或有共享设备的时候,使用自旋锁会降低系统性能;
+
+自旋锁可能导致死锁:
+	-递归调用,也就是已经拥有自旋锁的CPU像第二次获得锁;
+	-获得自旋锁之后再被阻塞;所以在自旋锁占有期间,不能调用可能引起阻塞的函数;
+1.自旋锁所保护的临界区不要调用可能引起休眠的函数:
+	copy_to_user(),copy_from_user(),kmalloc()
+	如果调用,别的任务将会忙循环下去,降低系统的性能;
+2.自旋锁保护的临界区执行速度尽量要快;
+
+案例:利用自旋锁实现一个设备只能被一个应用程序所打开
+测试步骤:同整型原子变量的实验步骤
+
++--------+
+| 信号量 |
++--------+
+	信号量(semaphore)是用于保护临界区的一种常用方法;
+	内核的信号量在概念和原理上与用户态的信号量是一样的,但是它不能在内核之外使用内核信号量;信号量实际上是一种睡眠锁;
+	如果有一个任务想要获得已经被占用的信号量时,信号量会将这个进程放入一个等待队列,然后让其睡眠;当持有信号量的进程将信号释放后,处于等待队列的进程将被唤醒,并让其获得信号量;
+	访问的进程未获得共享资源时将进行睡眠等待,而不是原地打转的忙等待;
+
+内核信号量数据类型定义:
+定义在<linux/semaphore.h>中
+struct semaphore {
+	spinlock_t lock;
+	unsigned int count;
+	struct list_head wait_list;
+};
+
+信号量的使用
+定义在<linux/semaphore.h>中
+1 定义信号量
+	struct semaphore sema;/* 定义信号量类型变量 */
+2 初始化信号量
+	sema_init(struct semaphore *sem, int val);
+	sema_init(&sema, 1); /* 初始化为互斥信号量 */
+	或初始化互斥信号量
+	init_MUTEX(struct semaphore *sem); 
+		/* 初始化信号量,并将信号量sem的值设置为1*/
+	init_MUTEX_LOCKED(struct semaphore *sem);
+		/* 用于初始化信号量,并将信号量sem的值设置为0,也就是在创建时就处于已锁状态 */
+	DECLARE_MUTEX(name);
+		/* 定义一个名称为name的信号量,并将信号量初始化为1 */
+3 获取信号量:
+	void down(struct semaphore *sem);
+		/* 获取信号量sem;
+		 * 如果获取不了信号量,进程就会进入不可中断的休眠状态;
+		 * 该函数可能导致进程休眠,
+		 * 不能用在中断上下文;
+		 */
+	int down_interruptible(struct semaphore *sem);
+		/* 获取信号量sem;如果信号量不可用,
+		 * 进程将被设置为TASK_INTERRUPTIBLE类型的睡眠状态;
+		 * 该函数由返回值来区分正常返回还是被信号中断返回;
+		 * 如果返回0,表示获取信号量正常返回;
+		 * 如果返回非0,表示被信号打断;
+		 * 不能用在中断上下文;
+		 */
+	int down_trylock(struct semaphore *sem);
+		/* 该函数尝试获取信号量sem;
+		 * 如果能够立即获取,它就获得信号量并返回0;
+		 * 否则,返回非0;
+		 * 它不会导致调用者休眠,可以用在中断上下文;
+		 */
+	down(&sema);
+	/* 如果进程获取不了信号量,进程就会进入不可中断的休眠状态(不会立即处理信号,比如kill信号,如果在僵死的状态下,给休眠的进程发信号,它不会立即处理信号,而是被唤醒以后,会判断之前有没有接受过信号,如果有接受过信号,那就再处理信号),直到持有信号量的进程释放信号量,休眠的进程才会被唤醒然后获取信号量进行返回;
+	 * 不能用在中断上下文
+	 */
+	或者
+	down_interruptible(&sema); 
+	/* 如果进程获取不了信号量,进程就会进入可中断的休眠状态(接收到信号,立即响应和处理信号),直到持有信号量的进程释放信号量,休眠的进程才会被唤醒然后获取信号量,还有一种唤醒情况就是接收到信号的唤醒;
+	 * 所以要对这个函数的返回值进行判断;
+	 * 如果返回0,表明正常获取信号量;
+	 * 如果返回非0,表明是接收到信号的返回,如果是这种返回,不应再处理临界区的代码. 
+	 * 不能用在中断上下文
+	 */
+	或者
+	down_trylock(&sema);
+	/* 如果获取不了信号量,立即返回非0,获取信号量返回0;
+	 * 所以一定要对其返回值做判断,决定是否需要执行临界区代码;
+	 * 可以用在中断上下文
+	 */
+
+	down_trylock()可以立即返回并不会引起进程休眠,可以用在中断上下文;
+	down_interruptible()和down()会引起进程休眠等待,不可以用在中断上下文;
+4 执行临界区代码
+5 释放信号量并唤醒休眠的进程
+	void up(struct semaphore *sem);
+	/* 该函数释放信号量sem,实质上把sem的值加1;
+	 * 如果sem的值为非正数,表名有任务等待该信号量,因此需要唤醒等待者;
+	 */
+	up(&sema);
+
+一般使用方法:
+	DECLARE_MUTEX(semm); /* 定义一个互斥信号量 */
+	...
+	down(&semm);	/* 获取信号量,保护临界区 */
+	critical section code; /* 执行临界区代码 */
+	up(&semm);		/* 释放信号量 */
+
+信号量和自旋锁
+	信号量使用于保持时间较长的情况;
+	自旋锁使用于保持时间较短的情况;
+	在实际应用中自旋锁控制的代码通常只有短短几行,而持有自旋锁的时间也一般不超过两次上下文切换的时间,因为线程一旦进行切换,就至少需要花费切入切出两次,自旋锁的占有时间如果远远长于两次上下文切换,应该选择信号量;
+
+案例:利用信号量来实现一个设备只能被一个应用程序所打开操作
+
+实验步骤:
+insmod btn_drv.ko
+./btn_test &	//启动A进程 
+./btn_test & 	//启动B进程
+top //查看两个进程的状态
+kill A进程pid
+或者
+kill B进程pid
+分别看打印的信息
+
+

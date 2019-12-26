@@ -1,0 +1,80 @@
+一/使用C++方式编写qt的代码
+	1.类的实例就是一个带有组件的父窗口;自己的类要继承QWidget或者QWidget的子类QDialog/QMainWindow;
+	2.窗口中的组件作为自定义类的成员变量//窗体和对话框中的组件都封装成成员;
+	3.类的头文件和实现文件分离;
+	4.如果类中有自定义的信号或槽函数,则需要在头文件中出现一个宏Q_OBJECT,放在类内的第一行;否则不起作用;
+练习:
+	使用C++方式实现qq登录框的登录功能
+	如果用户输入用户名abc,密码是123,就输出login success !否则打印login failed;
+二/信号和槽
+	1.信号和槽机制是qt编程的基础和核心,可以关联两个互不相干的对象;
+	2.当信号和槽绑定时,每当发射(触发)这个信号时,就会自动的调用这个槽函数;
+	3.信号和槽函数的声明:
+		定义信号 public:signals:
+				void mySignal();
+		定义槽函数 public slots:
+				void show();
+	4.如果在类中自定义信号/槽必须声明宏Q_OBJECT;
+	5.使用 connect 连接信号和槽:
+		QObject::connect(const QObject* sender,
+						const char* signal,
+						const QObject* receiver,
+						const char* method);
+	6.断开信号和槽函数的连接
+		QObject::disconnect(const QObject* sender,
+						const char* signal,
+						const QObject* receiver,
+						const char* method);
+		当删除对象时,和这个对象相关的所有连接就会自动断开;
+		所以一般不需要用disconnect;
+	7.一个信号可以连接多个槽;
+		QObject::connect(a,SIGNAL(t()),b,SLOT(g()));
+		QObject::connect(a,SIGNAL(t()),c,SLOT(gg()));
+		QObject::connect(a,SIGNAL(t()),d,SLOT(ggg()));
+	8.多个信号可以连接一个槽
+		QObject::connect(a,SIGNAL(t()),b,SLOT(g()));
+		QObject::connect(c,SIGNAL(m()),b,SLOT(g()));
+	9.一个信号可以连接到另外一个信号
+		当一个信号发射之后会触发另外一个信号,这个信号可以传递下去;
+		QObject::connect(a,SIGNAL(t()),b,SIGNAL(h()));
+		QObject::connect(b,SIGNAL(h()),c,SLOT(cs()));
+	10.并不是任意的信号和任意的信号都可以进行连接;
+		使用 connect 需要注意:
+		1 信号和槽连接时,要有相同的参数类型和参数顺序及参数个数;
+		2 信号和槽函数如果带参,需要出现参数类型,但不能包含参数的名字;
+	11.想让任意的信号和任意的槽连接,怎么办?
+		直接在自定义的槽函数中调用最终的槽函数;
+		QPushButton clicked()
+		QLabel		setText(QString)
+
+	自定义槽函数结合自定义信号
+	qt的线程中的数据一般是通过信号通知线程外得的访问;
+三/设计器的使用
+	designer 所见即所得的编辑器
+设计界面 
+	把窗口部件盒中的组件拖拽到合适位置,鼠标可以改变组件的位置和大小;
+	选中组件可以复制/删除
+	使用方向键改变组件的位置每次10个px
+	ctrl+方向键可以改变组件的位置每次1px
+label
+	双击可以改变文字
+	shift+方向键 可以改变组件大小 每次10px
+	shift+方向键 可以改变组件的大小每次1px
+通过属性编辑器<ctrl+I>
+	可以控制组件的相关属性,如对象名,以及其他显示属性;
+对象查看器 
+	可以查看对象之间的组织关系,确定对象名和对象的类型;
+最终得到界面文件**.ui
+
+四/如何使用ui文件
+	1.把ui文件转换成.h文件
+		需要用到工具uic
+		uic jfq.ui -o jfg.h
+	2.jfg.h就是代表界面的文件
+	3.使用生成的jfq.h
+		定义新的jfq.h文件,使用jfq.h中的类做界面类的指针;
+		实现这个头文件
+	4.创建界面,加载界面
+	5.如果要实现功能
+		要访问界面中的组件,需要通过ui访问;
+

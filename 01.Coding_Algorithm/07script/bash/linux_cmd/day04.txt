@@ -1,0 +1,147 @@
+4.01 tar命令
+Linux中归档工具
+不但可以创建和打包文件,还支持常见的压缩与解压算法
+ # tar -cvf file.tar file...	//将file...打包为file.tar并将详细的打包过程显示
+-f选项指定生成的文件是file.tar
+ # tar -xvf file.tar	//可以将file.tar文件解包
+还可以支持在打包和解包的过程进行压缩和解压
+ # tar -zcvf file.tar.gz file...	//将file...打包并压缩为.gz文件
+ # tar -zxvf file.tar.gz	//将file.tar.gz解压缩
+
+4.02 gzip指令
+Linux中压缩指令
+压缩算法为lz77
+ # gzip file	//会生成file.gz并取代file文件
+ # gzip -d file.gz //对file.gz解压缩
+
+4.03 gunzip指令
+用于对gzip压缩的文件解压
+ # gunzip file.gz
+
+4.04 bzip2指令
+用于创建和解压.bz2的压缩包
+ # bzip2 file	//生成file.bz2
+ # bzip2 -d file.bz2	//对file.bz2解压缩
+
+4.05 bunzip2命令
+用于解压bzip2创建的压缩文件
+ # bunzip2 file.bz2
+
+4.06 cpio命令
+用于存取归档包中的文件,支持tar命令创建的文件
+ # find /bin -print	//把/bin目录下的所有文件打印出来
+ # file /bin -print | cpio -o bin.bak	//将/bin文件归档
+ # file bin.bak
+
+4.07 dump指令
+用于备份Linux系统的ext2/ext3文件系统
+在/etc/fstab文件中指明需要备份的系统dump才会备份
+dump会将文件系统备份成一个大的文件
+属于较底层的备份工具,也可诶备份指定的目录
+ # dump -f bin.bak /bin
+-f选型指定生成的备份文件
+ # file bin.bak
+ # restore -tf bin.bak //显示bin.bak中的文件列表
+
+4.08 restore命令
+用于还原由dump命令备份的文件系统
+ # mount
+/dev/sdb8 on / type ext4 (rw)
+...
+
+4.09 compress命令
+Linux中的压缩命令
+ # compress file //生成file.Z文件
+
+4.10 uncompress命令
+解压由compress生成的.Z文件
+ # file file.Z
+ # uncompress file.Z
+
+4.11 zip命令
+常用的压缩和解压缩命令,最通用的压缩算法
+ # zip file.zip file...
+ # zip -r dir.zip dir/
+
+4.12 unzip命令
+用于由zip命令创建的压缩包
+ # unzip file.zip
+
+4.13 arj命令
+用于创建.arj压缩包
+ # arj a my.arj file...	//创建my.arj压缩包
+ # arj l my.arj	//显示.arj文件的列表
+
+4.14 unarj命令
+用于解压由arj创建的.arj压缩包
+ # unarj e my.arj	//释放压缩包中的文件
+
+4.15 bzcat命令
+用于显示.bz2压缩包中的文件内容,不是列表
+ # file file.bz2
+ # bzcat file.bz2
+
+4.16 bzcmp命令
+用于比较.bz2压缩包中文件的不同
+ # bzcmp file1.bz2 file2.bz2
+
+4.17 bzdiff命令
+用于比较两个.bz2压缩包中文件的不同
+相当于调用bunzip解压,再调用diff命令
+ # bzdiff file1.bz2 file2.bz2
+如果需要保存到文件可以重定向
+
+4.18 bzgrep命令
+使用正则表达式在.bz2的压缩中使用长匹配搜索
+ # bzcat file.bz2
+ # bzgrep "hello" file.bz2
+
+4.19 bzip2recover命令
+用于常识恢复遭受破坏的.bz2压缩包
+ # bzip2recover file.bz2
+会生成rec00001file.bz2
+
+4.20 bzmore命令
+用于分屏查看bz2压缩包中文本文件的内容
+ # bzmore file.txt.bz2
+
+4.21 bzless命令
+用于分屏查看bz2压缩包中文本文件的内容的增强查看器
+ # bzless file.txt.bz2
+与使用less查看普通文本文件的效果相同
+
+4.22 zipinfo命令
+用于查看zip压缩包的信息
+ # zipinfo file.zip
+可以看到文件名,大小,权限信息等
+
+4.23 zipsplit命令
+用于分割使用zip创建的压缩包
+ # zipsplit -n 600000 file.zip	//指定分割成每600k一个的压缩包
+
+4.24 zforce命令
+用于为使用gzip压缩过的压缩包强制加上.gz后缀名,防止被压缩两次
+ # file file1
+gnu zip file
+ # zforce file1
+file1 ---replaced with file1.gz
+
+4.25 znew命令
+用于将.Z文件转换成gz文件,对压缩格式进行转化
+ # file file.Z
+ # znew file.Z
+---file.gz
+
+4.26 zcat命令
+用于在不解压缩gz文件包时查看文件中的内容
+ # zcat file.gz
+
+4.27 gzexe命令
+用于压缩可执行文件,压缩后仍然是可执行的并且在执行时会首先自动解压缩
+ # gzexe a.out
+原文件被备份成a.out~
+ # file a.out*
+a.out:  POSIX shell script text executable
+a.out~: ELF 32-bit LSB executable, Intel 80386, version 1 (SYSV), dynamically linked (uses shared libs), for GNU/Linux 2.6.18, not stripped
+
+

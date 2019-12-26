@@ -1,0 +1,248 @@
+Linux系统移植
+
+
+
++---------------+
+| Linux系统移植 |
++---------------+
+目的是结束裸板开发,走向基于操作系统的开发
+
+1.学习嵌入式课程的目的是什么
+基于嵌入式硬件平台(非标准PC机)做程序开发,包括应用程序和底层的驱动,应用于各个领域,服务于消费者. 
+
+(1)裸板开发
+没有操作系统的支持,没有任何库的支持,包括硬件驱动和上层应用程序都是自己开发.
+若实现相对简单的程序,相对容易,如果实现一些复制的程序,对程序员来说,需要即懂硬件又懂软件,难度大. 
+
+(2)操作系统
+操作系统为我们提供很多资源,提供了大量封装好的系统调用,共享库;
+程序员可以使用系统提供的函数,包括已经实现好的硬件驱动程序,程序员只需知道如何调用API,不用太关心底层的实现. 
+
+TPAD-----裸板
+TPAD-----装系统,使其支持基于操作系统编写的应用程序的运行
+
+2.Windows PC 需要部署哪些内容
+硬件平台:标准化的PC机
+	0)准备安装系统镜像(Windows 8)
+	1)安装引导程序(BIOS+Bootloader)并初始化硬件
+    系统自带,只要做相应的设置即可,用户不需要关心其实现
+	2)安装Windows操作系统,包括
+		Windows内核
+		文件系统
+	3)安装驱动程序
+	4)安装应用程序
+
+3.TPAD部署系统(安装系统)
+	0)准备安装程序(******); /* 关键部分 */
+	1)烧写Nand Flash
+	1.1)烧写引导程序
+	1.2)烧写操作系统内核
+	1.3)烧写文件系统
+
+我们可以在一些指定的官方网站上下载标准版本的
+	引导程序的源码u-boot
+	操作系统源码kernel
+	制作文件系统的开源软件包busybox
+但是,由于嵌入式硬件平台之间的差异性(非标准化),导致它们是不能直接在我们的TPAD上使用,而是要经过移植(修改)的过程. 
+
+    不能直接是使用的代码
+        ----> 经过移植
+            ====> 与硬件匹配一致并能使用的代码
+
+PC平台          硬件标准化       软件标准化
+嵌入式硬件      硬件有差异       没有固定能用的软件
+
+
+移植做哪些事情
+1.移植代码(准备程序)
+   基于移植前的代码经过移植(修改)成为可以运行的代码;
+   ----掌握移植的方法和原理;
+       熟悉代码框架与关键代码的实现;
+2.部署代码
+   将移植好的代码生成可执行文件(引导程序,内核,文件系统)烧写到Nand Flash上;
+   ----熟练操作;
+       熟悉设置启动参数;
+
+移植的内容
+1.引导程序(BIOS+Bootloader)
+   IROM就是厂商已经固化的BIOS;拨码开关控制启动位置;
+   Bootloader = Boot + Loader
+   操作系统运行之前执行的一段代码
+   bootloaer的最终目的就是启动内核
+   1)Boot:
+        初始化硬件设备,建立内存空间映射图,
+		将系统的软硬件环境带到一个合适的状态;
+   2)Loader:
+        将操作系统内核文件加载至内存,
+		之后跳转至内核所在的地址运行;
+
+2.操作系统内核(Linux内核)
+官方网站www.kernel.org
+	Linux-3.15-rc
+	Linux-3.14
+	Linux-2.6.35.7
+	Linux-4.0
+Linux内核的本质:
+1)C语言:内核是C语言函数的集合
+2)硬件:内核是硬件的管理者
+3)应用程序:内核是服务的提供者
+内核功能:
+	1.系统调用:实现应用程序和内核的交互
+	2.进程管理:进程的创建/终止/通信/调度
+	3.内存管理:MMU(地址映射,内存保护)
+	4.设备管理:硬件的驱动
+	5.虚拟文件系统
+	6.平台相关代码
+	7.网络协议
+
+3.文件系统
+包括根文件系统和建立于Flash设备上的文件系统. 
+包含了Linux系统能够运行的所必须的应用程序,库等. 
+系统启动时会执行文件系统中的init初始化进程
+
++--------------------+
+| 引导程序Bootloader |
++--------------------+
+	Bootloader的实现非常依赖具体的硬件,在嵌入式系统中硬件的配置千差万别,即使使用相同的CPU,外设也可能各不相同,所以很难有一个通用的Bootloader支持所有的硬件平台,除非bootloader的配置与嵌入式设备刚好匹配,否则需要进行移植;
+
+u-boot是一种开源的Bootloader;
+u-boot通用性强
+	1.支持多种处理器架构: ARM/PowerPC/MIPS等
+	2.支持多种操作系统:   Linux/VxWorks/QNX等
+
++------------+
+| 移植u-boot |
++------------+
+获取源代码:ftp://ftp.denx.de/pub/u-boot
+u-boot-1.3.4
+
+	$ cd /home/tarena/workdir/tools
+u-boot_CW210_1.3.4_20120628.tar.bz2
+解压缩u-boot源码:
+	$ tar -jxf u-boot_CW210_1.3.4_20120628.tar.bz2
+	$ cd u-boot_CW210_1.3.4
+
+分析u-boot源码,通常将u-boot的源码划分为与硬件相关(移植角度)和与硬件无关的代码;
+
+与硬件相关的代码
+1.cpu
+   包含和CPU架构相关的代码,
+   u-boot支持的CPU在该目录下对应子目录. 
+2.board
+   包含和开发板相关的文件,
+   每一个开发板都以一个目录出现在该目录下.
+3.drivers各类具体设备的驱动,基本上通用
+4.lib_arm支持ARM架构下的通用文件
+5.include/configs/CW210.h(重要)
+   定义了大量的宏
+
+分析u-boot如何执行,首先找到入口点
+u-boot.bin烧写到Nand Flash 0地址
+如果要找入口点,首先要找编译的链接脚本(*.lds)
+找到lds链接脚本也就找到了u-boot.bin文件入口点
+链接脚本在makefile编译的链接过程中
+需要分析Makefile文件
+
+Makefile的工作
+1.确定编译平台和编译器
+  TPAD
+     ARCH = arm
+     CROSS_COMPILE = arm-linux-
+2.确定编译的目标
+   OBJS   LIBS ...
+3.定义编译参数
+   CFLAGS  AFLAGS  LDFLAGS
+4.编译文件
+5.链接这些文件并生成可执行文件
+
+编译的步骤
+	1.配置u-boot
+		$ make  CW210_config
+		对Makefile中的变量进行赋值
+	2.编译u-boot
+		$ make
+
+注意make的最后几行
+arm-linux-ld -Bstatic -T /home/longbin/tutorial/note/porting/day01/u-boot/uboot_CW210_1.3.4.20150109/board/CONCENWIT/CW210/u-boot.lds  -Ttext 0xc3e00000 $UNDEF_SYM cpu/s5pv210/start.o
+arm-linux-objcopy --gap-fill=0xff -O srec u-boot u-boot.srec
+arm-linux-objcopy --gap-fill=0xff -O binary u-boot u-boot.bin
+arm-linux-objdump -d u-boot > u-boot.dis ##反汇编文件
+
+ $ file uboot
+u-boot: ELF 32-bit LSB executable, ARM, version 1, statically linked, not stripped
+通过arm-linux-objcopy将ELF格式的文件中的二进制文件拷贝出来
+最后生成u-boot.bin
+
+总结Makefile
+	1.首先确定交叉编译器的前缀arm-linux-
+	2.指定OBJS LIBS
+	3.生成 *.o   *.a
+	4.将第3步生成的*.o  *.a文件按照u-boot.lds链接脚本进行链接,
+	指定了链接地址0xc3e00000,得到了ELF格式的u-boot文件
+	5.将第4步生成的ELF格式的u-boot文件,使用arm-linux-objcopy命令
+	转换为u-boot.bin文件,另外生成了反汇编文件u-boot.dis文件. 
+
+
+接下来分析u-boot.lds文件
+	$ cd u-boot_CW210_1.3.4/board/CONCENWIT/CW210/
+	$ vi u-boot.lds
+
+
+tarena# 
+输入命令,回车,执行与命令对应的命令处理函数
+OUTPUT_FORMAT("elf32-littlearm", "elf32-littlearm", "elf32-littlearm    ")
+ 25 /*OUTPUT_FORMAT("elf32-arm", "elf32-arm", "elf32-arm")*/
+//指定u-boot可执行文件的输出格式ELF格式,小端
+ 26 OUTPUT_ARCH(arm)
+//指定arm
+ 27 ENTRY(_start)
+ 28 SECTIONS
+ 29 {
+ 30         . = 0x00000000;
+             //-Ttext = 0xc3e00000
+ 31 
+ 32         . = ALIGN(4);
+ 33         .text      :
+ 34         {
+ 35                 cpu/s5pv210/start.o       (.text)
+  //指定第一个被链接的文件,对应的源文件在cpu/s5pv210/start.S
+ //u-boot.bin的入口点
+ 56         __u_boot_cmd_start = .;
+ 57         .u_boot_cmd : { *(.u_boot_cmd) }
+ 58         __u_boot_cmd_end = .;
+//自定义段.u_boot_cmd,目的是链接过程中将命令结构体存放到该
+段中,便于命令的查找,执行命令处理函数. 
+
+cpu/s5pv210/start.S
+
+reset:
+169         msr             cpsr_c,  #0xd3
+                      I   F   T    mode
+                      1  1   0    10011
+修改状态寄存器, 关闭中断,CPU设置为SVC模式
+321         bl      lowlevel_init   /* go setup pll,mux,memory */
+//定义在lowlevel_init.S文件中,/home/tarena/workdir/tools/
+u-boot_CW210_1.3.4/board/CONCENWIT/CW210
+ 关闭看门狗
+ 初始化系统时钟
+ 123    bl  system_clock_init
+ 初始化内存
+ 126   bl  mem_ctrl_asm_init
+ 初始化串口
+ 130  bl  uart_asm_init
+ 初始化Nand Flash
+ 140  bl  nand_asm_init
+ 非常重要的底层初始化
+
+思考:
+IROM 的程序将8K拷贝到IRAM中执行
+为什么u-boot代码能够运行在非链接地址上
+0xc3e00000
+
+练习:
+day01
+要求部署系统
+烧写过程
+出现安卓界面
+
+

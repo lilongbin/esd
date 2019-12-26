@@ -1,0 +1,68 @@
+20.01 ifconfig命令
+网络接口配置命令
+ # ifconfig 
+ # ifconfig eth0 192.168.19.120 netmask 255.255.255.0
+ # ifconfig eth0 down
+ # ifconfig eth0 up
+
+20.02 route命令
+用于显示和设置本机的核心路由表
+ # route
+ # route -n 不进行名称的解析
+ # route del default gw 192.168.19.2
+ # route -n
+ # route add default gw 192.168.19.1
+ # route -n
+
+20.03 ifcfg命令
+是以个bash脚本程序,可以设置接口参数
+ # ifcfg eth0 stop
+ # ifconfig
+
+20.04 ifdown命令
+用于禁用指定的网络接口
+ # ifdown eth0
+ # ifconfig
+
+20.05 ifup命令
+用于开启指定的网络接口
+ # ifup eth0
+ # ifconfig
+
+20.06 hostname命令
+hostname - show or set the system’s host name
+用于显示和设置主机的名称
+ # hostname
+
+20.07 dhclient命令
+是动态主机配置协议的客户端工具
+ # dhcp eth0 
+
+20.08 dnsdomainname命令
+dnsdomainname - show the system’s DNS domain name
+用于定义dns系统中完全合格的域名
+ # dnsdomainname -v
+
+20.09 domainname命令
+domainname - show or set the system’s NIS/YP domain name
+用于设置和显示当前主机的nis域名
+ # domainname
+ # domainname test.example
+ # domainname
+
+20.10 nisdomainname命令
+nisdomainname - show or set system’s NIS/YP domain name
+用于显示系统对应的nis域名
+ # nisdomainname
+
+20.11 usernetctl命令
+ 通常应用与ifup和ifdown脚本
+ # usernetctl eth0 down
+ # usernetctl eth0 up
+
+20.12 ypdomainname命令
+ypdomainname - show or set the system’s NIS/YP domain name
+用于显示当前主机的nis域名
+ # ypdomainname -v 以详细模式显示
+
+

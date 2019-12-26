@@ -1,0 +1,454 @@
+IO remap
+list_head
+
+
+
+回顾:
+1.linux内核等待队列机制
+   目的:就是实现进程的阻塞(休眠)
+   什么样的情况下进行使用:
+   当驱动发现设备不可用(不可读,不可写),由驱动利用等待队列将进程进行阻塞,一旦设备驱动发现设备可用(可读,可写),由驱动来唤醒休眠的进程. (设备永远只能被驱动程序所检测). 
+   设备驱动一般都是通过中断处理函数的执行来决定设备的可用性. 
+   编程方法实现:有两种
+   如可以给读进程和写进程分别定义读等待队列和写等待队列;
+
+2.linux内核地址空间
+   X86平台内核1G的虚拟地址空间的划分
+   直接内存映射区
+   动态内存映射区
+   永久内存映射区
+   固定内存映射区
+   目的:由于内核1G的虚拟地址空间在内核初始化时,也已经跟物理地址做了好映射,由于物理内存可能大于1G,这种映射就不可能完成,这时需要将1G的内核虚拟地址空间进行划分
+
+3.内核中分配内存的方法
+   kmalloc/kfree + memset    -> kzalloc/kfree
+   get_zeroed_page/free_page
+   __get_free_pages/free_pages
+  分配的内存物理上连续,虚拟上也连续,默认在低端内存分配
+
+  vmalloc/vfree
+  分配的内存虚拟上连续,物理上不一定连续,一般用于分配较大的内存
+
+  分配内存的行为标志:
+  GFP_KERNEL:这个宏,告诉内核尽力分配内存;如果内存不足,进入休眠状态,等待空闲页出现;所以不能用在中断上下文,不能用在中断屏蔽保护的临界区,也不能用在自旋锁保护的临界区;
+  GFP_ATOMIC:如果使用这个宏,内存不足时(空闲不够),内核分配内存就会立即返回,所以可以用在中断上下文中;
+
+static unsigned char *p1, *p2, *p3;
+static int test_init(void)
+{
+	p1 = kmalloc(100, GFP_KERNEL);
+    if (p1 == NULL) 
+		goto err0;
+	p2 = kmalloc(100, GFP_KERNEL);
+	if (p2 == NULL)
+		goto err1;
+	p3 = kmalloc(100, GFP_KERNEL);
+	if (p3 == NULL)
+		goto err2;
+	return 0;
+
+err2:
+	kfree(p2);
+err1:
+	kfree(p1);
+err0:
+	return -1;	
+}
+
+
++----------+
+| IO remap |
++----------+
+案例:直接操作LED灯设计的寄存器地址来操作LED灯,而不是使用GPIO操作的库函数. 
+通过芯片手册看到的地址都是物理地址,而我们在操作系统中接触到的都是虚拟地址;
+
+切记:
+	在用户空间或者内核空间,一律不能直接访问操作一个物理地址;
+	如果要访问操作这个物理地址,一定要先将物理地址映射到对应的虚拟地址上(可以是用户的虚拟地址,也可以是内核的虚拟地址),以后用户访问这个虚拟地址就是在访问对应的物理地址;只有这样才能完成对一个物理地址的访问和操作;
+
+切记:
+	任何一个物理地址对于内核来说都是一种宝贵的资源,所有最好在使用这个物理地址之前,先向内核去申请,类似申请GPIO资源;
+
+问:如何向内核申请物理地址空间资源
+问:如何将一个物理地址映射到对应的内核虚拟地址!!!!!!
+问:能不能将一个物理地址映射到用户的虚拟地址上
+
+申请物理地址空间
+内核将I/O内存作为资源进行管理,在使用前需要使用request_mem_region()函数申请内存;通过rquest_mem_region()函数申请的I/O内存资源,不再使用时用release_mem_region()函数释放;
+定义在<linux/ioport.h>中
+struct resource *request_mem_region(unsigned long first, 
+						unsigned long len, const char *name);
+	first	待申请访问的I/O内存起始地址(物理地址);
+	len		待申请访问的I/O内存区域块长度;
+	name	该内存区域块名称;
+	返回	成功返回非NULL的结构体指针,失败返回NULL;
+void release_mem_region(unsigned long start, unsigned long len);
+	/* 释放由request_mem_region()申请的IO内存; */
+	start	待释放内存的起始地址;
+	len		待释放内存的长度;
+
+IO内存映射
+在内核中访问IO内存之前,需要首先使用ioremap()函数将设备所处的物理地址映射到内核虚拟地址,该内核虚拟地址可以用来存取特定的物理地址范围;通过ioremap()函数获得的虚拟地址应该被ioremap()函数释放;
+ioremap()函数类似于vmalloc()功能,也需要建立新的页表,但是它不进行vmalloc()中所执行的内存分配行为;
+定义在arch/arm/include/asm/io.h中
+	/* 将物理地址映射到内核的虚拟地址(动态映射) */
+void __iomem *ioremap(unsigned long phys_addr, size_t size);
+	phys_addr	待映射的IO内存物理起始地址(物理地址);
+	size		待映射的IO内存区域块大小;
+	返回		成功返回重映射后的内核IO内存虚拟地址,失败返回NULL;
+当IO内存不再使用时应立即释放;
+void iounmap(void __iomem *io_addr);
+	释放由ioremap()映射的IO内存;
+	io_addr		已经映射的内核虚拟地址;
+
+IO内存访问流程
++-------------------------------+
+|request_mem_region()           |通常在设备驱动模块加载
++-------------------------------+或open()操作中进行
+|ioremap()                      |IO内寻映射;
++-------------------------------+
+|                               |通常在设备初始化/
+|ioread[x]()/iowrite[x]()等访问 |read()/write()/ioctl()等
+|                               |操作中进行
++-------------------------------+
+|iounmap()                      |解除IO内存映射;
++-------------------------------+通常在设备驱动模块卸载
+|release_mem_region()           |或release()操作中进行
++-------------------------------+
+
+IO内存静态映射
+定义在arch/arm/include/asm/mach/map.h中
+struct map_desc {
+	unsigned long virtual; /* 待映射的内核虚拟地址 */
+	unsigned long pfn;	/* __phys_ro_pfn(phy_addr)得到 */
+	unsigned long length; /* 待映射的内存区块大小 */
+	unsigned int type; /* 待映射的内存类型 */
+};
+通常会在内核初始化代码中建立外设IO内存物理地址到内核虚拟地址的静态映射;
+
+问:如何向内核申请物理地址空间资源
+答:
+	利用request_mem_region函数即可完成申请
+	参考代码
+	struct resource *pres;
+	pres = request_mem_region(物理地址起始地址,长度,名字标签);
+	if (pres == NULL)
+		return -EBUSY; /* 申请失败 */
+	else
+		/* 申请成功 */
+	/* 如果不再使用这个物理地址空间,需要归还给操作系统,释放资源 */
+	release_mem_region(物理地址的起始地址,长度);
+
+问:如何将一个物理地址映射到对应的内核虚拟地址!!!!!!!!!
+答:
+	一定要记住,不能直接使用物理地址,需要将物理地址映射到虚拟地址上才能使用,先将物理地址映射到内核的虚拟地址
+    void *vaddr; /* 内核虚拟地址 */
+    vaddr = ioremap(物理地址的起始地址,长度);
+	/* 返回值为映射的内核虚拟地址,这个虚拟地址在动态内存映射区 */
+    这样就有了物理地址对应的内核虚拟地址,以后访问这个内核虚拟地址就是在访问对应的物理地址(MMU);
+
+问:能不能将物理内存空间映射到用户的虚拟地址上->后续
+
+案例:通过访问LED寄存器,完成对LED灯的操作
+     ioctl
+
+项目名称:设备操作与维护软件
+1.能够让用户读,写CPU的各个寄存器[寄存器编辑器]
+2.能够查询软件,硬件版本号
+3.能够在线更新软件和系统软件
+4.能够定期获取温度,电压等传感器信息
+
+寄存器编辑器:
+1.上位机PC(客户端)利用QT图形界面能够指定访问哪个寄存器
+2.下位机(服务端)能够响应和处理上位机PC操作寄存器的请求
+3.上位机和下位机通信通过socket
+
+提示:
+QT界面:能够让用户输入一个物理地址,操作的数据,读还是写
+传输通过TCP/UDP
+下位机接收到上位机发来的地址,数据,读写请求以后如何处理:
+./registereditor w addr data  -> ./registereditor w 0xe0200080 0x11000
+./registereditor r addr -> ./registereditor r 0xe0200080 
+
+struct register_cmd {
+	unsigned long addr;
+	unsigned long data;
+};
+
+struct register_cmd cmd;
+cmd.addr = 0xe0200080;
+cmd.data = 0x11000;
+ioctl(fd, REGISTER_WRITE_CMD, &cmd); //写
+ioctl(fd, REGISTER_READ_CMD, &cmd); //读
+printf("register %#lx = %#lx\n", cmd.addr, cmd.data);
+
+打印这个寄存器里的数据
+register_drv.c驱动的实现如下:
+应该让应用程序获取的地址发送给驱动程序做映射:
+
+struct register_cmd {
+	unsigned long addr;
+	unsigned long data;
+};
+
+static void *reg_base;
+
+int registereditor_ioctl(inode, file, cmd, arg)
+{
+	struct register_cmd regcmd;
+	copy_from_user(&regcmd, (struct register_cmd*)arg, sizeof(regcmd));
+	/* 获取用户操作数据 */
+
+	reg_base = ioremap(regcmd.addr, 4); //物理到虚拟映射
+	switch (cmd) {
+		case REGISTER_WRITE_CMD: //写寄存器
+			 *reg_base = regcmd.data;
+			break;
+		case REGISTER_READ_CMD: //读寄存器
+			regcmd.data = *reg_base;
+			copy_to_user((struct register_cmd*)arg,
+				&regcmd, sizeof(regcmd));
+			break;
+	}
+	iounmap(reg_base); //解除地址映射
+	return 0;			
+}
+
+验证蜂鸣器:GPD0_1  
+./registereditor w 0xe02000a0 0x10 //配置输出
+./registereditor w 0xe02000a4 0x02 //响
+./registereditor w 0xe02000a4 0x00 //灭
+
++---------------+
+| Linux内核链表 |
++---------------+
+链表定义
+	链表是一种存放和操作可变数量元素(节点)的数据结构;
+传统的链表的特点:
+1.传统链表的每一个节点的指针域和节点所对应的数据结构类型密切相关
+struct list_element {
+	void *data; /* 有效数据 */
+	struct list_element *p_next; /* 指向后驱指针 */
+	struct list_element *p_prev; /* 指向前驱指针 */
+};
+ +--------+
+ | 数据   |
+ +--------+
+ | 前指针 |
+ +--------+
+ | 后指针 |
+ +--------+
+链表与数组的比较
+	相对与数组,链表具有很好的动态性,建立链表时无需预先知道数据总量,可以随机分配空间,可以高效地在链表中任意位置实时插入或删除数据;
+	编译时不必知道需要创建多少个元素;
+	每个元素创建的时间各不相同;
+	无须占用连续内存;
+2.传统链表的指针域指向的是下一个节点或者前一个节点的首地址;
+3.对于传统链表,由于指针域跟节点的数据结构相关,如果有不同的链表,那么就需要定义各自的链表操作方法(插入,删除,遍历等);
+4.由于linux内核要大量使用不同的链表,所以在传统链表的基础上进行进一步的抽象,内核定义了一个struct list_head,用它来表示指针域,并且这个指针域跟数据类型无关,内核链表在操作的时候(插入,删除,遍历等)不再关注数据结构的类型,而只关心节点的指针域list_head;这样内核就可以定义唯一的一组链表操作方法. 
+	内核链表的定义
+在<linux/list.h>中
+struct list_head {
+	struct list_head *next, *prev;
+};
+	在list_head结构体中包含两个指向list_head结构的指针next和prev,所以内核链表具备双链表的功能;
+	在实际应用中,它通常被组织成双向循环链表;
+5.内核链表中的指针域指向下一个节点或者前一个节点的指针域,而不是节点的首地址;如果要访问节点的数据域,怎么办;
+如果已知一个结构体中一个成员的首地址,如果要想访问其他成员,必须获取结构体的首地址,可以通过container_of来获取结构体的首地址;
+
+使用container_of获取结构体首地址的例子
+struct people{
+	int zs;
+	int ls;
+	int wr;
+}; //已知wr的地址,求结构体的首地址
+struct people *pstr = container_of(wr的首地址, struct people, wr);
+结构体的首地址 = container_of(已知成员的首地址,结构体名,已知首地址的成员变量名); 
+/* include/linux/kernel.h */
+/**
+ * cast a member of a structure out to the containing structure
+ * @ptr:    the pointer to the member.
+ * @type:   the type of the container struct this is embedded in.
+ * @member: the name of the member within the struct.
+ */
+#define container_of(ptr, type, member) ({          \                       
+     const typeof( ((type *)0)->member  ) *__mptr = (ptr);    \
+     (type *)( (char *)__mptr - offsetof(type,member)  );})
+
+6.内核链表和普通链表比较
+	内核链表结构体不包含数据域,只包含维护链表的指针域;
+	内核链表具有通用性,和具体数据结构无关;
+	内核链表常被用作双向循环链表;
+	内核链表被包含在其他数据结构体中使用;
+
+7.内核链表主要操作
+	初始化链表头INIT_LIST_HEAD()函数;
+	插入节点list_add()函数;
+	删除节点list_del()函数;
+	提取数据结构list_entry宏
+	遍历链表list_for_each宏
+	/* 以上函数的参数只接收list_head,不关心具体的数据结构 */
+
+INIT_LIST_HEAD()函数
+	初始化链表头INIT_LIST_HEAD()函数
+	void INIT_LIST_HEAD(struct list_head *list);
+		/* 是list_head的前驱指针后后驱指针均指向list_head自身 */
+		/* list 待初始化的链表头 */
+插入节点list_add()函数
+	void list_add(struct list_head *new, struct list_head *head);
+	void list_add_tail(struct list_head *new, struct list_head *head);
+		new		待插入到链表的新节点;
+		head	待插入到链表的链表头;
+删除节点list_del()函数
+	void list_del(struct list_head *entry);
+		entry	待删除的节点;
+	static inline void list_del(struct list_head *entry)
+	{
+		__list_del(entry->prev, entry->next);
+		entry->next = LIST_POSITION1;
+		entry->prev = LIST_POSITION2;
+	}
+遍历链表list_for_each()宏
+#define list_for_each(pos, head) for(pos = (head)->next; prefetch(pos->next), pos !=(head); pos = pos->next)
+#define list_for_each_safe(pos, n, head) for(pos = (head)->next, n = pos->next; pos !=(head); pos = n, n = pos->next)
+	pos	list_head指针类型的循环变量;
+	n	list_head指针类型的循环变量;
+	head	待遍历的链表的链表头;
+	其实就是个for循环;
+	list_for_each_safe多了一个缓存操作;
+
++------------------+
+| 内核链表使用步骤 |
++------------------+
+#include <linux/list.h>
+1.分配一个链表头
+	strcut list_head mylisthead; /* 只有指针域,没有数据域 */
+2.初始化链表头
+	INIT_LIST_HEAD(&mylisthead);
+3.定义节点的数据结构,然后将struct list_head嵌入其中作为节点的指针域;
+   struct fox {
+    	int length;
+    	int weight;
+    	/* 将链表节点嵌入数据结构中 */
+    	struct list_head list; /* 指针域 */
+   };
+
+    head       fox1      fox2      fox3
+ +=========+=========+=========+=========+
+ +++++++++++++++++++++++++++++++++++++++++指
+ |list_head|list_head|list_head|list_head|针
+ | next    | next    | next    | next    |域
+ | prev    | prev    | prev    | prev    |
+ +++++++++++++++++++++++++++++++++++++++++
+ +         +---------+---------+---------+数
+ |         | length  | length  | length  |据
+ +         +---------+---------+---------+域
+ |         | weight  | weight  | weight  |
+ +         +---------+---------+---------+
+ +=========+=========+=========+=========+
+
+通过链表头获取的是结构体中list_head成员的首地址;
+如果要获得结构体的首地址,用container_of()宏;
+
+4.根据需求来分配节点
+   struct fox *fox1 = kmalloc(sizeof(struct fox), GFP_KERNEL);
+   fox1->length = 20;
+   fox1->weigth = 20;
+   struct fox *fox2 = kmalloc(sizeof(struct fox), GFP_KERNEL);
+   fox2->length = 30;
+   fox2->weigth = 30;
+   struct fox *fox3 = kmalloc(sizeof(struct fox), GFP_KERNEL);
+   fox3->length = 40;
+   fox3->weigth = 40;
+
+5.调用list_add/list_add_tail将节点添加到链表头的后面或者前面
+   list_add添加节点:
+   list_add(&fox1->list, &mylisthead);
+   list_add(&fox2->list, &mylisthead);
+   list_add(&fox3->list, &mylisthead);
+   添加结果是:fox3->fox2->fox1
+ 
+   list_add_tail添加节点:
+   list_add_tail(&fox1->list, &mylisthead);
+   list_add_tail(&fox2->list, &mylisthead);
+   list_add_tail(&fox3->list, &mylisthead);
+   添加结果是:fox1->fox2->fox3
+
+6.调用list_for_each/list_for_each_safe遍历链表
+   struct list_head *pos; //在遍历链表时,存放当前节点的指针域
+   strcut list_head *pos1; //在遍历链表时,存放下一个节点的指针域
+   list_for_each(pos, &mylisthead) {
+		/* 访问节点的成员,pos是节点的指针域, */
+		/* 再通过container_of获取节点的首地址, */
+		/* 再访问其他成员 */
+   } 
+   list_for_each_safe(pos, pos1, &mylisthead) {
+		/* 访问节点的成员,pos是节点的指针域, */
+		/* 再通过container_of获取节点的首地址, */
+		/* 再访问其他成员,注意pos1不做处理 */
+   }
+   注意事项
+   如果仅仅是遍历链表,这两个方法都可以;
+   如果在遍历时删除节点,必须使用后者;否则会造成断链,内核崩溃!
+
+7.如果通过链表头获取到了某一个节点的指针域,通过list_entry获取这个指针域所在的节点的首地址;也可以用container_of宏;
+   struct fox *pfox = list_entry(pos, struct fox, list);
+   pfox->length; /* 访问成员 */
+   pfox->weigth; /* 访问成员 */
+#define list_entry(ptr, type, member)  container_of(pte, type, member)
+其实list_entry就是container_of;
+------------------------------------------------
+/* 6遍历链表,取出每一个员工的信息 */
+struct fox *pfox;
+list_for_each(pos, &mylisthead) {
+         /* 7通过pos和list_entry获取节点的首地址给pfox */
+         pfox = list_entry(pos, struct fox, list);
+         printk("length = %d, weight = %d\n", pfox->length, pfox->weight);
+}
+------------------------------------------------
+
+8.用list_del删除节点
+   list_del(&pfox->list); /* 删除节点 */
+
+------------------------------------------------
+/* 6遍历链表,取出每一个员工的信息 */
+struct fox *pfox;
+list_for_each_safe(pos, pos1, &mylisthead) {
+         /* 7通过pos和list_entry获取节点的首地址给pfox */
+         pfox = list_entry(pos, struct fox, list);
+         printk("length = %d, weight = %d\n", pfox->length, pfox->weight);
+		 /* 8删除节点 */
+		 list_del(&pfox->list);
+}
+------------------------------------------------
+
+9.对于以上第6/7步,内核提供了二合一的操作方法;
+list_for_each_entry(当前节点的首地址,链表头,当前节点的指针域的变量名)
+= list_for_each + list_entry;
+
+--------------------------------------------
+struct fox *pfox;
+list_for_each_entry(pfox, &mylisthead, list) {
+	/* 直接访问成员 */
+    printf("length = %d, weight = %d\n", pfox->length, pfox->weigth);
+}   
+--------------------------------------------
+
+或者:
+list_for_each_entry_safe(当前节点的首地址,下一个节点的首地址,链表头,当前节点的指针域的变量名)
+= list_for_each_safe + list_entry
+
+--------------------------------------------
+struct fox *pfox;
+struct fox *pfox1;
+list_for_each_entry_safe(pfox, pfox1, &mylisthead, list) {
+	/* 直接访问成员 */
+    printf("length = %d, weight = %d\n", pfox->length, pfox->weigth);
+	list_del(&(pfox->list));
+} 
+--------------------------------------------
+
+案例:使用9的方法改造驱动程序代替6,7
+
+
+

@@ -1,0 +1,277 @@
+Linux 内核的移植
+Linux内核源码目录  Linux-2.6.35.7
+硬件相关:
+  arch  
+    arch/arm       
+    arch/arm/boot   
+    arch/arm/configs
+    arch/arm/kernel    
+    arch/arm/mm
+    arch/arm/mach-s5pv210/mach-smdkv210.c
+  drivers
+  sound
+  firware
+硬件无关:
+  ipc
+  mm
+  kernel
+
+Linux 启动过程
+Makefile
+   arch/arm/kernel/head.S
+
+vmlinux(ELF 未压缩)
+Image(数据  未压缩)
+zImage(数据  压缩)
+
+自解压
+arch/arm/kernel/head.S
+1.设置CPU的模式,SVC
+2.验证内核是否支持当前的CPU
+   通过协处理器指令,读取了协处理器寄存器中的CPU的ID号,r9
+   r9    .proc.info.init比较
+3.验证内核是否支持当前的开发板
+   theKernel(0,2456,0x20000100)
+                    r0  r1     r2
+   r1    .mach.info.init比较(开发板结构体 ->nr)
+   返回开发板结构体的地址
+4.建立页表
+5.
+6.
+.....
+20.挂载根文件系统
+21.启动init进程
+
+开发板文件
+arch/arm/mach-s5pv210/mach-smdkv210.c
+描述了一块开发板,既有普通成员,方法
+定义一个开发板结构体
+
+Linux内核配置
+make menuconfig(最为常用的配置内核的方法)
+make config
+make xconfig
+make oldconfig
+
+ls   -a  
+没有.config
+
+1.修改Makefile,指定了编译器 
+ 191 ARCH            ?= arm
+ 192 CROSS_COMPILE   ?= arm-linux-
+2.make menuconfig
+    Your display is too small to run Menuconfig!
+    It must be at least 19 lines by 80 columns.
+    make[1]: *** [menuconfig] 错误 1
+    make: *** [menuconfig] 错误 2
+
+调小字体Ctrl-
+
+make  menuconfig
+配置操作方法:
+[*]:通过空格键,选中,表示该选项编译进内核
+      File  System->
+         [*]   Ext2 extended attributes 配置选项
+          CONFIG_EXT2_FS_XATTR = y
+[ ]:通过空格键,不选,表示该选项不编译进内核
+           CONFIG_EXT2_FS_XATTR  is   not  set
+
+<*>:通过空格键,选中,表示该选项编译进内核
+          CONFIG_EXT2_FS = y
+< >: 通过空格键,不选,表示该选项不编译进内核
+          CONFIG_EXT2_FS   is  not  set
+<M>:通过空格键,选M,表示该选项编译成模块
+      File System->
+         <M> Second extended fs support 
+           CONFIG_EXT2_FS = m
+
+每个配置选项<--->变量
+配置的过程,实际上就是对变量赋值
+通过操作配置菜单,对变量进行赋值
+
+ Load an Alternate Configuration File 
+   arch/arm/configs/s5pv210_defconfig 
+     System Type-->
+        ARM system type (Samsung S5PV210/S5PC110) 
+     *** Power management ***                           
+       [ ] Samsung Aquila (NEW)                                 
+       [ ] GONI (NEW)                                            
+       [*] SMDKV210                                           
+       [ ] SMDKC110 (NEW)     
+ arch/arm/mach-s5pv210/
+1.确定了当前内核支持的处理器架构(ARM)
+2.确定了当前内核支持的CPU型号(S5pv210)
+3.确定了当前内核支持的开发板(SMDKV210)
+    arch/arm/mach-s5pv210/mach-smdkv210.c
+
+ Save an Alternate Configuration File  
+     .config
+  将内核的配置结果保存到内核源码目录下的.config文件中
+  通过查看.config文件,得知,实际上.config就是将内核的配置结果以对变量进行
+赋值的形式保存下来. 
+      [*] SMDKV210 
+           CONFIG_MACH_SMDKV210 = y
+
+make menuconfig
+   1.[]/<>配置选项(对应了具体内核中源文件)--->变量=y/is not set ----->.config
+   2.
+   3.
+ [*] SMDKV210 
+           CONFIG_MACH_SMDKV210 = y
+      arch/arm/mach-s5pv210/mach-smdkv210.c
+
+arch/arm/mach-s5pv210/Makefile
+
+  8 obj-y  :=  表示后面*.o文件要编译进内核(zImage)
+  9 obj-m  := 表示后面*.o文件编译成模块
+ 10 obj-n  := 表示不编译
+  
+ 21 obj-$(CONFIG_MACH_SMDKV210)     += mach-smdkv210.o
+ 此规则实际上就是在对mach-smdkv210.c源文件定义编译规则,
+ 是编译进内核,不编译
+ 取决于$(CONFIG_MACH_SMDKV210)的取值,该变量在.config
+ 通过.config文件,得知CONFIG_MACH_SMDKV210 = y
+   21 obj-$(CONFIG_MACH_SMDKV210)     += mach-smdkv210.o
+   ---->
+   21 obj-y    += mach-smdkv210.o
+表示mach-smdkv210.c源文件要编译进内核
+   
+移植内核
+
+向内核中加了一个文件,怎样使其也能够被配置
+Kconfig文件
+该文件是用于生成配置内核界面,是各种配置界面的源文件,内核的配置工具通过
+读取各个目录下的Kconfig文件,生成了配置界面供开发人员进行内核配置,配置
+结果保存在.config中. 
+
+arch/$(ARCH)/Kconfig
+arch/arm/Kconfig
+此文件是整个配置界面的主界面
+   File systems  ---> 
+         [*] Miscellaneous filesystems  ---> 
+                <*>   Compressed ROM file system support (cramfs)
+内核支持很多类型的文件系统,配置该选项,使内核支持cramfs文件系统
+          CONFIG_CRAMFS=y
+
+此选项对应的内核源码文件在:
+linux-2.6.35.7/fs/cramfs
+
+  1 config CRAMFS
+  2         tristate "Compressed ROM file system support (cramfs)"
+  3         depends on BLOCK
+  4         select ZLIB_INFLATE
+  5         help
+  6           Saying Y here includes support for CramFs (Compressed ROM File
+  7           System). 
+
+1.config条目
+     config  CRAMFS定义了一个变量,系统会默认的在该变量名前加前缀CONFIG_
+     CONFIG_CRAMFS
+2.变量的类型
+      tristate:  三态(y/n/m)
+      bool: 布尔型(y/n)
+      string: 字符串
+      int:   整型
+      hex:    十六进制
+3.depends  on: 依赖关系
+      如果依赖的配置选项没有选中,此项也无法选中
+4.select:方向依赖
+      如果当前选项选中,那么也选中select后面的选项
+5.help: 帮助信息
+
+menu条目
+生成菜单
+
+choice条目
+将多个类似的配置选项组合在一起,多选
+
+comment条目
+注释信息
+
+Linux内核配置
+make  menuconfig
+在Linux内核源码下,make menuconfig打开内核的配置菜单,这是配置内核的主
+菜单,在此界面中可以配置内核的各个功能,增加某些功能,也可以去掉某些功能,
+这就是内核的配置. (内核裁剪)
+   Kconfig->用来生成当前目录下源文件对应的配置界面
+      --->配置选项<->变量
+      []  <>                  赋值
+   .config:保存配置结果
+   Makefile:定义了当前目录下源文件的编译规则
+      obj-y
+      obj-m
+      obj-n
+   读取.config文件进行编译
+
+1.编写开发板文件
+   cd   arch/arm/mach-s5pv210/
+   cp   mach-smdkv210.c     mach-tarena210.c
+2. vi  Kconfig(与源文件同目录)
+    config    MACH_TAREANA210
+   --->定义CONFIG_MACH_TAREANA210
+3.重新配置内核
+   make menuconfig (内核根目录下执行)  
+4.查看.config 
+   CONFIG_MACH_TAREANA210=y
+5.修改Makefile(与源文件同目录)
+   22 obj-$(CONFIG_MACH_TARENA210)    += mach-tarena210.o
+6.make (内核根目录下执行)
+
+arch/arm/boot/zImage
+arch/arm/mach-s5pv210/mach-tarena210.o
+
+Linux内核移植
+diff命令可以生成补丁文件
+
+# mkdir linux_old
+# mkdir linux_new
+# cd linux_old
+# vi main.c
+# cp main.c  ../linux_new
+# cd linux_new
+# vi main.c
+	printf("Hello world!");
+#cd  ..
+
+#diff -Nur linux_old linux_new >a.patch	//生成补丁文件
+
+#patch -p1<a.patch	//打补丁
+//p1是打补丁时所在目录
+
+linux_old           linux_new                   a.patch
+main.c              main.c(printf)
+
+移植前的代码		移植后的代码                 linux.patch
+Linux内核源码		Linux内核源码(移植后)
+
+linux-2.6.35.7              ?                   补丁文件
+
+1.解压内核源码
+   rm   linux-2.6.35.7/   -rf
+   tar -jxvf linux-2.6.35.7.tar.bz2
+2.修改Makefile
+    191 ARCH            ?= arm
+    192 CROSS_COMPILE   ?= arm-linux-
+3.cp  tarena_defconfig   linux-2.6.35.7/.config
+4.cp linux_2_6_35_7_dm9000_nand_noconfig_nomakefile.diff  linux-2.6.35.7
+5.patch -p2<linux_2_6_35_7_dm9000_nand_noconfig_nomakefile.diff
+6.make zImage
+7.cp  arch/arm/boot/zImage  /tftpboot
+
+01.arch/arm/mach-s5pv210/clock.c
+02.arch/arm/mach-s5pv210/include/mach/irqs.h
+03.arch/arm/mach-s5pv210/include/mach/map.h
+04.arch/arm/mach-s5pv210/mach-smdkv210.c
+05.arch/arm/plat-s5p/include/plat/regs-nand.h
+06.arch/arm/plat-samsung/include/plat/nand.h
+07.drivers/mtd/nand/Kconfig
+08.drivers/mtd/nand/Makefile
+09.drivers/mtd/nand/s3c_nand.c
+10.drivers/net/dm9000.c
+
+tarena# setenv bootcmd nand read 50008000 500000 500000; bootm 50008000
+tarena# setenv bootargs root=/dev/mtdblock3 init=/linuxrc console=ttySAC0 rootfstype=cramfs
+tarena# saveenv
+tarena# reset
+
+

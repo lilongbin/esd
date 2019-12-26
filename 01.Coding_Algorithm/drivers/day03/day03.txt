@@ -1,0 +1,489 @@
+char device driver
+read/write
+copy_to_user()/copy_from_user()
+
+
+回顾:
+1.Unix/Linux,一切皆文件
+   应用程序访问设备,设备在用户空间都是以文件的形式
+2.设备文件(设备节点)
+   就是代表着一个要操作访问的设备
+   /dev/下
+  字符设备文件
+			c 204  64  /dev/s3c2410_serial0     
+			c 204  65  /dev/s3c2410_serial1
+  块设备文件
+			b 8 1  /dev/sda1
+			#mount -t vfat /dev/sda1 /mnt
+			//-t 指定文件系统的类型vfat
+			//设备入口为mnt
+  问:设备文件如何得到?
+3.设备号
+   主设备号
+	 		//用于标识设备类型,内核依据该号码来对应设备文件和设备驱动
+   次设备号
+	 		//用于标识同类型的不同个体,驱动程序依据该号码辨别具体操作的是哪一个具体设备个体,比如串口2;
+
+应用程序-----2?----->设备号-----1?----->驱动程序-----4?----->读写访问
+
+问1:驱动程序如何与设备号进行关联和绑定呢?
+问2:应用程序如何获取设备文件里的设备号的?
+问3:应用程序如何通过设备号就找到了自己使用的设备驱动程序呢?
+问4:应用程序找到驱动程序以后,如何利用驱动实现对设备的读写访问呢?
+
+回顾系统调用的过程
+	0.当用户调用系统函数时,会产生一个系统调用号;
+	1.进程先将系统调用号填充寄存器;
+	2.调用一个特殊指令,ARM:swi指令;
+	3.让用户进程跳转到内核事先定义好的一个位置--异常向量表入口;
+	4.这个位置是ENTRY(vector_swi); //entry-common.S
+	5.检查系统调用号,这个号告诉内核请求哪种服务;
+	6.查看系统调用表(sys_call_table),找到所调用的内核函数入口地址;
+	7.调用该函数,执行该函数,执行完毕后返回到用户进程,即完成系统调用;
+
++--------------+
+| 字符设备驱动 |
++--------------+
+
+问1:驱动程序如何与设备号进行关联和绑定呢?
+答1:由于设备号对于内核来说是一种有限的资源,所以在驱动和设备号进行关联和绑定之前,驱动程序应该向内核申请设备号;
+	申请设备号的方法有静态分配和动态分配;
+设备号的数据类型:
+	数据类型dev_t,用于定义设备号;它本质上是一个unsigned int数据类型;
+		dev_t dev_number;
+	四个字节(32位)中高12位存放主设备号,低20位存储次设备号;
+	内核为设备号数据类型提供一系列操作宏,在<linux/kdev_t.h>中定义;
+		unsigned int MAJOR(dev_t dev_number); //返回主设备号
+		unsigned int MINOR(dev_t dev_number); //返回次设备号
+		dev_t MKDEV(unsigned int major, unsigned minor); //返回(合并的)设备号
+	
+一.静态分配
+
+	内核源代码Documentation/devices.txt文件,该文件列出了本内核源代码发行包中已经被使用和可以使用的主设备号;
+		优点:在申请设备号之前已经知道了,可以在申请设备号之前创建好设备文件
+		缺点:如果驱动程序移植到别的平台,主设备号可能已经被其他驱动程序占用,会引起申请设备号失败,因此不便于驱动的移植推广;
+	步骤:
+	Step1.首先通过cat /proc/devices命令查看当前运行中的内核中哪个主设备号是空闲的,如果是空闲状态,驱动程序就可以向内核申请分配这个主设备号;
+		主设备号  设备名称
+		1 			mem
+		2		 	pty
+	 	3		 	ttyp
+	 	4		 	/dev/vc/0
+		204		 	s3c2410_serial
+	Step2.通过Step1可以确定一个主设备号,根据驱动管理的设备个数来指定次设备号,然后通过MKDEV(major, minor)宏来构造一个设备号出来;
+	Step3.调用register_chrdev_region(dev_t dev, int count, char *name);
+		/*
+		 *	int register_chrdev_region(dev_t from, unsigned int count,
+		 *									const char *name);
+		 *	-	from	待申请的设备号
+		 *	-	count	待申请的(次)设备号数
+		 *	-	name	设备名称(出现在/proc/devices)
+		 *	返回值:成功返回0,失败返回负值
+		 *	功能:向内核申请从from开始的count个设备号(主设备号不变,次设备号依次增加);
+		 *	region就是区域,说明是有范围的,范围说的就是次设备号的范围;
+		 */
+
+二.动态分配
+	在驱动模块加载时向内核申请主设备号;就是让内核去分配主次设备号
+		优点:便于驱动的移植推广
+		缺点:不能提前创建设备节点
+	步骤:
+	  Step1.调用alloc_chrdev_region(&dev, minor, count, &name)向内核申请设备号
+		/*
+		 * int alloc_chrdev_region(dev_t *dev, unsigned int baseminor,
+		 *								unsigned int count, const char *name);
+		 * -	dev				用于存储分配到的设备号,传递指针,不能是普通变量
+		 * -	baseminor		希望分配的起始次设备号
+		 * -	count			需要分配的(次)设备号数目
+		 * -	name			设备名称(出现在/proc/devices)
+		 * 返回值:成功返回0,失败返回负值
+		 * 功能:请求内核动态分配count个设备号,且次设备号从baseminor开始
+		 */
+案例:要求驱动能够支持动态分配和静态分配两种方法!
+　　　提示:采用内核模块参数的知识点!
+
+设备节点创建:
+	手工创建
+	mknod filename type major minor
+		filename	设备文件名
+		type		设备类型(c, b)
+		major		主设备号
+		minor		次设备号
+	#mknod /dev/mytest c 250 0 
+
+<<Linux Device Drivers>> 3rd
+<<linux内核设计与实现>> 3rd 原版
+
++---------------------------+
+| 字符设备相关的4个数据结构 |
++---------------------------+
+
+字符设备相关的4个数据结构
+	1.文件结构		struct file			{&f_ops, f_flags, f_pos, &private_data}
+	2.inode结构		struct inode		{i_rdev, &i_cdev}
+	3.字符设备结构	struct cdev			{&owner, &ops, &list, dev, count}
+	4.文件操作结构	struct file_operations{open, release, read等的一堆函数指针}
+
+1.文件结构体struct file
+	代表打开的设备文件,系统中每一个打开的文件,在内核空间都有一个关联的structfile 来描述这个打开的文件属性,它由内核打开文件时创建,在关闭文件后释放struct file结构体内存;
+	重要成员:
+	-	const struct file_operations *f_ops;//文件操作集合的结构体指针
+	-	unsigned int f_flags;	//文件被打开时传递的标志
+	-	loff_t f_pos;			//文件操作的位置
+	-	void *private_data;		//文件私有数据
+
+2.inode结构体struct inode
+	用于记录文件的物理信息,不同于struct file;
+	一个文件可以对应多个file结构,但只有一个inode结构,因为一个文件实际只有一个物理存在,但可以被多个进程打开,被创建多个file结构体;
+	在<linux/fs.h>中定义;
+	重要成员:
+	-	dev_t i_rdev;	//设备对应的设备号
+	-	struct cdev *i_cdev; //字符设备结构体指针
+
+3.字符设备结构体struct cdev
+	内核使用该结构来表示一个字符设备,在<linux/cdev.h>中定义
+	重要成员:
+	- struct module			 *owner;//该设备所属驱动模块
+	- struct file_operations *ops;	//设备操作集合指针
+	- struct list_head		 list;	//内核维护的双向链表
+	- dev_t	 				 dev;	//字符设备号
+	- unsigned int 			 count;	//(次)设备个数
+
+4.文件操作结构体struct file_operations
+	实际是一个函数指针的集合,这些函数定义了能够对设备进行的操作;
+	这些指针指向驱动中的函数,每个函数完成一个特定的操作,不支持的操作指针留空
+	在<linux/fs.h>中定义
+范例:
+	struct file_operations led_fops = {
+		.owner		=	THIS_MODULE,
+		.open		=	led_open,
+		.release	=	led_close,
+		.read		= 	led_read,
+		.write		= 	led_write,
+		.mmap		= 	led_mmap,
+		.ioctl		= 	led_ioctl
+	};
+
+结构体关联:
+	file.f_ops = &led_fops
+
+		|举例:
+		|---------------------------------------------------
+		|应用程序调用read(fd, buf, size)
+		|	
+		|===>	
+		|内核空间sys_read(fd, buf, size){
+		|	//file结构体在文件open时创建
+		|	struct file *file = fget_light(fd); //通过fd获取file指针
+		|	vfs_read(file, buf, count, &pos);
+		|}
+		|
+		|===>
+		|vfs_read(file, buf, count, &pos){
+		|		file->f_ops->read(file, buf, count, pos);//led_read被调用
+		|}
+		|---------------------------------------------------
+
+字符设备注册:
+	在linux内核2.6中使用cdev来描述字符设备,	在<linux/cdev.h>中定义;实现在内核源码fs/char_dev.c中:
+		1- 定义cdev;	struct cdev led_cdev;
+		2- 初始化cdev_init(&led_cdev, &led_fops);//.ops = &file_operations操作集合
+		3- 添加cdev_add(&led_cdev, dev, count);//以设备号为索引添加cdev到内核cdev散列表
+		4- 删除cdev_del(struct cdev *cdev);		//cdev_del(&led_cdev);
+1定义cdev//两种方法
+	struct cdev *cdev_alloc(void);
+		- 返回:内核分配的cdev对象指针,失败返回NULL
+	struct cdev led_cdev; //定义
+2初始化cdev
+	void cdev_init(struct cdev *cdev, const struct file_operations *fops);
+		- cdev 待初始化的cdev对象
+		- fops 可以在设备上执行的操作函数集合
+		struct cdev中的ops就会指向struct file_operations中的函数集合;
+3依设备号为索引添加cdev到内核cdev散列链表
+	int cdev_add(struct cdev *cdev, dev_t dev, unsigned count);
+		- cdev	待添加到内核的cdev对象
+		- dev	设备号
+		- count	待添加的设备个数
+		返回:成功返回0,失败返回负值;
+4删除cdev
+	void cdev_del(struct cdev *cdev);
+		- cdev 待从内核删除的cdev对象
+
+问struct file_operations定义初始化好以后,如何向内核注册自己,供系统调用使用?
+答:通过struct cdev
+问应用程序通过设备文件的设备号信息如何找到驱动程序?
+答:应用程序根据设备号,根据设备号在内核事先定义好的散列表中找对应的cdev,因为在注册字符设备驱动的时候已经依设备号为索引把cdev放到内核cdev散列表中了,cdev中已经存放了设备的操作集合地址;
+
+
+总结
+
++------------------------------------+
+| 应用程序访问字符设备驱动程序的流程 |
++------------------------------------+
+应用程序访问字符设备驱动程序的流程:
+对一个设备的操作永远是先open,但在open前先安装字符设备驱动,装到了内核cdev散列表中了;
+1.安装字符设备驱动
+	0.0	申请设备号dev;dev_t dev;	
+	1.0 定义底层驱动的操作集合led_fops;
+    	struct file_operations led_fops = {
+			.open	= led_open, //底层驱动自己来实现
+			.read	= led_read  //底层驱动自己来实现
+		};
+	1.1 定义字符设备结构体led_cdev;struct cdev led_cdev;
+		struct cdev重要成员:
+			- struct module				*owner;//该设备所属驱动模块
+			- struct file_operations	*ops;	//设备操作集合指针
+			- struct list_head			list;	//内核维护的双向链表
+			- dev_t						dev;	//字符设备号
+			- unsigned int				count;//(次)设备个数
+	1.2 调用cdev_init初始化cdev的led_cdev对象;cdev_init(&led_cdev, &led_fops);
+			将字符设备结构体对象led_cdev的ops(led_cdev->ops)指向文件操作结构体(led_fops): cdev->ops = &led_fops
+	1.3 调用cdev_add将定义好的cdev以设备号为索引注册到内核中的cdev散列链表中;
+	 		cdev_add(&led_cdev, dev, count);
+	Note:安装驱动程序涉及两个结构体对象:
+			字符设备结构体struct cdev;//owner,ops,list,dev,count...
+			文件操作集合struct file_operations;//owner,open,read,write...
+2.当应用程序调用open时
+	2.01 应用程序调用open()函数;
+	2.02 保存open对应的系统调用号到寄存器中;
+	2.03 调用swi触发一个软中断异常;
+	2.04 CPU就会调转到内核事先定义好的一个异常向量表的入口vector_swi;
+	2.05 根据系统调用号在内核事先准备好的一个系统调用表(sys_call_table)中找到对应的系统调用函数sys_open;从而完成open到sys_open;
+	2.06 内核创建inode结构体对象;sys_open通过inode->i_rdev获取设备号信息;
+	2.07 根据设备号匹配内核cdev散列链表的索引,找到对应的驱动cdev;
+	2.08 找到cdev以后将这个cdev赋值给inode->i_cdev用于缓存,以后再open时不用再遍历内核cdev散列表查找驱动;//完善inode结构体;
+	2.09 内核创建file结构体对象,将找到的cdev中的驱动操作集合ops赋值给file->f_op;//创建file结构体;
+	2.10 如果底层驱动ops中有open函数,那么就调用底层驱动的open;
+		file->f_op->open
+	2.11 执行完底层驱动的open以后,原路返回给应用程序的open;
+		访问设备文件时涉及两个结构体对象:
+			file结构体对象
+			inode结构体对象
+
+应用程序要读取设备信息:
+	1.前提是驱动安装完毕
+	2.然后是设备open成功,表明inode, file, cdev, file_operations四个结构体已经建立好了关系;
+	3.应用程序调用read->sys_read:
+	  3.1 获取file
+	  3.2 直接file->f_op->read();
+
+总结:对于实现一个驱动程序只需围绕着struct cdev和struct file_operations结构体即可
+
+案例:当应用程序调用open时,打开所有的灯;当应用程序调用close时,关闭所有的灯
+		1.申请设备号dev_t dev;
+			alloc_chrdev_region(&dev, baseminor, count, &name);
+		2.定义cdev;
+			struct cdev led_cdev;
+		3.初始化cdev_init();
+			指定驱动操作集合struct file_operations(首先定义初始化驱动操作集合)
+			cdev_init(&led_cdev, &led_fops);
+		4.向内核cdev散列链表注册led_cdev;
+			cdev_add(&led_cdev, dev, count);
+
+实验步骤:
+	0.arm-linux-gcc -o led_test led_test.c //交叉编译测试程序
+	1.insmod led_drv.ko
+	2.cat /proc/devices 查看分配的设备号
+	3.mknod /dev/myled c 250 0 //创建设备节点,注意主设备号别弄错
+	4../led_test 
+
+总结:
+问:应用程序如何访问设备?
+答:设备在linux系统中,以设备文件的形式存在,应用程序访问设备文件就是在访问设备;
+
++--------------+
+| 创建设备文件 |
++--------------+
+问:如何创建设备文件
+答:有两种方法:
+    1手动创建:mknod 
+      # mknod /dev/myled c 250 0
+	2自动创建:
+			/* 找地 */
+		1.制作文件系统时,busybox要添加对mdev的支持;/sbin/mdev
+			/* 准备合适土壤 */
+		2.rootfs的/etc/rcS添加mount -a
+		3.rootfs的/etc添加fstab文件
+		4.fstab文件中添加对sysfs和proc的支持
+			proc	/proc	proc	defaults	0	0
+			sysfs	/sys	sysfs	defaults	0	0
+			/* 种下一棵树 */
+		5.rootfs的/etc/rcS添加:
+			echo	/sbin/mdev	>	/proc/sys/kernel/hotplug
+--------/etc/init.d/rcS---------
+#! /bin/sh
+#This is the first script called by init process
+/bin/mount -a
+mkdir /dev/pts
+mount -t devpts devpts /dev/pts
+echo /sbin/mdev > /proc/sys/kernel/hotplug
+mdev -s
+--------------------------------
+		6.驱动程序调用以下代码
+				/* 长出树枝 */
+			struct class *mycls = class_create(THIS_MODULE, "tarena");
+			生成新目录/sys/class/tarena
+				/* 结苹果 */
+			device_create(mycls, NULL, MKDEV(major, minor), NULL, "myled");
+			创建设备节点/dev/myled,主次设备号分别为major和minor
+
+问:主/次设备号做什么用?
+答:主设备号用于应用程序找到驱动程序,次设备号用于驱动区分具体的设备个体
+
+问:设备文件或者普通的文件在linux系统如何去描述呢?
+答:通过struct inode,一个文件有唯一的inode;
+	如果某个文件是设备文件,则
+    struct inode {
+			dev_t i_rdev; //如果是设备文件,存放设备文件的设备号
+			struct cdev *i_cdev; //如果是字符设备文件,存放的是字符设备驱动的cdev对象的地址,如&led_cdev;
+	};
+
+问:如果设备文件在应用程序调用open打开成功以后,linux内核如何去描述呢?
+答:通过struct file,用来描述文件被打开以后的属性,由内核在内核空间创建;
+    struct file {
+			struct file_operations *f_op;
+			/* 当应用程序调用open时,最终调用系统调用的sys_open,sys_open根据inode->i_rdev获取设备号,根据这个设备号,在内核全局cdev散列链表中,找到自己的字符设备驱动cdev,再从这个cdev的ops(led_fops)中获得设备操作集合,最终将驱动的操作集合赋值给f_op; */
+     };
+		 如:read --> sys_read --> file->f_op->read
+
+问:在linux内核中,如何描述一个字符设备驱动呢?
+答:通过struct cdev,用于描述一个字符设备驱动
+    struct cdev {
+			struct file_operations *ops;//表示这个字符设备驱动具体有哪些底层操作的方法,通过cdev_init函数来完成初始化;
+    };
+
+问:由于file,inode的创建和销毁都是内核来实现,但是cdev的创建/销毁必须由驱动开发者来实现,那么如何操作cdev
+答:如果要描述一个设备驱动是一个字符设备驱动,通过以下几个步骤来实现:
+      1.struct cdev led_cdev; //定义一个led灯的字符设备驱动对象
+      2.在驱动的入口函数调用cdev_init完成cdev的初始化
+      3.调用cdev_add向内核注册步骤1,2定义初始化好的cdev(led_cdev),一旦完成这种注册,表明内核就存在一个真实的LED灯的字符设备驱动,并且本身也有了一些属性(底层操作的方法ops, 设备号dev,设备的个数count);
+			向内核注册的过程其实就是将定义/初始化好的cdev以设备号为索引放在一个内核散列表cdev中;
+
+问:应用程序如何找到自己的cdev,本质上就是找cdev附加的底层操作集合ops
+答:应用程序通过inode->i_rdev(设备号),以设备号为索引在散列链表cdev中找到自己的cdev(led_cdev),然后将led_cdev的ops赋值给file->f_op;
+
+问:如果将底层驱动的file_operations硬件操作集合赋值给file->f_op,将来会有什么作用
+答:
+	应用程序	内核函数				底层驱动
+    open	->	sys_open	->	file->f_op->open (= led_open)
+    close	->	sys_close	->	file->f_op->release (= led_close)
+    read	->	sys_read	->	file->f_op->read (= led_read)
+    write	->	sys_write	->	file->f_op->write (= led_write)
+    ...
+
++--------------+
+| 设备读写操作 |
++--------------+
+问:UC的read,write如何使用?
+答:
+     char buf[1024] = {0};
+     int fd;
+     fd = open("/dev/..", O_RDWR);
+     read(fd, buf, 1024); //从设备读数据
+     write(fd, "hello..", size); //写数据到设备中
+
+设备读操作
+	如果该操作为空,将使得read系统调用返回负,EINVAL失败,正常返回实际读取的字节数;
+	 /*
+	  * ssize_t (*read)(struct file *filp, char __user *buf,
+	  *									size_t count, loff_t *f_pos);
+	  *	- filp	待操作的设备文件file结构体指针
+	  *	- buf		用来存储所读取数据的用户空间缓冲区
+	  *	- count	待读取数据的字节数
+	  *	- f_pos	待读取数据的文件位置,读取完成后根据实际读取字节数重新定位
+	  *	copy_to_user();
+	  */
+	 open和close是个特例,内核已经帮我门实现;其他的要写相应的操作方法,否则失败;
+
+设备写操作
+	应用程序调用write最终调用底层驱动的write;
+	如果该操作为空,使得write系统调用返回父,EINVAL失败,正常返回实际写入的字节数;
+	 /*
+	  * ssize_t (*write)(struct fil *filp, char const__user *buf,
+	  * 									size_t count, loff_t *f_pos);
+	  * -	filp	待操作的设备文件file结构体指针
+	  * -	buf		将传递给内核数据的用户空间缓冲区
+	  * -	count	待写入数据字节数
+	  * -	f_ops	待写入数据的文件位置,写入完成后根据实际写入字节数重新定位
+	  * copy_from_user();
+	  */
+设备读写操作
+	读和写方法完成类似的工作
+		-	read	从设备中读取数据到用户空间;copy_to_user();
+		-	write	将数据从用户空间写入到设备;copy_from_user();
+	读和写具有相同的参数和参数类型
+	读和写方法的buf都是用户空间缓冲区指针,它不能在内核模块中直接使用,即不能直接赋值,要判断指针有效性并用函数实现数据传递;
+	内核模块为驱动程序提供在内核空间和用户空间传递数据的方法,定义在arch/arm/include/asm/uaccess.h中
+	#include <linux/uaccess.h>
+		-	用户空间	->	内核空间
+		-	内核空间	->	用户空间
+		-	用户空间内存是否可以访问的验证
+		-	数据传递函数会检查用户空间内核是否可以访问
+用户空间	->	内核空间
+	unsigned long copy_from_user(void *to, const void *from, unsigned long n);
+		-	to		目标地址(内核空间),void*可以指向任何数据类型
+		-	from	源地址(用户空间)
+		-	n			将要拷贝数据的字节数
+		返回:成功返回0,失败返回没有拷贝成功的数据字节数;
+	int get_user(data, ptr);//简单的用户空间到内核空间拷贝数据的函数
+		-	data	可以是字节/半字/字/双字类型的内核变量;结构体不可以
+		-	ptr		用户空间内存指针
+		返回:成功返回0,失败返回非0
+内核空间	->	用户空间
+	unsigned long copy_to_user(void *to, const void *from, unsigned long n);
+		-	to		目标地址(用户空间)
+		-	from	源地址(内核空间)
+		-	n			将要拷贝数据的字节数
+		返回:成功返回0,失败返回没有拷贝成功的数据字节数;
+	undigned long put_user(data, ptr);
+		-	data	可以是字节/半字/字/双字类型的内核变量;结构体不可以
+		-	ptr		用户空间内存指针
+		返回:成功返回0,失败返回非0
+	
+案例:当应用程序调用write向驱动写入1时,打开所有的灯
+      当应用程序调用write向驱动写入0时,关闭所有的灯
+      当应用程序调用read时,能够获取灯的开关状态
+        int cmd;
+        cmd = 1;
+        write(fd, &cmd, sizeof(cmd));->led_write
+        cmd = 0;
+        write(fd, &cmd, sizeof(cmd));
+
+案例:要求能够指定某一个灯的开光状态
+      struct led_cmd {
+			int cmd;   //开关命令
+			int index; //哪个灯
+      };
+		$ ./led_test on 1
+		$ ./led_test on 2
+		$ ./led_test off 1
+		$ ./led_test off 2
+
+创建设备节点:
+	1.cat /proc/devices //查看内核分配的主设备号和设备名
+	2.mknod /dev/myled c 250 0 //设备节点文件名myled是给应用程序使用的
+设备节点和设备名称没有直接关系;设备名称只是一个标识;
+
+案例:自己编写驱动和测试代码通过write和read实现操作蜂鸣器
+          beep_drv.c
+          beep_test.c
+          ./beep_test on
+          ./beep_test off
+         使用的GPIO:GPD0_1
+
+案例:编写驱动和测试能够读取按键的状态信息,如果按键松开,驱动上报0x51
+          如果按键按下,驱动上报0x50
+          btn_drv.c
+          btn_test.c
+          使用管脚:GPH0_0 
+
+总结:字符设备驱动开发涉及的四个重要的结构体
+          struct inode
+          struct file
+          struct cdev
+          struct file_operations
+面试题:应用程序如何访问字符设备驱动
+        1.应用到系统调用 open->sys_open
+        2.系统调用到驱动 sys_open->led_open
+
+

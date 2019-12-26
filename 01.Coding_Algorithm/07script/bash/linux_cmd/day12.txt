@@ -1,0 +1,134 @@
+12.01 mount命令
+用于挂在指定的文件系统
+ # mount /dev/cdrom /media
+ # mount -o loop -t iso9660 DVD.iso /mnt
+
+12.02 umount命令
+用于卸载一个已经加载的文件系统
+ # mount
+ # umount /media
+
+12.03 mkfs命令
+用于创建文件系统,格式化
+ # mkfs -t ext3 /dev/sdb1
+
+12.04 mke2fs命令
+用于创建第2扩展文件系统
+ # mke2fs /dev/sdb1
+
+12.05 fsck命令
+用于检查指定的文件系统
+ # fsck -t ext2 -V /dev/sdb1
+
+12.06 dumpe2fs命令
+用于打印第2或第3扩展文件系统的超级块或块信息
+ # dumpe2fs -h /dev/sdb1
+
+12.07 e2fsck命令
+用于检查指定的第2或第3扩展文件系统是否有错误出现
+ # e2fsck /dev/sdb1
+
+12.08 lsattr命令
+用于显示指定的文件的第2扩展文件的属性
+ # lsattr test.txt
+
+
+12.09 chattr命令
+用于设置指定文件的第2扩展文件系统的属性
+ # lsattr test.txt
+ # chattr +i test.txt 任何人都不能删除
+ # lsattr test.txt
+ # rm test.txt 将无法删除
+ # chattr -i test.txt
+
+12.10 mountpoint命令
+用于判断给定的目录是否为挂载点
+ # mountpoint /
+ # mountpoint /bin
+ # mountpoint -d /  显示挂载点对应的主次设备号
+
+12.11 edquota命令
+用于设置指定用户可以使用的磁盘空间配额
+ # edquota zhangsan 默认打开vi编辑相关参数
+ # quota zhangsan 查看shangsan的磁盘配额信息
+
+12.12 quotacheck命令
+用于磁盘配额检查
+ # cat /etc/fstab 看是否打开了用户磁盘空间配额的功能.userquota选项
+ # quotacheck -cuv /mnt/sdb1
+ # ls /mnt/sdb1
+多了一个aquota.user文件
+
+12.13 quotaoff命令
+用于关闭磁盘配额功能
+ # quotaoff -p /mnt/sdb1 打印配额信息
+ # quotaoff -u /mnt/sdb1 关闭用于的磁盘配额功能
+
+12.14 quotaon命令
+用于显示或开启指定的磁盘的配额功能
+ # quotaon -p /mnt/sdb1
+ # quotaon -vu /mnt/sdb1   v是显示过程
+
+12.15 quota命令
+用于显示用户的磁盘的配额情况
+ # quota zhangsan
+ # quota root
+
+12.16 quotastats命令
+用于显示当前磁盘配额的相关信息
+ # quotastats
+
+
+12.17 repquota命令
+用于打印指定磁盘空间的配额报表
+ # repquota /dev/sdb1
+
+12.18 swapoff命令
+用于关闭指定的交换空间(文件/分区)
+ # free 查看交换空间的使用情况
+ # fdisk -l 查看交换分区设备
+ # swapoff /dev/sda2
+
+
+12.19 swapon命令
+用于开启指定的交换空间(文件/分区)
+ # fdisk -l
+ # swapon /dev/sda2
+
+12.20 sync命令
+强制将硬盘中的缓冲数据写入到硬盘,为了保证缓存的数据被写入到磁盘
+ # sync
+
+12.21 e2image命令
+用于将指定第2或第3文件系统的原数据保存到一个文件中
+ # e2image /dev/sdb1 sdb1
+
+12.22 e2label命令
+用于为指定的第2扩展文件系统设置卷标
+ # e2label /dev/sdb1 data
+ # e2label /dev/sdb1
+data
+
+12.23 tune2fs命令
+用于调整文件系统的底层参数,要格外小心
+ # tune2fs -l /dev/sdb1 |grep "Mount count"
+Mount count : 3
+ # tune2fs -C 5 /dev/sdb1
+ # tune2fs -l /dev/sdb1 |grep "Mount count"
+Mount count : 5
+
+12.24 resize2fs命令
+用于在线调整第2或第3扩展文件系统的大小,需要内核支持
+ # resize2fs -f /dev/sdb1 1024M
+
+12.25 stat命令
+用于显示指定的文件状态
+ # ls -l test.txt
+ # stat test.txt 可以得到关于文件更加详细的信息
+
+12.26 findfs命令
+用于查找指定的文件系统
+ # findfs LABEL=data
+/dev/sdb1
+
+

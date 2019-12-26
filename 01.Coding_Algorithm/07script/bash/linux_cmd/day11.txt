@@ -1,0 +1,208 @@
+11.01 df命令
+全称是disk free,显示当前系统磁盘的使用信息
+ # df
+ # df -h 结果显示换为易读的单位
+
+11.02 fdisk命令
+是Linux系统中通用的磁盘操作工具
+ # fdisk -l 显示磁盘信息
+创建新的分区演示
+ # fdisk /dev/sdb  对某设备进行分区后面不带数字
+	: m  获取帮助
+	: n  创建一个新分区
+	e extended
+	p primary patition(1-4)
+	: p  打印分区表信息
+	: t  更改id(文件系统类型)
+	c  FAT32分区类型
+	: w 保存分区
+ # reboot 或  # partprobe 后才可以使用
+
+11.03 parted命令
+Linux中功能强大的硬盘分区工具
+ # parted /dev/sdb
+ help
+ print
+ quit
+ # parted /dev/sdb print 不进入parted交互模式直接打印硬盘分区信息
+
+11.04 mkfs命令
+用于创建文件系统,即格式化分区
+ # mkfs -t vfat -v /dev/sdb3
+ # mkfs -t ext4 -v /dev/sdb4
+
+11.05 badblocks命令
+用于检查指定的磁盘是否存在坏块
+ # badblocks -s -v /dev/sda
+-v显示详细的检测过程
+-s显示执行的进度
+
+11.06 partprobe命令
+ 通常用于在硬盘分区之后,是系统重新读取硬盘分区表数据,否则新分区的硬盘无法使用
+ # partprobe
+
+11.07 convertquota命令
+用于将老的磁盘配额转换为新的磁盘配额文件,2.4以前的内核到2.4以后的内核的系统迁移时使用
+ # convertquota -u /data
+
+11.08 grub命令
+是多重引导程序的命令行
+ # grub
+grub> help
+输入quit退出grub命令行交互模式
+
+11.09 lilo命令
+是Linux中另外一个多重引导程序
+ # vi /etc/lilo.conf
+在新版的Linux中已经被淘汰
+
+
+11.10 mkbootdisk命令
+用于创建当前系统的引导软盘
+ # mkbootdisk --device /dev/fd0 --noprompt 2.6.18
+
+11.11 hdparm命令
+用于读取和设置SATA/IDE硬盘的参数
+ # hdparm -a /dev/sda
+
+
+11.12 mkinitrd命令
+用于为内核预加载一些块设备模块创建初始化映像文件,以便内核能访问我们的根文件系统
+ # mkinitrd my-initrd.img `uname -r`
+ # file my-initrd.img
+
+11.13 mkisofs命令
+用来创建iso镜像文件
+ # mkisofs -o my.iso /bin
+ # file my.iso
+
+11.14 mknod命令
+用于创建Linux中的设备文件,需要指定设备类型,主设备号及次设备号
+ # mknod test-device b 8 10
+ # file test-device
+
+11.15 mkswap命令
+用于创建Linux中的交换文件或交换分区
+首先用fdisk工具将分区转换为swap类型;
+然后执行partprobe命令,让内核重新读取分区信息
+最后执行 # mkswap /dev/sdb3
+
+11.16 blockdev命令
+可以在命令行调用Linux的系统调用ioctl实现系统调用
+ # blockdev -v --getro /dev/sdb
+get read-only : 0
+
+11.17 pvcreate命令
+用于创建物理卷
+ # fdisk /dev/sdb	新建一个分区类型LVM,ID为8e
+ # partprobe
+ # pvcreate /dev/sdb 创建物理卷
+
+11.18 pvscan命令
+用于扫描当前系统上创建的LVM卷
+ # pvscan
+
+
+11.19 pvdisplay命令
+用于显示物理卷的详细信息
+ # pvscan
+ # pvdisplay /dev/sdb1
+
+11.20 pvremove命令
+用于删除指定的物理卷
+ # pvscan
+ # pvremove /dev/sdb1
+
+
+11.21 pvck命令
+用于检查物理卷中的LVM元数据的一致性
+ # pvck -v /dev/sdb1
+
+11.22 pvchange命令
+用于修改物理卷中的分区许可
+ # pvchange -x n /dev/sdb1
+ # pvchange -x y /dev/sdb1
+
+11.23 pvs命令
+用于输出物理卷信息的报表
+ # pvs
+
+
+11.24 vgcreate命令
+用于创建卷组
+ # pvscan
+ # vgcreate vg1000 /dev/sdb1 /dev/sdb2
+
+11.25 vgscan命令
+用于扫描当前系统中的卷组
+ # vgscan
+
+11.26 vgdisplay命令
+用于显示当前系统中指定卷组的详细信息
+ # vgdisplay vg1000
+
+11.27 vgextend命令
+用于向已经存在的物理卷组添加新的物理卷
+ # vgdisplay vg1000
+ # vgextend vg1000 /dev/sdb3
+ # vgdisplay vg1000
+
+11.28 vgreduce命令
+用于从卷组中删除卷组,以减少卷组的空间
+ # vgreduce vg1000 /dev/sdb3
+
+11.29 vgchange命令
+用于修改卷组的信息,通常用于改变卷组的活动状态
+ # vgchange -an vg1000 将卷组设置为非活动的
+ # vgchange -ay vg1000 将卷组设置为活动的
+
+11.30 vgremove命令
+用于删除一个已经存在的卷组
+ # vgremove vg1000
+卷组中的逻辑卷中的所有信息都将消失
+
+11.31 vgconvert命令
+用于将LVM1版本的卷组转换为LVM2版本的卷组
+ # vhchange -an vg1000
+ # vgconvert -M2 vg1000
+ # vgchange -ay vg1000
+
+11.32 lvcreate命令
+用于在指定的卷组中创建逻辑卷
+ # lvcreate -L 150M vg1000
+
+11.33 lvscan命令
+用于扫描系统中已经存在的逻辑卷
+ # lvscan
+
+11.34 lvdisplay命令
+用于显示逻辑卷的显示信息
+ # lvscan
+ # lvdispaly /dev/vg1000/lvo10
+
+11.35 lvextend命令
+用于扩展逻辑卷的磁盘空间
+ # lvscan
+ # lvdisplay /dev/vg1000/lvo10
+ # lvextend -L +50M /dev/vg1000/lvo10
+ # lvdispaly /dev/vg1000/lvo10
+
+
+11.36 lvreduce命令
+用于缩减逻辑卷的空间大小
+ # lvscan
+ # lvreduce -L -50M /dev/vg1000/lvo10
+ # lvscan
+
+11.37 lvremove命令
+用于删除指定的逻辑卷
+ # lvremove /dev/vg1000/lvo10
+
+11.38 lvresize命令
+用于调整逻辑卷的空间大小
+ # lvscan
+ # lvresize -L +50M /dev/vg1000/lvo10
+ # lvresize -L -50M /dev/vg1000/lvo10
+
+
+

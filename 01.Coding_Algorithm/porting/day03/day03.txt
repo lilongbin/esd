@@ -1,0 +1,303 @@
+uboot移植过程
+uboot执行过程
+第一阶段
+start.S->底层硬件初始化
+   lowlevel_init(看门狗,时钟,内存,串口,Nand Flash)
+第二阶段
+   start_armboot
+   gd->bd
+   初始化函数列表
+   board_init:
+      arch_number:2456
+      boot_para:0x20000100
+   dram_init:
+      dram[1]:0x20000000
+      size1:512M
+      dram[2]:0x40000000
+      size2:512M
+main_loop:
+      getenv:  bootdelay    bootcmd
+判断bootdelay,在此时间段内:
+有空格输入:
+    命令行模式:
+    tarena#
+    使用uboot命令实现相对应的操作(环境变量,系统的更新)
+没有空格输入:
+    自启动模式:
+    bootcmd:保存自启动命令
+         tftp    50008000   zImage  //加载内核文件至内存
+         bootm   50008000   //启动内核
+     bootm->do_bootm->do_bootm_linux->theKernel(0,2456,0x20000100)
+
+U_BOOT_CMD(name,maxargs,rep,cmd,usage,help)
+__attribute__((unused,section(".u_boot_cmd"))) 
+是GNU C对标C一个扩展
+ section将命令结构体放到.u_boot_cmd段中
+ unused:表示该结构体有可能不使用,避免编译器产生警告信息. 
+     
+bootargs环境变量  重中之重
+tarena# setenv   bootargs  root=/dev/nfs init=/linuxrc 
+nfsroot=192.168.1.8:/home/tarena/workdir/rootfs/rootfs 
+ip=192.168.1.6:192.168.1.8:192.168.1.1:255.255.255.0::eth0:on
+console=ttySAC0
+uboot->zImage->挂载根文件系统,并执行init进程
+挂载根文件系统  Mounted root (nfs filesystem) on device
+Ubuntu服务器上的文件系统   NFS服务
+/home/tarena/workdir/rootfs/rootfs
+告诉内核如何去挂载文件系统
+1.什么类型的文件系统
+   root=/dev/nfs   告诉内核挂载网络文件系统
+2.文件系统具体所在的位置
+   nfsroot=192.168.1.8:/home/tarena/workdir/rootfs/rootfs
+   ip=192.168.1.6:192.168.1.8:192.168.1.1:255.255.255.0::eth0:on
+3.启动哪个init进程
+   init=/linuxrc
+
+NFS
+Ubuntu:服务器
+   修改/etc/exports配置文件
+   /home/tarena/workdir/rootfs/rootfs   *(rw,sync,no_root_squash)
+  sudo  /etc/init.d/nfs-kernel-server   restart
+TPAD:客户端
+
+
+Linux 内核
+cd  /home/tarena/workdir/tools/
+linux-2.6.35.7.tar.bz2
+tar   jxf  linux-2.6.35.7.tar.bz2
+cd  linux-2.6.35.7
+Linux内核源码目录:
+arch:与体系架构相关的目录,对于每种架构的CPU,arch下都有一个目录
+与之对应. 
+      arch/arm
+block:块设备的通用函数(字符设备   块设备   网络设备)
+drivers:设备驱动程序
+     du  -sh
+     452M
+     213M 
+firware:设备驱动,固件,闭源设备的代码,设备没有公开,没有datasheet
+sound:声卡驱动
+fs:file system 内核支持的文件系统的类型
+include:头文件
+init:内核的初始化代码
+ipc:进程间通信的代码,共享内存,管道,消息队列,信号
+kernel:内核管理的核心代码,与处理器相关的核心代码在
+      arch/arm/kernel
+mm:与硬件无关的内存管理代码,与硬件相关的内存管理代码在
+      arch/arm/mm
+net:网络协议
+lib:库文件
+documentation:当前内核版本的信息,具有较强的参考价值
+
+arch
+arch/arm
+boot:存放编译好的内核镜像文件
+     vmlinux:在内核源码根目录下的ELF格式内核文件
+     Image:在boot,未压缩的内核镜像文件,经过arm-linux-objcopy处理后
+只包含内核数据的内核镜像
+     zImage: 在boot,压缩的内核镜像文件,压缩比50%
+
+内存:8-16M                  1G
+Nand Flash:16-32M     1G
+
+Image:加载时间
+         \/
+zImage: 加载时间 + 解压缩时间
+自解压:zImage在真正运行之前,要进行自解压,代码在compressed目录中. 
+
+configs目录:系统提供的默认的配置文件
+   s5pv210_defconfig
+
+include:与架构相关的头文件
+kernel:与架构相关的内核管理文件
+lib:库文件
+mm:与架构相关的内存管理
+tools:工具
+
+mach-s5pv210:
+mach-*.c:开发板文件
+
+Linux内核启动:
+顶层目录:Makefile   复杂
+各级子目录:Makefile  简单
+对当前目录的源文件以及当前目录中的文件夹,定义了变异规则
+
+顶层Makefile:
+1.首先确定编译器:
+   191 ARCH            ?= arm
+   192 CROSS_COMPILE   ?= arm-linux-
+2.编译哪些文件:
+    479 init-y          := init/
+    480 drivers-y       := drivers/ sound/ firmware/
+    481 net-y           := net/
+    482 libs-y          := lib/
+    483 core-y          := usr/
+    652 core-y    += kernel/ mm/ fs/ ipc/ security/ crypto/ block/
+
+    arch/arm/Makefile文件中:
+    110 head-y          := arch/arm/kernel/head$(MMUEXT).o 
+                                    arch/arm/kernel/init_task.o
+
+    29 ifeq ($(CONFIG_MMU),)
+    30 MMUEXT          := -nommu
+    31 endif
+  如果CPU有MMU,head-y:=arch/arm/kernel/head.o(head.S)
+		              arch/arm/kernel/init_task.o
+   如果CPU没有MMU,head-y:=arch/arm/kernel/head-nommu.o(head-nommu.S)
+		              arch/arm/kernel/init_task.o
+3.怎样编译,编译
+4.链接过程
+ 699 vmlinux-init := $(head-y) $(init-y)
+ 700 vmlinux-main := $(core-y) $(libs-y) $(drivers-y) $(net-y)
+ 701 vmlinux-all  := $(vmlinux-init) $(vmlinux-main)
+ 702 vmlinux-lds  := arch/$(SRCARCH)/kernel/vmlinux.lds
+
+通过分析Makefile,找到Linux内核入口点. 
+内核的链接脚本:
+702 vmlinux-lds  := arch/arm/kernel/vmlinux.lds
+
+OUTPUT_ARCH(arm)
+ENTRY(stext)
+jiffies = jiffies_64;
+SECTIONS
+{
+ . = 0xC0000000 + 0x00008000;
+
+  //与处理器相关信息
+  __proc_info_begin = .;
+   *(.proc.info.init)
+  __proc_info_end = .;
+
+  //开发板相关的信息
+  __arch_info_begin = .;
+   *(.arch.info.init)
+  __arch_info_end = .;
+
+内核启动过程:
+1.架构/开发板相关的引导,通常使用汇编来编写. 它首先会检查内核是否支持当前
+架构的CPU处理器,然后再检查是否支持当前的开发板,只有通过这两部分的确认,
+才能进一步调C做准备. 
+2.通用的启动过程
+这一阶段使用C语言来编写,它进行内核的初始化的全部工作,最后调用rest_init函数
+启动init进程,创建第一个用户进程,init进程. 
+
+Linux内核启动的过程的代码分析:
+zImage:
+压缩镜像文件
+Linux内核自解压:
+arch/arm/boot/compressed/head.S
+ 303 wont_overwrite: mov     r0, r4
+ 304                 mov     r3, r7
+ 305                 bl      decompress_kernel
+ 306                 b       call_kernel
+
+decompress_kernel定义在misc.c文件中:
+208         putstr("Uncompressing Linux...");
+209         do_decompress(input_data, input_data_end - input    _data,
+210                         output_data, error);
+211         putstr(" done, booting the kernel.\n");
+
+Linux内核真正开始运行:
+head-y          := arch/arm/kernel/head.o
+arch/arm/kernel/head.S
+
+778 disable_l2cache:
+mrc
+mcr协处理器指令完成了ARM  CP15之间的数据传递的功能
+
+779         mrc     p15, 0, r0, c1, c0, 1
+           将协处理器中的c1寄存器的值给ARM处理器r0寄存器
+         
+CRn    Op1    CRm    Op2
+c1         0       c0          1
+
+780         bic     r0, r0, #(1<<1)
+                         000000.......10
+                         111111........01&r0
+                   将r0 bit[1]清零
+781         mcr     p15, 0, r0, c1, c0, 1
+          将ARM处理器的r0寄存器的值写回c1
+782         mov     pc, lr
+
+ mrc     p15, 0, r9, c0, c0  
+
+CRn    Op1    CRm   Op2
+ C0       0         C0
+
+source  insight  内核
+cp    linux-2.6.35.7.tar.bz2
+建立Linux内核源码的工程source insight
+
+ 78 ENTRY(stext)
+ 79         setmode PSR_F_BIT | PSR_I_BIT | SVC_MODE, r9
+    //设置CPU的SVC模式  
+ 80                                                 
+ 81         mrc     p15, 0, r9, c0, c0       
+     //通过协处理器指令将CP15 中的c0寄存器中的CPU的ID号读到r9中
+ 82         bl      __lookup_processor_type    
+    //匹配CPU的ID 号的
+  __proc_info_begin = .;
+   *(.proc.info.init)
+  __proc_info_end = .;
+   //r9到该段中匹配,如果匹配不成功,报错     
+ 83         movs    r10, r5                         
+ 84         beq     __error_p                  
+ 85         bl      __lookup_machine_type  
+   //匹配开发板的ID号
+   theKernel(0, 2456, 0x20000100)
+                    r0  r1      r2
+    //
+       __arch_info_begin = .;
+   *(.arch.info.init)
+      __arch_info_end = .;
+    //将r1的板ID号与该段的命令结构体中的ID号成员进行匹配,
+    //如果匹配成功,返回开发板结构体的地址
+    //如果不成功,报错
+ 86         movs    r8, r5                         
+ 87         beq     __error_a              
+  挂载根文件系统
+  启动init进程
+
+arch/arm/mach-s3c2440/mach-smdk2440.c
+
+开发板文件
+arch/arm/mach-s5pv210/mach-smdkv210.c
+三星参考板的开发板文件
+static const struct machine_desc __mach_desc_SMDKV210
+ __used							 
+ __attribute__((__section__(".arch.info.init"))) = {	
+//将开发板结构体放在.arch.info.init,为了便于内核启动过程匹配板子ID号,
+返回该结构体的地址 
+	.nr		= MACH_TYPE_SMDKV210,	
+//arch/arm/tools/
+//gen-mach-types  mach-types 得到MACH_TYPE_SMDKV210,2456	 
+	.name		= "SMDKV210",
+	.phys_io	= S3C_PA_UART & 0xfff00000,
+	.io_pg_offst	= (((u32)S3C_VA_UART) >> 18) & 0xfffc,
+	.boot_params	= S5P_PA_SDRAM + 0x100,
+	.init_irq	= s5pv210_init_irq,
+	.map_io		= smdkv210_map_io,
+	.init_machine	= smdkv210_machine_init,
+	.timer		= &s3c24xx_timer,
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   

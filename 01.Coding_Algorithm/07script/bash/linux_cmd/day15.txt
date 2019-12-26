@@ -1,0 +1,70 @@
+15.01 sysctl命令
+用于在系统运行时动态改变内核参数,重启后被还原为默认设置
+ # sysctl -a
+ # sysctl net.core
+ # sysctl net.ipv4.ip_forward=1 打开ip转发功能
+ # sysctl -a | gerp ip_forward
+ # vi /etc/sysctl.conf 修改后会永久生效
+
+15.02 lsmod命令
+用于显示内核已经加载的内核模块信息
+ # lsmod
+
+15.03 insmod命令
+用于动态的加载内核模块
+ # insmod /lib/modules/`uname -r`/kernel/drivers/ata/ata_piix.ko
+ # lsmod | grep ata_piix.ko
+
+15.04 modprobe命令
+是内核模块的智能加载命令,可以自动解决内核模块的依赖关系,并且不必输入全路径
+ # modprobe -v ata_piix
+insmod /lib/modules/2.6.18-194.17.1.el5/kernel/drivers/ata/ata_piix.ko
+ #
+
+
+15.05 rmmod命令
+用于从内核中卸载没有使用的内核模块,正在使用的不能被卸载
+ # lsmod
+ # rmmod ata_piix
+ # lsmod | grep ata_piix
+
+15.06 modinfo命令
+用于显示内核模块的详细信息
+ # modinfo ext3
+
+15.07 depmod命令
+用于产生内核模块依赖关系的映射文件
+ # depmod
+ # ls -l /lib/modules/`uname`/modules.*
+
+15.08 uname命令
+用于打印当前系统的内核版本号,硬件架构,主机名称和操作系统类型
+ # uname -a
+
+15.09 dmesg命令
+经常被用来显示系统启动时内核的输出信息
+ # dmesg
+
+15.10 get_module命令
+用于获取指定的内核模块的详细信息
+ # get_module ext3
+
+15.11 kexec命令
+用于直接启动另一个Linux内核
+ # ls /boot/  假设当前系统有两个内核
+vmlinuz-2.6.32-431.17.1.el6.i686
+vmlinuz-2.6.32-504.el6.i686
+ # uname -r
+vmlinuz-2.6.32-504.el6.i686
+ # kexec -l /boot/vmlinuz-2.6.32-431.17.1.el6.i686 --append=root=LABEL=/  预加载
+ # kexec -e 加载
+
+15.12 kernelversion命令
+用于打印当前内核的主板本号,在最新的Linux发行版中可能没有默认安装,推荐使用uname命令
+ # kernelversion
+
+15.13 slabtop命令
+用于显示内存的slab缓冲区信息
+ # slabtop -d 10 每个10s刷新一次
+
+

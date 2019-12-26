@@ -1,0 +1,32 @@
+容器
+迭代器
+泛型算法
+
+
+容器:借助模板语法实现抽象化的数据结构;
+迭代器:提供一种与具体的数据结构无关的,统一的针对容器元素的访问方法;为泛型算法操作容器提供支持;
+泛型算法:借助于模板语法实现抽象化的数据处理;
+
+1 vector/list/deque/map
+以双向链表为例;
+const char* p;
+char const* p;//const修饰char;p指向常变量
+
+char* const p;//const修饰char*;p为常指针
+
+常见的容器类型有顺序容器如vector,list,deque,关联容器如set,map;
+
+1 vector         1.1.vector.txt
+
+2 list           1.2.list.txt
+
+3 map            1.3.map.txt
+
+2 iterator       2.iterator.txt
+
+3 algorithm      3.algorithm.txt
+
+4 string类       4.string.txt
+
+5 stringstream类 5.stringstream.txt
+

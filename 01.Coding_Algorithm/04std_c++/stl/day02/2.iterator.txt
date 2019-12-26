@@ -1,0 +1,187 @@
+2 iterator
+
+可以理解为受限的指针,可以通过*取到元素;
+
+2.1 迭代,就是从一个到下一个;
+int a[] = {1,2,3,4,5};
+int *p = a;
+*p
+p++;
+p--;
+
+2.2 提供类类型的对象,模拟一个数组指针的行为;
+2.3 封装实际指针,提供指针所支持的运算符
+== != ++ -- * ->
+
+Iterators in C++ STL
+https://www.geeksforgeeks.org/iterators-c-stl/
+https://www.cprogramming.com/tutorial/stl/iterators.html
+
+Iterators are used to point at the memory addresses of STL containers. They are primarily used in sequence of
+numbers, characters etc. They reduce the complexity and execution time of program.
+
+The concept of an iterator is fundamental to understanding the C++ Standard Template Library (STL) because 
+iterators provide a means for accessing data stored in container classes such a vector, map, list, etc. 
+
+We can think of an iterator as pointing to an item that is part of a larger container of items. 
+For instance, all containers support a function called begin(), which will return an iterator pointing to 
+the beginning of the container (the first element) and function end(), that returns an iterator corresponding
+to having reached the end of the container. In fact, you can access the element by "dereferencing" the iterator
+with a *, just as you would dereference a pointer.
+
+To request an iterator appropriate for a particular STL templated class, you use the syntax
+std::class_name<template_parameters>::iterator name
+
+Note that because the STL classes are part of the std namespace, you will need to either prefix every container
+class type with "std::", or include "using namespace std;" at the top of your program. 
+
+Some of the most important are the forward, backward and the bidirectional iterators. Both of these iterators
+can be used as either input or output iterators, meaning you can use them for either writing or reading. 
+The forward iterator only allows movement one way -- from the front of the container to the back. 
+To move from one element to the next, the increment operator, ++, can be used. 
+
+2.4 Operations of iterators
+2.4.1 begin()
+This function is used to return the beginning position of the container.
+
+2.4.2 end()
+This function is used to return the end position of the container.
+
+#include<iostream>
+#include<iterator> // for iterators
+#include<vector> // for vectors
+using namespace std;
+int main()
+{
+    vector<int> ar = { 1, 2, 3, 4, 5 };
+     
+    // Declaring iterator to a vector
+    vector<int>::iterator ptr;
+     
+    // Displaying vector elements using begin() and end()
+    cout << "The vector elements are: ";
+    for (ptr = ar.begin(); ptr < ar.end(); ptr++) {
+        cout << *ptr << " ";
+    } 
+    return 0;    
+}
+
+Output:
+The vector elements are: 1 2 3 4 5 
+
+2.4.3 advance()
+This function is used to increment the iterator position till the specified number mentioned in its arguments.
+
+#include<iostream>
+#include<iterator> // for iterators
+#include<vector> // for vectors
+using namespace std;
+int main()
+{
+    vector<int> ar = { 1, 2, 3, 4, 5 };
+     
+    // Declaring iterator to a vector
+    vector<int>::iterator ptr = ar.begin();
+     
+    // Using advance() to increment iterator position
+    advance(ptr, 3); // points to 4
+     
+    // Displaying iterator position
+    cout << "The position of iterator after advancing is: ";
+    cout << *ptr << endl;
+     
+    return 0;
+     
+}
+
+Output:
+The position of iterator after advancing is: 4
+
+
+2.4.4 next()
+This function returns the new iterator that the iterator would point after advancing the positions mentioned in its arguments.
+
+2.4.5 prev()
+This function returns the new iterator that the iterator would point after decrementing the positions mentioned in its arguments.
+
+// next() and prev() 
+#include<iostream>
+#include<iterator> // for iterators
+#include<vector> // for vectors
+using namespace std;
+int main()
+{
+    vector<int> ar = { 1, 2, 3, 4, 5 };
+     
+    // Declaring iterators to a vector
+    vector<int>::iterator ptr = ar.begin();
+    vector<int>::iterator ftr = ar.end();
+    
+    // Using next() to return new iterator
+    auto it = next(ptr, 3); // points to 4
+     
+    // Using prev() to return new iterator
+    auto it1 = prev(ftr, 3); // points to 3
+     
+    // Displaying iterator position
+    cout << "The position of new iterator using next() is: ";
+    cout << *it << " ";
+    cout << endl;
+     
+    // Displaying iterator position
+    cout << "The position of new iterator using prev() is: ";
+    cout << *it1 << " ";
+    cout << endl;
+     
+    return 0; 
+}
+
+Output:
+The position of new iterator using next() is: 4 
+The position of new iterator using prev() is: 3 
+
+2.4.6 inserter()
+This function is used to insert the elements at any position in the container. 
+It accepts 2 arguments, the container and iterator to position where the elements have to be inserted.
+
+#include<iostream>
+#include<iterator> // for iterators
+#include<vector> // for vectors
+using namespace std;
+int main()
+{
+    vector<int> ar = { 1, 2, 3, 4, 5 };
+    vector<int> ar1 = {10, 20, 30}; 
+     
+    // Declaring iterator to a vector
+    vector<int>::iterator ptr = ar.begin();
+    
+    // Using advance to set position
+    advance(ptr, 3);
+     
+    // copying 1 vector elements in other using inserter()
+    // inserts ar1 after 3rd position in ar
+    copy(ar1.begin(), ar1.end(), inserter(ar, ptr));
+     
+    // Displaying new vector elements
+    cout << "The new vector after inserting elements is: ";
+    for (int &x : ar) {
+        cout << x << " ";
+    }
+    return 0;    
+}
+
+Output:
+The new vector after inserting elements is : 1 2 3 10 20 30 4 5 
+
+2.4.7 Summary
+The Good
+	The STL provides iterators as a convenient abstraction for accessing many different types of containers.
+	Iterators for templated classes are generated inside the class scope with the syntax
+		class_name<parameters>::iterator
+	Iterators can be thought of as limited pointers (or, in the case of random access iterators, as nearly equivalent to pointers)
+The Gotchas
+	Iterators do not provide bounds checking; it is possible to overstep the bounds of a container, resulting in segmentation faults
+	Different containers support different iterators, so it is not always possible to change the underlying container type without making changes to your code
+	Iterators can be invalidated if the underlying container (the container being iterated over) is changed significantly
+
