@@ -15,7 +15,7 @@
 #include <vector>
 using namespace std;
 
-#define print(x) cout << __func__ << ">>" << __LINE__ << ">>" << #x << "# " << x << endl
+#define print(s) do {cout << "[" << __func__ << "] " << #s << ": "  << s << endl;} while (0);
 
 typedef struct {
 	int type;
@@ -69,7 +69,7 @@ void string_construct()
 
 	// 7 range constructor
 	// Copies the sequence of characters in the range [first,last), in the same order.
-	string str7(15, 43); // 43 is the ASCII code for '+'
+	string str7(str0.begin(), str0.begin()+5);
 	print(str7);
 	// string_construct>>30>>str0# hello c++ string
 	// string_construct>>34>>str1#
@@ -78,7 +78,7 @@ void string_construct()
 	// string_construct>>50>>str4# hello c++ string from c-string
 	// string_construct>>55>>str5# hello c++ string fro
 	// string_construct>>60>>str6# ssssss
-	// string_construct>>65>>str7# +++++++++++++++
+	// string_construct>>65>>str7# hello
 }
 
 void string_assign()

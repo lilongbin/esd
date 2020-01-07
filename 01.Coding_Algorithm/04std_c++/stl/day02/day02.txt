@@ -30,3 +30,5 @@ char* const p;//const修饰char*;p为常指针
 
 5 stringstream类 5.stringstream.txt
 
+6 string.buff.vector-convert.txt
+
