@@ -119,6 +119,7 @@ int main() {
 	printf("读取结束\n");
 	return 0;
 }
+
 /*
  * 本地通信客户端
  */
@@ -163,10 +164,16 @@ int main() {
 	需要包含sys/socket.h和arpa/inet.h与netinet/in.h
 	in_addr_t inet_addr(const char *cp);
 		/* 点分十进制的IP转换为整数IP;  */
-	uint16_t htons(uint16_t hostshort);
-		/* 端口,本机格式转换为网络格式host to network hostshort; */
-	还有一个整数转为点分十进制的函数
 	char *inet_ntoa(struct in_addr in);
+	    /* 整数转为点分十进制的函数 */
+
+    端口转换函数
+    #include <arpa/inet.h>
+    uint32_t htonl(uint32_t hostlong);
+    uint16_t htons(uint16_t hostshort); /* 端口,本机格式转换为网络格式host to network hostshort; */
+    uint32_t ntohl(uint32_t netlong);
+    uint16_t ntohs(uint16_t netshort);
+
 /*
  * UDP网络编程服务端
  */
@@ -174,90 +181,245 @@ int main() {
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <errno.h>
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+
 int main() {
-	//1获取socket描述符
+	/* 1获取socket描述符 */
 	int sockfd = socket(PF_INET, SOCK_DGRAM, 0);
 	if (sockfd == -1) {
 		perror("socket"), exit(-1);
 	}
-	//2准备通信地址
-	struct sockaddr_in addr;
-	addr.sin_family = PF_INET;
-	addr.sin_port = htons(2222);	//host to network hostshort
-	//addr.sin_addr = "172,17.5.3"; //类型不兼容,不可以
-	//addr.sin_addr.s_addr = inet_addr("172.17.5.3");	//取结构中的成员转换函数
-	addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	/* 2准备通信地址 */
+	struct sockaddr_in servaddr;
+	servaddr.sin_family = PF_INET;
+	servaddr.sin_port = htons(50015);	//host to network hostshort
+	servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	//servaddr.sin_addr = "172,17.5.3"; //类型不兼容,不可以
+	//servaddr.sin_addr.s_addr = inet_addr("172.17.5.3");	//取结构中的成员转换函数
+
+	/* 3绑定 */
 	//bind IP地址为本服务器IP
-	//3绑定
-	int res = bind(sockfd, (struct sockaddr *)&addr, sizeof(addr));
+	int res = bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
 	if (res == -1) { perror("bind"), exit(-1);}
-	//4通信
-	printf("通信已建立\n");
+	printf("bind ok\n");
+
 	char buf[100] = { };
-	int len = read(sockfd, buf, sizeof(buf));
+    char arr[100] = { };
+    int len = 0;
+    int iloop = 0;
+
+#if 0
+	/* 4通信 read/write(client connected) recvfrom/sendto */
+	len = read(sockfd, buf, sizeof(buf));
 	if (len == -1) {
 		perror("read"), exit(-1);
 	}
-	printf("希望读取%lu字节,实际读取%d字节,内容:%s\n", sizeof(buf), len, buf);
-#if 0
+	printf("want to read %lu bytes, actrually read %d bytes:%s\n", sizeof(buf), len, buf);
+
+    for (iloop=0; iloop<10; iloop++) {
+        snprintf(arr, sizeof(arr), "fromserver-%d", iloop);
+        len = write(sockfd, arr, strlen(arr)); //will return error for udp server
+        if (len == -1) {
+            printf("errno: %d\n", errno);
+            perror("write");
+        }
+        printf("%d write: %s\n", len, arr);
+        sleep(1);
+    }
+
+#else
+
+	/* 4通信 read/write(client connected) recvfrom/sendto */
     struct sockaddr cliaddr;
-    socklen_t addrlen;
-    recvfrom(sockfd, buf, sizeof(buf), 0, &cliaddr, &addrlen);
-    printf("recvfrom: %s\n", buf);
-    sendto(sockfd, buf, sizeof(buf)/*strlen(buf)+1*/, 0, &cliaddr, addrlen);
+    socklen_t clilen = sizeof(cliaddr); /* cannot set to 0 */
+    memset(&cliaddr, 0, sizeof(cliaddr)); /* should memset */
+    len = recvfrom(sockfd, buf, sizeof(buf), 0, &cliaddr, &clilen);
+    char *from = inet_ntoa(((struct sockaddr_in *)&cliaddr)->sin_addr);
+    int fromport = ntohs(((struct sockaddr_in *)&cliaddr)->sin_port);
+    printf("%d recvfrom %s:%d %s\n", len, from, fromport, buf);
+
+    for (iloop=0; iloop<10; iloop++) {
+        snprintf(arr, sizeof(arr), "fromserver-%d", iloop);
+        #if 1
+        struct sockaddr_in repaddr;
+        socklen_t replen = sizeof(struct sockaddr); /* cannot set to 0 */
+        memset(&repaddr, 0, sizeof(struct sockaddr)); /* should memset */
+
+        repaddr.sin_family = PF_INET;
+        repaddr.sin_port = htons(50014);//client port
+        repaddr.sin_addr.s_addr = inet_addr("127.0.0.1"); //client ip
+        len = sendto(sockfd, arr, strlen(arr), 0, (const struct sockaddr *)&repaddr, replen);
+        #else
+        len = sendto(sockfd, arr, strlen(arr), 0, (const struct sockaddr *)&cliaddr, clilen);
+        #endif
+        if (len == -1) {
+            printf("errno: %d\n", errno);
+            perror("sendto");
+        }
+        printf("%d sendto: %s\n", len, arr);
+        sleep(1);
+    }
 #endif
+
 	//5关闭socket描述符
 	close(sockfd);
 	return 0;
 }
+
+
 /*
  * UDP网络编程客户端
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <string.h>
+#include <errno.h>
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+
 int main() {
-	//1获取socket描述符
+	/* 1获取socket描述符 */
 	int sockfd = socket(PF_INET, SOCK_DGRAM, 0);
 	if (sockfd == -1) {
 		perror("socket"), exit(-1);
 	}
-	//2准备通信地址
-	struct sockaddr_in addr;
-	addr.sin_family = PF_INET;
-	addr.sin_port = htons(2222);	//host to network hostshort
-	//addr.sin_addr = "";//不可以
-	//addr.sin_addr.s_addr = inet_addr("172.17.5.3");	//取结构中的成员转换函数
-	addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+	/* 2准备通信地址 */
+	struct sockaddr_in servaddr;
+	servaddr.sin_family = PF_INET;
+	servaddr.sin_port = htons(50015);	//host to network hostshort
+	servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	//servaddr.sin_addr = "";//不可以
+	//servaddr.sin_addr.s_addr = inet_addr("172.17.5.3");	//取结构中的成员转换函数
+
+	/* bind绑定本地地址,client非必须 */
     int res = 0;
-	//bind绑定本地地址,client非必须
-#if 0
-	addr.sin_port = htons(2223);	//client port
-	res = bind(sockfd, (struct sockaddr *)&addr, sizeof(addr));
+	struct sockaddr_in localaddr;
+	localaddr.sin_family = PF_INET;
+	localaddr.sin_port = htons(50014);	//client port
+	localaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	res = bind(sockfd, (struct sockaddr *)&localaddr, sizeof(struct sockaddr));
 	if (res == -1) { perror("bind"), exit(-1);}
-	addr.sin_port = htons(2222);	//server port
+
+	char buf[100] = "fromclient";
+    int len = 0;
+    int iloop = 0;
+
+#if 0
+	/* 3连接 connect to server */
+    /* connect can improve efficiency for udp client data recv/send */
+	//connect to server ip
+	res = connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
+	if (res == -1) { perror("connect"), exit(-1);}
+
+	/* 4通信 read/write(connected) recvfrom/sendto */
+	len = write(sockfd, buf, strlen(buf));
+	printf("%d write:%s\n", len, buf);
+
+    for (iloop=0; iloop<10; iloop++) {
+        len = read(sockfd, buf, sizeof(buf));
+        if (len == -1) {
+            printf("%d errno:%d\n", len, errno);
+            perror("read");
+        }
+        buf[len] = '\0';
+        printf("%d read: %s\n", len, buf);
+    }
+
+#else
+
+	/* 4通信 read/write(connected) recvfrom/sendto */
+    len = sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr *)&servaddr, sizeof(servaddr));
+    if (len == -1) {
+        printf("%d errno:%d\n", len, errno);
+        perror("sendto");
+    }
+    printf("%d sendto: %s\n", len, buf);
+
+    int readRet = 0;
+    int readLen = 0;
+    int select_ret = 0;
+    struct timeval tval;
+    fd_set rset;
+    struct sockaddr repaddr;
+    /* for (iloop=0; iloop<10; iloop++) { */
+    do {
+        FD_ZERO(&rset);
+        FD_SET(sockfd, &rset);
+
+        tval.tv_sec = 10; /* seconds */
+        tval.tv_usec = 0;
+        readRet = 0;
+
+        /* monitor sockfd and wait until socket is readable or timeout */
+        select_ret = select(sockfd+1, &rset, NULL, NULL, &tval);
+        if (0 == select_ret)
+        {
+            printf("select rset timeout\n");
+            break; /* timeout, to close socket */
+        }
+        if (true != ((0 < select_ret) && FD_ISSET(sockfd, &rset)))
+        {
+            /* received event but its not sockfd readable, ignore it */
+            continue;
+        }
+
+        memset(&repaddr, 0, sizeof(struct sockaddr));
+        socklen_t replen = sizeof(struct sockaddr);
+        /* readRet = recvfrom(sockfd, buf, sizeof(buf), 0, NULL, NULL);//dont care from addr */
+        readRet = recvfrom(sockfd, buf, sizeof(buf), 0, &repaddr, &replen);
+        if (readRet > 0) {
+            buf[readRet] = '\0';
+            readLen += readRet;
+            /* char *inet_ntoa(struct in_addr in); */
+            char *from = inet_ntoa(((struct sockaddr_in *)&repaddr)->sin_addr);
+            int fromport = ntohs(((struct sockaddr_in *)&repaddr)->sin_port);
+            printf("%d recvfrom %s:%d %s\n", readRet, from, fromport, buf);
+        }
+        else {
+            if (readRet < 0 && (errno == EAGAIN || errno == EINTR))
+            {
+                /* can try again */
+                continue;
+            }
+            if (readRet == 0)
+            {
+                readLen = 0;
+                printf("the peer connection is closed.\n");
+                break; /* peer shutdown, to close socket */
+            }
+            else
+            {
+                /* read returnt error and cannot retry again */
+                readLen = -1;
+                printf("recv data error, errno=%d:%s\n", errno, strerror(errno));
+                break; /* read error, to close socket */
+            }
+
+        }
+    } while (1);
+    /* } while (0); */
+    if (readLen <= 0) {
+        /* close socket */
+        /* sockfd disconnected */
+        printf("sockfd disconnected\n");
+    }
+
 #endif
-	//connect IP地址为连接目标
-	//3连接 connect to server
-	res = connect(sockfd, (struct sockaddr *)&addr, sizeof(addr));
-	if(res == -1) { perror("connect"), exit(-1);}
-	//4通信
-	printf("请输入一个字符串\n");
-	char buf[100] = { };
-	scanf("%s", buf);
-	write(sockfd, buf, sizeof(buf));
-	printf("已经写入\n");
+
 	//5关闭socket描述符
 	close(sockfd);
 	return 0;
 }
+
 
 	以上写的是典型的1对1的模式,商业开发更多使用的是基于TCP和基于UDP的开发模式;
 
