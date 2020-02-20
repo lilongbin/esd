@@ -201,11 +201,12 @@ int main() {
     servaddr.sin_port = htons(50015);	//host to network hostshort
     servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
     //servaddr.sin_addr = "172,17.5.3"; //类型不兼容,不可以
-    //servaddr.sin_addr.s_addr = inet_addr("172.17.5.3");	//取结构中的成员转换函数
+    //servaddr.sin_addr.s_addr = inet_addr("172.17.5.3");/* 取结构中的成员转换函数 */
 
     /* 3绑定 */
     //bind IP地址为本服务器IP
-    int res = bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
+    int res = 0;
+    res = bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
     if (res == -1) { perror("bind"), exit(-1);}
     printf("bind ok\n");
 
@@ -226,7 +227,7 @@ int main() {
         snprintf(arr, sizeof(arr), "fromserver#%d", iloop);
         len = write(sockfd, arr, strlen(arr)); //will return error for udp server
         if (len == -1) {
-            printf("errno: %d\n", errno);
+            printf("errno %d:%s\n", errno, strerror(errno));
             perror("write");
         }
         printf("%d write: %s\n", len, arr);
@@ -301,7 +302,7 @@ int main() {
     servaddr.sin_port = htons(50015);	//host to network hostshort
     servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
     //servaddr.sin_addr = "172,17.5.3"; //类型不兼容,不可以
-    //servaddr.sin_addr.s_addr = inet_addr("172.17.5.3");	//取结构中的成员转换函数
+    //servaddr.sin_addr.s_addr = inet_addr("172.17.5.3");/* 取结构中的成员转换函数 */
 
     /* bind绑定本地地址,client非必须 */
     int res = 0;
