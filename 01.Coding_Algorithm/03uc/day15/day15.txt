@@ -188,6 +188,11 @@ int main() {
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#define LOCALIP "127.0.0.1"
+#define LOCALPORT 50015
+#define PEERIP "127.0.0.1"
+#define PEERPORT 50014
+
 int main() {
     /* 1获取socket描述符 */
     int sockfd = socket(PF_INET, SOCK_DGRAM, 0);
@@ -198,8 +203,8 @@ int main() {
     /* 2准备通信地址 */
     struct sockaddr_in servaddr;
     servaddr.sin_family = PF_INET;
-    servaddr.sin_port = htons(50015);	//host to network hostshort
-    servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    servaddr.sin_port = htons(LOCALPORT);	//host to network hostshort
+    servaddr.sin_addr.s_addr = inet_addr(LOCALIP);
     //servaddr.sin_addr = "172,17.5.3"; //类型不兼容,不可以
     //servaddr.sin_addr.s_addr = inet_addr("172.17.5.3");/* 取结构中的成员转换函数 */
 
@@ -253,8 +258,8 @@ int main() {
         memset(&repaddr, 0, sizeof(struct sockaddr)); /* should memset */
 
         repaddr.sin_family = PF_INET;
-        repaddr.sin_port = htons(50014);//client port
-        repaddr.sin_addr.s_addr = inet_addr("127.0.0.1"); //client ip
+        repaddr.sin_port = htons(PEERPORT);//client port
+        repaddr.sin_addr.s_addr = inet_addr(PEERIP); //client ip
         len = sendto(sockfd, arr, strlen(arr), 0, (const struct sockaddr *)&repaddr, replen);
     # else
         len = sendto(sockfd, arr, strlen(arr), 0, (const struct sockaddr *)&cliaddr, clilen);
@@ -289,6 +294,11 @@ int main() {
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#define LOCALIP "127.0.0.1"
+#define LOCALPORT 50014
+#define PEERIP "127.0.0.1"
+#define PEERPORT 50015
+
 int main() {
     /* 1获取socket描述符 */
     int sockfd = socket(PF_INET, SOCK_DGRAM, 0);
@@ -299,8 +309,8 @@ int main() {
     /* 2准备通信地址 */
     struct sockaddr_in servaddr;
     servaddr.sin_family = PF_INET;
-    servaddr.sin_port = htons(50015);	//host to network hostshort
-    servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    servaddr.sin_port = htons(PEERPORT);	//host to network hostshort
+    servaddr.sin_addr.s_addr = inet_addr(PEERIP);
     //servaddr.sin_addr = "172,17.5.3"; //类型不兼容,不可以
     //servaddr.sin_addr.s_addr = inet_addr("172.17.5.3");/* 取结构中的成员转换函数 */
 
@@ -309,8 +319,8 @@ int main() {
     int reuseAddrOn = 1;
     struct sockaddr_in localaddr;
     localaddr.sin_family = PF_INET;
-    localaddr.sin_port = htons(50014);	//client port
-    localaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    localaddr.sin_port = htons(LOCALPORT);	//client port
+    localaddr.sin_addr.s_addr = inet_addr(LOCALIP);
     res = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &reuseAddrOn, sizeof(reuseAddrOn));
     if (res == -1) { printf("set SO_REUSEADDR error %d:%s", errno, strerror(errno)), exit(-1); }
 
