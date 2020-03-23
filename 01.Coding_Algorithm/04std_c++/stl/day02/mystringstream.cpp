@@ -12,6 +12,25 @@
 #include <sstream>
 
 using namespace std;
+#define print(x) std::cout << __func__ << ">>" << __LINE__ << ">>" << #x << "# " << x << std::endl
+
+    template <class T>
+T stringToNumber(const std::string &str)
+{
+    /* can auto remove leading 0 */
+    std::istringstream iss(str);
+    T number;
+    iss >> number;
+    return number;
+}
+
+    template <class T>
+std::string toString(T value)
+{
+    std::ostringstream oss;
+    oss << value;
+    return oss.str();
+}
 
 int stringstream_test()
 {
@@ -41,6 +60,13 @@ int stringstream_test()
 
 int main() {
 	stringstream_test();
+    std::string str = "012345";
+    int value = stringToNumber<int>(str);
+    print(value); //12345
+    str = toString<int>(45678);
+    print(str); //45678
+    str = toString<int>(01234);
+    print(str); //668
 	return 0;
 }
 
