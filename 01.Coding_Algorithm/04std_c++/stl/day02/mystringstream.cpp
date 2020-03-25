@@ -19,7 +19,7 @@ T stringToNumber(const std::string &str)
 {
     /* can auto remove leading 0 */
     std::istringstream iss(str);
-    T number;
+    T number {};
     iss >> number;
     return number;
 }
