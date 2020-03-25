@@ -35,15 +35,11 @@ currently set in the stream object unless the member function clear is explicitl
 使用时需要包含sstream头文件#include <sstream>
 
 示例
-
+其中T number {};是用来初始化number变量的，类似于memset(&number, 0, sizeof(number));
 /*****************************************
  * Copyright (C) 2018 * Ltd. All rights reserved.
- * 
  * File name   : stringstream.cpp
- * Author      : longbin
  * Created date: 2018-08-10 11:16:23
- * Description : 
- *
  *******************************************/
 
 #include <iostream>

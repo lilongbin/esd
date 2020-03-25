@@ -1,11 +1,7 @@
 /*****************************************
  * Copyright (C) 2018 * Ltd. All rights reserved.
- * 
  * File name   : stringstream.cpp
- * Author      : longbin
  * Created date: 2018-08-10 11:16:23
- * Description : 
- *
  *******************************************/
 
 #include <iostream>
