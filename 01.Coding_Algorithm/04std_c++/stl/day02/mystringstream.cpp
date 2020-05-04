@@ -9,7 +9,7 @@
 #include <sstream>
 
 using namespace std;
-#define print(x) std::cout << __func__ << ">>" << __LINE__ << ">>" << #x << "# " << x << std::endl
+#define print(x) std::cout << std::setiosflags(std::ios::fixed) << __func__ << ">>" << __LINE__ << ">>" << #x << "# " << x << std::endl
 
     template <class T>
 T stringToNumber(const std::string str)
@@ -81,6 +81,9 @@ int main() {
     str = "043414.00";
     long li = stringToNumber<long>(str);
     print(li);
+    str = "043414.00345";
+    double df = stringToNumber<double>(str);
+    print(df);
 
     toHexString();
 	return 0;
