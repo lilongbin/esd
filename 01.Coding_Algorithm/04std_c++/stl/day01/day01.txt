@@ -124,16 +124,20 @@ all:
 clean:
 	-rm -v $(TARGET)
 
-//template.hpp
+
 #ifndef __XX_COMM_H__
 #define __XX_COMM_H__
 
 #include <iostream>
 #include <sstream>
+#include <sstream>
 #include <thread>
 #include <mutex>
 #include <queue>
 #include <atomic>
+#include <functional>
+#include <chrono>
+#include <memory>
 #include <condition_variable>
 #include <algorithm>
 
@@ -163,45 +167,56 @@ std::string toString(T value)
     return oss.str();
 }
 
-
 template <class T>
-class Singleton {
+class Singleton
+{
 private:
-   static T* m_pInstance;
-   Singleton(const Singleton& src){(void)src;}
-   Singleton &operator=(const Singleton& src){(void)src;};
+    static std::mutex m_MuxLock_Singleton;
+    using MuxGuard = std::lock_guard<std::mutex>;
+    static T* m_pInstance;
+    Singleton(const Singleton& src){(void)src;}
+    Singleton &operator=(const Singleton& src){(void)src;};
 
-   class Garbo
-   {
-   public:
-      ~Garbo()
-      {
-         if (Singleton::m_pInstance)
-         {
-            delete Singleton::m_pInstance;
-            Singleton::m_pInstance = NULL;
-         }
-      }
-   };
-   static Garbo garbo;
+    class Garbo
+    {
+    public:
+        ~Garbo()
+        {
+            // std::cout<<"Singleton<"<<typeid(T).name()<<">::Garbo::~Garbo()" << std::endl;
+            if (Singleton::m_pInstance)
+            {
+                delete Singleton::m_pInstance;
+                Singleton::m_pInstance = NULL;
+            }
+        }
+        void touch() { return; }
+    };
+    static Garbo m_garbo;
 
 protected:
-   Singleton(){}
-   ~Singleton(){}
+    Singleton() {
+        m_garbo.touch(); //prevent optimised and no garbo instance to trigger deconstruct
+    }
+    ~Singleton() {}
 
 public:
-   static T* getInstance()
-   {
-      if (m_pInstance == NULL)
-      {
-         m_pInstance = new T();
-      }
-      return m_pInstance;
-   }
+    static T* getInstance()
+    {
+        if (m_pInstance == NULL)
+        {
+            MuxGuard mlk(m_MuxLock_Singleton);
+            if (m_pInstance == NULL)
+            {
+                m_pInstance = new T();
+            }
+        }
+        return m_pInstance;
+    }
 };
 
-template <class T>
-T* Singleton<T>::m_pInstance = NULL;
+template <class T> std::mutex Singleton<T>::m_MuxLock_Singleton;
+template <class T> typename Singleton<T>::Garbo Singleton<T>::m_garbo;
+template <class T> T* Singleton<T>::m_pInstance = NULL;
 
 
 template<typename T>
@@ -253,13 +268,15 @@ public:
     }
 
     void push(T&& item) {
-        MuxGuard g(mLock);
-        if (mQueue.size() >= mMaxQueueSize)
         {
-            /* pop queue head when queue is full */
-            mQueue.pop();
+            MuxGuard g(mLock);
+            if (mQueue.size() >= mMaxQueueSize)
+            {
+                /* pop queue head when queue is full */
+                mQueue.pop();
+            }
+            mQueue.push(std::move(item));
         }
-        mQueue.push(std::move(item));
         mCond.notify_one();
     }
 
@@ -267,8 +284,10 @@ public:
      * notifies all waiting thread.
      */
     void deactivate() {
-        MuxGuard g(mLock);
-        mIsActive = false;
+        {
+            MuxGuard g(mLock);
+            mIsActive = false;
+        }
         mCond.notify_all();  // To unblock all waiting consumers.
     }
 
@@ -437,6 +456,7 @@ void MessageQueueBase::deactivate()
 }
 
 //template.test.cpp
+
 /*****************************************
 * Copyright (C) 2020 * Ltd. All rights reserved.
 * File name   : template.test.cpp
@@ -478,6 +498,7 @@ MessageParser::MessageParser()
 
 MessageParser::~MessageParser()
 {
+    std::cout << __func__ << std::endl;
     deinit();
 }
 
@@ -506,11 +527,11 @@ void MessageParser::deinit()
 void MessageParser::putMsgTest(MsgQueueT &val)
 {
     MsgQueueT value;
-#if USE_SELF_DEFINED_QUEUE_CLASS
     value = val;
+    cout << __func__ << " write: " << value << endl;
+#if USE_SELF_DEFINED_QUEUE_CLASS
     mqueue->write(value);
 #else
-    value = val;
     mqueue->push(std::move(value));
 #endif
 }
@@ -519,7 +540,7 @@ void MessageParser::onRecvMessage(const std::vector<MsgQueueT> &vec)
 {
     std::cout << "onRecvMessage begin" << std::endl;
     for (auto value:vec) {
-        std::cout << "value: " << value << std::endl;
+        std::cout << __func__ << " value: " << value << std::endl;
     }
     std::cout << "onRecvMessage end" << std::endl;
     std::cout << std::endl << std::endl;
@@ -529,24 +550,26 @@ int test() {
     std::string str = "hello template";
     std::string test;
     MessageParser *parser = MessageParser::getInstance();
-    MessageQueueBase *mqueue =  MessageQueueBase::getInstance();
-    // mqueue->write(str);
-    // mqueue->read(str);
+    /*
+     * MessageQueueBase *mqueue =  MessageQueueBase::getInstance();
+     * mqueue->write(str);
+     * mqueue->read(str);
+     * std::cout << "read: " << str << std::endl;
+     * mqueue->deactivate();
+     */
     for (auto i = 0; i < 5; i++) {
         str = "hello template " + toString(i);
-        cout << "write: " << str << endl;
         parser->putMsgTest(str);
-        mqueue->write(str);
+        // mqueue->write(str);
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
     }
-    //delete parser;
-    //parser = NULL;
 	return 0;
 }
 
 int main() {
     test();
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     return 0;
 }
+
 

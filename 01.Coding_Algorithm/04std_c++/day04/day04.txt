@@ -106,134 +106,108 @@ int main(){
 	懒汉式:需要时才创建;适合不频繁使用的大对象
 
 
-/*****************************************
- * Copyright (C) 2019 * Ltd. All rights reserved.
- * File name   : singleton.hpp
- * Created date: 2019-07-25 18:45:05
- *******************************************/
-#ifndef _SINGLETON_H
-#define _SINGLETON_H
+C++单实例类模板实现及使用
+
+单实例类设计注意事项:
+1. 构造函数私有化,拷贝构造函数及重载=操作符也私有化,暴露新的访问接口如 getInstance();
+2. 推荐使用懒汉式即 getInstance()接口且使用双重锁定,既解决多线程竟态问题又保证性能,同时还要防止某一用户delete获取到的实例导致其他用户无法正常使用;
+3. 良好的设计会考虑资源回收,可以构造内嵌类Garbo及其静态对象,系统自动析构全局变量及静态成员变量时可以实现自动删除单实例对象,使用时不需再关注对象的释放;
+4. 静态成员变量要类外初始化,其中 Singleton<T>::Garbo 作为类型名要在前面加上 typename 显式通知编译系统; m_pInstance 要初始化为NULL;
+5. 将单例类模板声明为这个类的友元; friend class Singleton<XXT>; singleton模板类为XXT类的友元,模板类才能new XXT()实例对象;
+6. 通过单例类模板中 XXT* s = Singleton<XXT>::getInstance(); 或公开继承 Singleton<XXT> 后 XXT* s = XXT::getInstance();创建/获取唯一实例对象;
+
+参考代码
+
+#ifndef __XX_COMM_H__
+#define __XX_COMM_H__
+
+#include <iostream>
+#include <sstream>
+#include <thread>
+#include <mutex>
+#include <queue>
+#include <atomic>
+#include <functional>
+#include <chrono>
+#include <memory>
+#include <condition_variable>
+#include <algorithm>
 
 template <class T>
 class Singleton
 {
 private:
-	static T* m_pInstance;
-	Singleton(const Singleton& src){(void)src;}
-	Singleton &operator=(const Singleton& src){(void)src;}
+    static std::mutex m_MuxLock_Singleton;
+    using MuxGuard = std::lock_guard<std::mutex>;
+    static T* m_pInstance;
+    Singleton(const Singleton& src){(void)src;}
+    Singleton &operator=(const Singleton& src){(void)src;};
 
-	class Garbo
-	{
-		public:
-			~Garbo()
-			{
-				if (Singleton::m_pInstance)
-				{
-					delete Singleton::m_pInstance;
-					Singleton::m_pInstance = NULL;
-				}
-			}
-	};
-	static Garbo garbo;
+    class Garbo
+    {
+    public:
+        ~Garbo()
+        {
+            // std::cout<<"Singleton<"<<typeid(T).name()<<">::Garbo::~Garbo()" << std::endl;
+            if (Singleton::m_pInstance)
+            {
+                delete Singleton::m_pInstance;
+                Singleton::m_pInstance = NULL;
+            }
+        }
+        void touch() { return; }
+    };
+    static Garbo m_garbo;
 
 protected:
-	Singleton(){}
-	~Singleton(){}
+    Singleton() {
+        m_garbo.touch(); //prevent optimised and no garbo instance to trigger deconstruct
+    }
+    ~Singleton() {}
 
 public:
-	static T* getInstance()
-	{
-		if (NULL == m_pInstance)
-		{
-			m_pInstance = new T();
-		}
-		return m_pInstance;
-	}
+    static T* getInstance()
+    {
+        if (m_pInstance == NULL)
+        {
+            MuxGuard mlk(m_MuxLock_Singleton);
+            if (m_pInstance == NULL)
+            {
+                m_pInstance = new T();
+            }
+        }
+        return m_pInstance;
+    }
 };
 
-template <class T>
-T* Singleton<T>::m_pInstance = NULL;
-#endif //SINGLETON_H
+template <class T> typename Singleton<T>::Garbo Singleton<T>::m_garbo;
+template <class T> std::mutex Singleton<T>::m_MuxLock_Singleton;
+template <class T> T* Singleton<T>::m_pInstance = NULL;
 
-/*****************************************
-* Copyright (C) 2019 * Ltd. All rights reserved.
-* File name   : sequenceId.hpp
-* Created date: 2019-07-25 18:47:48
-*******************************************/
+#endif
 
-#ifndef _SEQUENCEID_H
-#define _SEQUENCEID_H
-#include "singleton.hpp"
-#include <iostream>
-#include <thread>
-#include <mutex>
 
-/*
- * usage:
- * Header_SequenceID * m_sequence = Header_SequenceID::getInstance();
- * id = m_sequence->getSequenceId();
- * */
-class Header_SequenceID:public Singleton<Header_SequenceID>
+/* class MsgSequenceID */
+class MsgSequenceID:public Singleton<MsgSequenceID>
 {
-	friend class Singleton<Header_SequenceID>;
-	public:
-	~Header_SequenceID();
-	unsigned int getSequenceId();
-	bool initSequenceId();
+   friend class Singleton<MsgSequenceID>;
+public:
+    ~MsgSequenceID();
+    uint32_t getSequenceID() {
+        uint32_t tmp;
+        {
+            MuxGuard g(mLock);
+            tmp = m_sequenceID++;
+        }
+        return tmp;
+    }
+    bool initSequenceID() { m_sequenceID = 0; return true;}
 
-	private:
-	Header_SequenceID();
-	std::mutex m_mutex;
-	unsigned int m_sequenceId;
+private:
+    MsgSequenceID();
+
+    using MuxGuard = std::lock_guard<std::mutex>;
+    mutable std::mutex mLock;
+    uint32_t m_sequenceID;
 };
-
-#endif //SEQUENCEID_H
-
-/*****************************************
-* Copyright (C) 2019 * Ltd. All rights reserved.
-* File name   : sequenceId.cpp
-* Created date: 2019-07-25 18:54:12
-*******************************************/
-#include <iostream>
-#include <string>
-#include <map>
-#include <vector>
-#include "sequenceId.hpp"
-
-Header_SequenceID::Header_SequenceID()
-{
-	m_sequenceId = 0;
-}
-
-Header_SequenceID::~Header_SequenceID()
-{
-	m_sequenceId = 0;
-	/* destory mutex */
-}
-
-unsigned int Header_SequenceID::getSequenceId()
-{
-	unsigned int id = 0;
-
-	if (0 == m_sequenceId)
-	{
-		(void)initSequenceId();
-	}
-	/* mutex lock */
-    m_mutex.lock();
-	id = m_sequenceId++;
-	/* mutex unlock */
-    m_mutex.unlock();
-
-	return id;
-}
-
-bool Header_SequenceID::initSequenceId()
-{
-	bool ret = false;
-	/* mutex attr */
-	/* mutex init */
-	/* mutex create */
-	return ret;
-}
 

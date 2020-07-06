@@ -464,6 +464,7 @@ void test_template7()
 
 另一个经典示例
 其中T number {};是用来初始化number变量的，类似于memset(&number, 0, sizeof(number));
+
 /*****************************************
  * Copyright (C) 2018 * Ltd. All rights reserved.
  * File name   : stringstream.cpp
@@ -471,13 +472,14 @@ void test_template7()
  *******************************************/
 
 #include <iostream>
+#include <iomanip> //std::hex, std::setw, std::setfill
 #include <sstream>
 
 using namespace std;
-#define print(x) std::cout << __func__ << ">>" << __LINE__ << ">>" << #x << "# " << x << std::endl
+#define print(x) std::cout << std::setiosflags(std::ios::fixed) << __func__ << ">>" << __LINE__ << ">>" << #x << "# " << x << std::endl
 
     template <class T>
-T stringToNumber(const std::string &str)
+T stringToNumber(const std::string str)
 {
     /* can auto remove leading 0 */
     std::istringstream iss(str);
@@ -492,6 +494,20 @@ std::string toString(T value)
     std::ostringstream oss;
     oss << value;
     return oss.str();
+}
+
+void toHexString()
+{
+    std::ostringstream oss {};
+    char buff[20] = "0123456789abcdef";
+    std::string payload;
+    int i = 0;
+    for (i = 0; i < 16; i++) {
+        oss << std::hex << std::setw(2) << std::setfill('0') << buff[i];
+        oss << " ";
+    }
+    payload = oss.str();
+    print(payload);
 }
 
 int stringstream_test()
@@ -521,7 +537,7 @@ int stringstream_test()
 }
 
 int main() {
-	stringstream_test();
+    stringstream_test();
     std::string str = "012345";
     int value = stringToNumber<int>(str);
     print(value); //12345
@@ -529,7 +545,14 @@ int main() {
     print(str); //45678
     str = toString<int>(01234);
     print(str); //668
+    str = "043414.00";
+    long li = stringToNumber<long>(str);
+    print(li);
+    str = "043414.00345";
+    double df = stringToNumber<double>(str);
+    print(df);
+
+    toHexString();
 	return 0;
 }
-
 

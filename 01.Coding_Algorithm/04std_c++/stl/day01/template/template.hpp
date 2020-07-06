@@ -3,10 +3,14 @@
 
 #include <iostream>
 #include <sstream>
+#include <sstream>
 #include <thread>
 #include <mutex>
 #include <queue>
 #include <atomic>
+#include <functional>
+#include <chrono>
+#include <memory>
 #include <condition_variable>
 #include <algorithm>
 
@@ -36,45 +40,56 @@ std::string toString(T value)
     return oss.str();
 }
 
-
 template <class T>
-class Singleton {
+class Singleton
+{
 private:
-   static T* m_pInstance;
-   Singleton(const Singleton& src){(void)src;}
-   Singleton &operator=(const Singleton& src){(void)src;};
+    static std::mutex m_MuxLock_Singleton;
+    using MuxGuard = std::lock_guard<std::mutex>;
+    static T* m_pInstance;
+    Singleton(const Singleton& src){(void)src;}
+    Singleton &operator=(const Singleton& src){(void)src;};
 
-   class Garbo
-   {
-   public:
-      ~Garbo()
-      {
-         if (Singleton::m_pInstance)
-         {
-            delete Singleton::m_pInstance;
-            Singleton::m_pInstance = NULL;
-         }
-      }
-   };
-   static Garbo garbo;
+    class Garbo
+    {
+    public:
+        ~Garbo()
+        {
+            // std::cout<<"Singleton<"<<typeid(T).name()<<">::Garbo::~Garbo()" << std::endl;
+            if (Singleton::m_pInstance)
+            {
+                delete Singleton::m_pInstance;
+                Singleton::m_pInstance = NULL;
+            }
+        }
+        void touch() { return; }
+    };
+    static Garbo m_garbo;
 
 protected:
-   Singleton(){}
-   ~Singleton(){}
+    Singleton() {
+        m_garbo.touch(); //prevent optimised and no garbo instance to trigger deconstruct
+    }
+    ~Singleton() {}
 
 public:
-   static T* getInstance()
-   {
-      if (m_pInstance == NULL)
-      {
-         m_pInstance = new T();
-      }
-      return m_pInstance;
-   }
+    static T* getInstance()
+    {
+        if (m_pInstance == NULL)
+        {
+            MuxGuard mlk(m_MuxLock_Singleton);
+            if (m_pInstance == NULL)
+            {
+                m_pInstance = new T();
+            }
+        }
+        return m_pInstance;
+    }
 };
 
-template <class T>
-T* Singleton<T>::m_pInstance = NULL;
+template <class T> std::mutex Singleton<T>::m_MuxLock_Singleton;
+template <class T> typename Singleton<T>::Garbo Singleton<T>::m_garbo;
+template <class T> T* Singleton<T>::m_pInstance = NULL;
 
 
 template<typename T>
@@ -126,13 +141,15 @@ public:
     }
 
     void push(T&& item) {
-        MuxGuard g(mLock);
-        if (mQueue.size() >= mMaxQueueSize)
         {
-            /* pop queue head when queue is full */
-            mQueue.pop();
+            MuxGuard g(mLock);
+            if (mQueue.size() >= mMaxQueueSize)
+            {
+                /* pop queue head when queue is full */
+                mQueue.pop();
+            }
+            mQueue.push(std::move(item));
         }
-        mQueue.push(std::move(item));
         mCond.notify_one();
     }
 
@@ -140,8 +157,10 @@ public:
      * notifies all waiting thread.
      */
     void deactivate() {
-        MuxGuard g(mLock);
-        mIsActive = false;
+        {
+            MuxGuard g(mLock);
+            mIsActive = false;
+        }
         mCond.notify_all();  // To unblock all waiting consumers.
     }
 
@@ -255,4 +274,5 @@ public:
 
 
 #endif
+
 
