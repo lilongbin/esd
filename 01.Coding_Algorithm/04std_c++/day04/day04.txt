@@ -112,14 +112,14 @@ C++单实例类模板实现及使用
 1. 构造函数私有化,拷贝构造函数及重载=操作符也私有化,暴露新的访问接口如 getInstance();
 2. 推荐使用懒汉式即 getInstance()接口且使用双重锁定,既解决多线程竟态问题又保证性能,同时还要防止某一用户delete获取到的实例导致其他用户无法正常使用;
 3. 良好的设计会考虑资源回收,可以构造内嵌类Garbo及其静态对象,系统自动析构全局变量及静态成员变量时可以实现自动删除单实例对象,使用时不需再关注对象的释放;
-4. 静态成员变量要类外初始化,其中 Singleton<T>::Garbo 作为类型名要在前面加上 typename 显式通知编译系统; m_pInstance 要初始化为NULL;
+4. 静态成员变量要类外初始化,其中 Singleton<T>::Garbo 作为类型名要在前面加上 typename 显式通知编译系统; ms_pInstance 要初始化为NULL;
 5. 将单例类模板声明为这个类的友元; friend class Singleton<XXT>; singleton模板类为XXT类的友元,模板类才能new XXT()实例对象;
 6. 通过单例类模板中 XXT* s = Singleton<XXT>::getInstance(); 或公开继承 Singleton<XXT> 后 XXT* s = XXT::getInstance();创建/获取唯一实例对象;
 
 参考代码
 
-#ifndef __XX_COMM_H__
-#define __XX_COMM_H__
+#ifndef __SINGLETON_H__
+#define __SINGLETON_H__
 
 #include <iostream>
 #include <sstream>
@@ -137,9 +137,9 @@ template <class T>
 class Singleton
 {
 private:
-    static std::mutex m_MuxLock_Singleton;
+    static std::mutex ms_MuxLock_Singleton;
     using MuxGuard = std::lock_guard<std::mutex>;
-    static T* m_pInstance;
+    static T* ms_pInstance;
     Singleton(const Singleton& src){(void)src;}
     Singleton &operator=(const Singleton& src){(void)src;};
 
@@ -149,40 +149,40 @@ private:
         ~Garbo()
         {
             // std::cout<<"Singleton<"<<typeid(T).name()<<">::Garbo::~Garbo()" << std::endl;
-            if (Singleton::m_pInstance)
+            if (Singleton::ms_pInstance)
             {
-                delete Singleton::m_pInstance;
-                Singleton::m_pInstance = NULL;
+                delete Singleton::ms_pInstance;
+                Singleton::ms_pInstance = NULL;
             }
         }
         void touch() { return; }
     };
-    static Garbo m_garbo;
+    static Garbo ms_garbo;
 
 protected:
     Singleton() {
-        m_garbo.touch(); //prevent optimised and no garbo instance to trigger deconstruct
+        ms_garbo.touch(); //prevent optimised and no garbo instance to trigger deconstruct
     }
     ~Singleton() {}
 
 public:
     static T* getInstance()
     {
-        if (m_pInstance == NULL)
+        if (ms_pInstance == NULL)
         {
-            MuxGuard mlk(m_MuxLock_Singleton);
-            if (m_pInstance == NULL)
+            MuxGuard mlk(ms_MuxLock_Singleton);
+            if (ms_pInstance == NULL)
             {
-                m_pInstance = new T();
+                ms_pInstance = new T();
             }
         }
-        return m_pInstance;
+        return ms_pInstance;
     }
 };
 
-template <class T> typename Singleton<T>::Garbo Singleton<T>::m_garbo;
-template <class T> std::mutex Singleton<T>::m_MuxLock_Singleton;
-template <class T> T* Singleton<T>::m_pInstance = NULL;
+template <class T> typename Singleton<T>::Garbo Singleton<T>::ms_garbo;
+template <class T> std::mutex Singleton<T>::ms_MuxLock_Singleton;
+template <class T> T* Singleton<T>::ms_pInstance = NULL;
 
 #endif
 
