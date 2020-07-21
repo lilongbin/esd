@@ -4,8 +4,17 @@
  * Created date: 2019-07-25 18:45:05
  *******************************************/
 
-#ifndef _SINGLETON_H
-#define _SINGLETON_H
+#ifndef __SINGLETON_H__
+#define __SINGLETON_H__
+
+#include <cstdio>
+#include <iostream>
+#include <thread>
+#include <mutex>
+#include <queue>
+#include <atomic>
+#include <condition_variable>
+#include <algorithm>
 
 template <class T>
 class Singleton
@@ -58,5 +67,5 @@ template <class T> std::mutex Singleton<T>::ms_MuxLock_Singleton;
 template <class T> typename Singleton<T>::Garbo Singleton<T>::ms_garbo;
 template <class T> T* Singleton<T>::ms_pInstance = NULL;
 
-#endif //SINGLETON_H
+#endif //__SINGLETON_H__
 

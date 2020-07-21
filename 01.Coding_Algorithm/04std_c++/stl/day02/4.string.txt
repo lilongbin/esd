@@ -230,7 +230,7 @@ data()函数返回指向自己的第一个字符的指针.
 #include <vector>
 using namespace std;
 
-#define print(x) std::cout << __func__ << ">>" << __LINE__ << ">>" << #x << "# " << x << std::endl
+#define print(x) std::cout<<__func__<<">>"<<__LINE__<<">>"<<#x<<":("<<x<<")"<<std::endl
 
 typedef struct {
     int type;
@@ -332,7 +332,7 @@ void string_assign()
     print(str); // assign from bufferh
     str.assign(8, '*');                   // (5)
     print(str);
-    str.assign<int>(10, 0x2D);            // (5)
+    // str.assign<int>(10, 0x2D);            // (5)
     print(str); // ----------
     str.assign(base.begin()+4, base.end()); // (6)
     print(str);
@@ -843,26 +843,117 @@ std::string join(T& val, std::string delim)
     return str;
 }
 
-string strip(string str, const string delim="")
+std::string lstrip(const std::string &rstr, const std::string &delim="")
 {
-    string chr;
-    string::iterator it;
-    string sp = delim;
+    size_t start = 0;
+    size_t slen = rstr.length();
+    std::string sps = delim;
+    const size_t spl = sps.length();
 
-    if (0 == sp.length())
-    {
-        //print(sp);
-        sp = " \t\n\v\f\r";
+    if (0 == spl) {
+        sps = "\r\n \t\v\f";
+        // skip head char startswith any of sp
+        while ((slen >= 1)
+                && (std::string::npos != sps.find(rstr.at(start)))) {
+            start += 1;
+            slen -= 1;
+        }
+    } else {
+        // skip head char startswith sp
+        while ((slen >= spl)
+                && (0 == rstr.compare(start, spl, sps))) {
+            start += spl;
+            slen -= spl;
+        }
     }
-    while (string::npos != sp.find(str.at(0)))
-    {
-        str.erase(0, 1);
+    return rstr.substr(start, slen);
+}
+
+std::string rstrip(const std::string &rstr, const std::string &delim="")
+{
+    size_t start = 0;
+    size_t slen = rstr.length();
+    std::string sps = delim;
+    const size_t spl = sps.length();
+
+    if (0 == spl) {
+        sps = "\r\n \t\v\f";
+        // remove tail char endswith any of sp
+        while ((slen >= 1)
+                && (std::string::npos != sps.find(rstr.at(start+slen-1)))) {
+            slen -= 1;
+        }
+    } else {
+        // remove tail char endswith sp
+        while ((slen >= spl)
+                && (0 == rstr.compare((start+slen-spl), spl, sps))) {
+            slen -= spl;
+        }
     }
-    while (string::npos != sp.find(str.at(str.length()-1)))
-    {
-        str.erase(str.length()-1, 1);
+    return rstr.substr(start, slen);
+}
+
+std::string strip(const std::string &rstr, const std::string &delim="")
+{
+#if 1
+    size_t start = 0;
+    size_t slen = rstr.length();
+    std::string sps = delim;
+    const size_t spl = sps.length();
+
+    if (0 == spl) {
+        sps = "\r\n \t\v\f";
+        // skip head char startswith any of sp
+        while ((slen >= 1)
+                && (std::string::npos != sps.find(rstr.at(start)))) {
+            start += 1;
+            slen -= 1;
+        }
+        // remove tail char endswith any of sp
+        while ((slen >= 1)
+                && (std::string::npos != sps.find(rstr.at(start+slen-1)))) {
+            slen -= 1;
+        }
+    } else {
+        // skip head char startswith sp
+        while ((slen >= spl)
+                && (0 == rstr.compare(start, spl, sps))) {
+            start += spl;
+            slen -= spl;
+        }
+        // remove tail char endswith sp
+        while ((slen >= spl)
+                && (0 == rstr.compare((start+slen-spl), spl, sps))) {
+            slen -= spl;
+        }
     }
-    return str;
+    return rstr.substr(start, slen);
+#else
+    return rstrip(lstrip(rstr, delim), delim);
+#endif
+}
+
+bool startsWith(const std::string &src, const std::string &str)
+{
+    int srcpos = 0;
+    int srclen = src.length();
+    int sublen = str.length();
+    if (srclen < sublen) {
+        return false;
+    }
+    return (0 == src.compare(srcpos, sublen, str));
+}
+
+bool endsWith(const std::string &src, const std::string &str)
+{
+    int srcpos = 0;
+    int srclen = src.length();
+    int sublen = str.length();
+    if (srclen < sublen) {
+        return false;
+    }
+    srcpos = srclen - sublen;
+    return (0 == src.compare(srcpos, sublen, str));
 }
 
 string mask(const string &src, int begin, int masklen)
@@ -902,29 +993,6 @@ string mask(const string &src, int begin, int masklen)
         ret = ret.replace(pos, replen, mask);
     }
     return ret;
-}
-
-bool startsWith(const std::string &src, const std::string &str)
-{
-    int srcpos = 0;
-    int srclen = src.length();
-    int sublen = str.length();
-    if (srclen < sublen) {
-        return false;
-    }
-    return (0 == src.compare(srcpos, sublen, str));
-}
-
-bool endsWith(const std::string &src, const std::string &str)
-{
-    int srcpos = 0;
-    int srclen = src.length();
-    int sublen = str.length();
-    if (srclen < sublen) {
-        return false;
-    }
-    srcpos = srclen - sublen;
-    return (0 == src.compare(srcpos, sublen, str));
 }
 
 int main() {
@@ -974,15 +1042,21 @@ int main() {
     }
 
     // strip(str, chars);
-    str = "  0hello good 0  ";
-    str = strip(str, "0 ");
+    str = "0 1234567890120 ";
     print(str);
-    print(str.length());
-    // strip(str);
-    str = "  0hello good 0  ";
-    str = strip(str);
+    print(lstrip(str, "0 "));
+    print(rstrip(str, "0 "));
+    print(strip(str, "0 "));
+    str = "\t\t\n\r 0 1234567890120 ";
     print(str);
-    print(str.length());
+    print(lstrip(str));
+    print(rstrip(str));
+    print(strip(str));
+    str = "123456789001234567890";
+    print(str);
+    print(lstrip(str, "1234567890"));
+    print(rstrip(str, "1234567890"));
+    print(strip(str, "1234567890"));
 
     // mask
     string test = "01234567890";
