@@ -1,11 +1,8 @@
 /*****************************************
 * Copyright (C) 2018 * Ltd. All rights reserved.
-* 
 * File name   : test.cpp
 * Author      : longbin
 * Created date: 2018-07-18 23:44:33
-* Description : 
-*
 *******************************************/
 
 #include <iostream>
