@@ -1,13 +1,11 @@
-数据类型与占位符
-计算机内存结构
-sizeof关键字
-二进制
+数据类型与占位符,计算机内存结构,sizeof关键字,进制
 
-+------------------+
-| 数据类型与占位符 |
-+------------------+
+
+
+# 数据类型与占位符
 数据类型和占位符之间的对应关系
-char           --- %c和%hhd /* %c用于打印字符身份,%hhd用于数字身份 */
+```
+char           --- %c和%hhd // %c用于打印字符身份,%hhd用于数字身份
 unsigned char  --- %c和%hhu
 
 short          --- %hd
@@ -20,44 +18,41 @@ unsigned long  --- %lu
 float          --- %f和%g
 
 double         --- %lf和%lg /* %f和%lf会保留小数点后无效的0,%g和%lg不会 */
+```
 
-%nd可以打印整数,n为正整数,表示打印结果一共占用n个位置;打印结果右对齐; 
-%-nd可以让打印结果左对齐;n为正整数;
-%0nd可以用0填充空位置;
-%n.mf可以打印单精度浮点数,打印结果共占n个位置,其中小数点后占m个位置;
+* %nd可以打印整数,n为正整数,表示打印结果一共占用n个位置;打印结果右对齐; 
+* %-nd可以让打印结果左对齐;n为正整数;
+* %0nd可以用0填充空位置;
+* %n.mf可以打印单精度浮点数,打印结果共占n个位置,其中小数点后占m个位置;
 
+```
 /*
  * 占位符练习
  */
 #include <stdio.h>
 int main() {
-	printf("%d\n", 7);
-	printf("%3d\n", 7);
-	printf("%-3dabc\n", 7);	//7  abc
-	printf("%03dabc\n", 7);	//007abc
-	printf("%7.2f\n", 3.7f);
-	printf("%f\n", 3.7f);
-	return 0;
+    printf("%d\n", 7);
+    printf("%3d\n", 7);
+    printf("%-3dabc\n", 7);    //7  abc
+    printf("%03dabc\n", 7);    //007abc
+    printf("%7.2f\n", 3.7f);
+    printf("%f\n", 3.7f);
+    return 0;
 }
+```
 
-+----------------+
-| 计算机内存结构 |
-+----------------+
-计算机内存划分成大量的字节,任何两个字节的大小一样; 
-任何一个变量的存储位置是由一个或多个连续的字节构成的; 
-每一个字节(byte)是由8个连续的二进制位[bit]构成的; 
-不同数据类型的存储位置所包含的字节个数不同; 
+# 计算机内存结构
+* 计算机内存划分成大量的字节,任意两个字节的大小一样; 
+* 任何一个变量的存储空间都是有一个或多个连续的字节构成的; 
+* 每一个字节(byte)是由8个连续的二进制位[bit]构成的; 
+* 不同数据类型的存储位置所包含的字节个数不同; 
+* 内存中每一个字节都有一个独立的地址; 
+* 一个存储空间的地址是其中最靠前的字节的地址,即低字节的地址; 
+* 只有2的整数次方个连续的字节是可以合并在一起使用的(32位计算机最多不超过8个),如3个连续的字节是不可以合并在一起使用的,但可以分别使用; 
 
-内存中每一个字节都有一个独立的地址; 
-一个存储位置的地址是其中最靠前的字节的地址,即低字节的地址; 
-
-只有2的整数次方个连续的字节是可以合并在一起使用的(32位计算机最多不超过8个),如3个连续的字节是不可以合并在一起使用的,但可以分别使用; 
-
-+--------+
-| sizeof |
-+--------+
-sizeof 是一个关键字,可以用来计算一个数据类型或变量的存储位置所包含的字节的个数; 
-------------------------------------
+# sizeof
+sizeof 是一个关键字,可以用来计算一个数据类型或变量的存储空间所包含的字节的个数; 
+```
 char(unsigned char)       1个字节
 
 short(unsigned short)     2个字节
@@ -65,42 +60,50 @@ short(unsigned short)     2个字节
 int(unsigned int)         4个字节
 float                     4个字节
 
-long(unsigned long)       4个字节//64为系统为8字节
+long(unsigned long)       4个字节//64位系统为8字节
+
+char *                    4个字节//64位系统为8字节
+short *                   4个字节//64位系统为8字节
+int *                     4个字节//64位系统为8字节
+long *                    4个字节//64位系统为8字节
 
 double                    8个字节
-------------------------------------
-无符号 char 可以表示0-255之间的数;
-无符号 short 可以表示0-65535之间的数;
-有符号 int 可以表示大约正负21亿之间的数;
+```
+
+* unsigned char 可以表示0-255之间的数;
+* unsigned short 可以表示0-65535之间的数;
+* singed int 可以表示大约正负21亿之间的数;
+
 sizeof 关键字小括号中可以写一个表达式,计算的是表达式结果所占存储位置的大小;但这个表达式中对变量的任何修改都不会生效;
 
+```
 /*
  * sizeof练习
  */
 #include <stdio.h>
 int main() {
-	char ch = 0;
-	printf("sizeof(char) is %d, sizeof(ch) is %d\n",
-	       sizeof(char), sizeof(ch));
-	sizeof(ch = 10);	/* 表示的是表达式结果的大小 */
-	/* sizeof中表达式(赋值)结果不会生效 */
-	printf("sizeof(ch = 10) = %d\n", sizeof(ch = 10));
-	printf("ch = %hhd\n", ch);
+    char ch = 0;
+    printf("sizeof(char) is %d, sizeof(ch) is %d\n",
+           sizeof(char), sizeof(ch));
+    sizeof(ch = 10);    /* 表示的是表达式结果的大小 */
+    /* sizeof中表达式(赋值)结果不会生效 */
+    printf("sizeof(ch = 10) = %d\n", sizeof(ch = 10));
+    printf("ch = %hhd\n", ch);
 
-	printf("sizeof(char) = %d\n", sizeof(char)); //1
-	printf("sizeof(short) = %d\n", sizeof(short)); //2
-	printf("sizeof(int) = %d\n", sizeof(int)); //4
-	printf("sizeof(float) = %d\n", sizeof(float)); //4
-	printf("sizeof(int*) = %d\n", sizeof(int *));//32bit为4,64bit为8
-	printf("sizeof(long) = %d\n", sizeof(long)); //32bit为4,64bit为8
-	printf("sizrof(double) = %d\n", sizeof(double)); //8
-	return 0;
+    printf("sizeof(char) = %d\n", sizeof(char)); //1
+    printf("sizeof(short) = %d\n", sizeof(short)); //2
+    printf("sizeof(int) = %d\n", sizeof(int)); //4
+    printf("sizeof(float) = %d\n", sizeof(float)); //4
+    printf("sizeof(int*) = %d\n", sizeof(int *));//32bit为4,64bit为8
+    printf("sizeof(long) = %d\n", sizeof(long)); //32bit为4,64bit为8
+    printf("sizrof(double) = %d\n", sizeof(double)); //8
+    return 0;
 }
+```
 
-+--------+
-| 二进制 |
-+--------+
+# 进制
 日常生活中使用十进制表示数字,每个数位有0~9十种不同的可能;
+
 只使用一组0和1表示数字的方法叫二进制,计算机采用二进制表示数字; 
 十进制和二进制仅仅是表示数字的方式不同,任何数字既可以采用十进制也可以采用二进制表示; 
 
@@ -113,52 +116,55 @@ int main() {
 
 十进制转换为二进制的方法: 
 用十进制数的奇偶判断相应位
---------------------------
-59	**** ***1
-29	 *** ***1
-14	  ** ***0
- 7	   * ***1
+```
+59    **** ***1
+29     *** ***1
+14      ** ***0
+ 7       * ***1
 
- 3	     ***1
- 1	      **1
- 0	       *0
- 0	        0
---------------------------
-59的二进制表示为0011 1011
-以上计算方法可以总结为十进制数除以2取余倒着写
+ 3         ***1
+ 1          **1
+ 0           *0
+ 0            0
+```
+59的二进制表示为0011 1011;
+以上计算方法可以总结为十进制数除以2取余倒着写;
 
 另外一种十进制转二进制的方法: 
-
 把一个十进制数转成多个2的整数次方之和,然后分别转换成二进制,最后把所有二进制合并; 
+```
 54 = 2^5 + 2^4 + 2^2 + 2^1
    = 0010 0000 + 0001 0000 + 0000 0100 + 0000 0010
    = 0011 0110
+```
 
 使用上述方法转换后得到的二进制叫做原码; 
 
 字节中实际记录的是二进制补码,二进制在计算机中的表现形式就叫补码; 
-所有的非负数的原码与补码一样
+所有的非负数的原码与补码一样;
 
-一个字节可以按顺序分成八段,每段记录一个二进制位
+一个字节可以按顺序分成八段,每段记录一个二进制位;
 
-八进制和十六进制是二进制的简写版
+## 八进制
+八进制和十六进制是二进制的简写版;
 
 把一个数字的二进制表示方式从右向左每三个数位分成一组,然后每组用0到7之间的一个数字替代得到的结果叫做八进制表示方式(每个数位只有8种可能)
 
-二进制1011 1011 转换为八进制10 111 011 即0273
+二进制1011 1011 转换为八进制10 111 011 即0273;
 
 在C语言程序中可以直接使用八进制方式表示数字,所有以八进制方式编写的数字必须以0做开头; 
 %o是和八进制表示形式对应的占位符; 
 
+## 十六进制
 十六进制是把二进制数字表现形式从右向左每4位分成一组,每组用一个数字替代得到的结果; 
 
-十六进制中每个数位可能有十六种不同的情况,使用0到9这十个阿拉伯数字和A到F这六个英文字母表示这十六种情况,
-	A表示10
-	B表示11
-	C表示12
-	D表示13
-	E表示14
-	F表示15 
+十六进制中每个数位可能有十六种不同的情况,使用0到9这十个阿拉伯数字和A到F这六个英文字母表示这十六种情况;
+* A表示十进制的10
+* B表示十进制的11
+* C表示十进制的12
+* D表示十进制的13
+* E表示十进制的14
+* F表示十进制的15
 
 在程序中可以直接使用十六进制方式表示数字,所有以十六进制编写的数字必须以0x做开头; 
 
@@ -168,45 +174,48 @@ int main() {
 
 一个字节的内容刚好可以用两个十六进制数位表示,所以经常在程序中使用十六进制表示字节的内容; 
 
+```
 /*
  * 进制演示
  */
 #include <stdio.h>
 int main() {
-	printf("123 is %d\n0123 is %d\n", 123, 0123);	//123,83
-	printf("123 is 0%o\n0123 is 0%o\n", 123, 0123);	//0173,0123
-	printf("123 is %d\n0x123 is %d\n", 123, 0x123);	//123,291
-	printf("0xabc is 0x%x\n0xabc is 0X%X\n", 0xabc, 0xabc);	//abc,ABC
-	printf("-4151 = 0x%x\n", -4151);	//oxffffefc9
-	printf("-1 = 0X%x\n", -1);	//0xFFFFFFFF
-	return 0;
+    printf("123 is %d\n0123 is %d\n", 123, 0123);    //123,83
+    printf("123 is 0%o\n0123 is 0%o\n", 123, 0123);    //0173,0123
+    printf("123 is %d\n0x123 is %d\n", 123, 0x123);    //123,291
+    printf("0xabc is 0x%x\n0xabc is 0X%X\n", 0xabc, 0xabc);    //abc,ABC
+    printf("-4151 = 0x%x\n", -4151);    //oxffffefc9
+    printf("-1 = 0X%x\n", -1);    //0xFFFFFFFF
+    return 0;
 }
+```
 
-二进制+1的操作是把从右向左所有连续的1变为0,第一个不是1的数+1; 
+二进制+1的操作是从右向左把所有连续的1变为0,第一个不是1的数+1; 
 
--5		     5
-**** ****	     0000 0101
--5= 1 0000 0000   -  0000 0101	
+```
+-5                   5
+**** ****            0000 0101
+-5= 1 0000 0000   -  0000 0101    
   =   1111 1111 + 1 -0000 0101
   =   1111 1010 + 1
   =   1111 1011
+```
 负数二进制表示方式的计算规则是正数二进制按位求反(原码)再+1; 
 
 使用上述方法计算得到的直接就是负数的补码,所以可以直接记录在字节中; 
 
-每个数据类型中最左边的二进制数位是1,所有右边的二进制数位都是0,表示这个数据类型中的最小数; 
-	二进制1000 0000表示十进制的-128
-	二进制1111 1111表示十进制的-1,注意
-	二进制0000 0000表示十进制的0
-	二进制0111 1111表示十进制的127
+每个有符号数据类型中最左边的二进制数位是1,所有右边的二进制数位都是0,表示这个数据类型中的最小数; 
+* 二进制1000 0000表示十进制的-128
+* 二进制1111 1111表示十进制的-1,注意
+* 二进制0000 0000表示十进制的0
+* 二进制0111 1111表示十进制的127
 
 采用上述计算方法可以根据任何二进制数字计算出相反数的二进制; 
 由-5的二进制求5的二进制是减1再求反,但计算机无直接的减法,故仍然是先求反再+1; 
 
 有符号的二进制数字最左边的数位叫符号位,可以根据这个符号位判断数字的正负; 
 符号位为0表示非负数,为1表示负数; 
-符号位除了用来判断正负以外还有其他的用途符,所以不能直接用符号替换; 
-无符号数没有符号位
+无符号数没有符号位;
 
 整数类型数据之间赋值时会保持二进制样式不变; 
 把一个有符号数据赋值给一个占地更大的变量时扩充的二进制全填充符号位; 
@@ -216,33 +225,38 @@ int main() {
 
 赋值语句中如果左右两边的类型不一致,则可能发生意想不到的结果; 
 如
+```
 int num = -1;
 printf("%u\n", num);
+```
 
+```
 /*
  * 二进制演示
  */
 #include<stdio.h>
 int main() {
-	char ch = 191;
-	unsigned char uch = 191;
-	int num = ch;
-	int num1 = uch;
-	printf("ch是%hhd\n", ch);
-	printf("uch是%hhu\n", ch);
-	printf("num is %d\n", num);
-	printf("num1 is %d\n", num1);
-	printf("ch是%X\n", ch);
-	printf("ch是%X\n", 127);
+    char ch = 191;
+    unsigned char uch = 191;
+    int num = ch;
+    int num1 = uch;
+    printf("ch是%hhd\n", ch);
+    printf("uch是%hhu\n", ch);
+    printf("num is %d\n", num);
+    printf("num1 is %d\n", num1);
+    printf("ch是%X\n", ch);
+    printf("ch是%X\n", 127);
 
-	int i = -1;
-	printf("i = %d\n", i);
-	printf("i = %u\n", i);
-	return 0;
+    int i = -1;
+    printf("i = %d\n", i);
+    printf("i = %u\n", i);
+    return 0;
 }
+```
 
-作业
+# 练习
 1.编程把一个用户给定的0到255之间的数字转换成二进制并把结果打印在窗口中(两种方法)
+```
 /*
  * 十进制转二进制练习
  * 编程把一个用户制定的0到255之间的数字,
@@ -250,29 +264,32 @@ int main() {
  */
 #include <stdio.h>
 int main() {
-	int num;
-	printf("请输入0到255之间的一个数字:");
-	scanf("%d", &num);
-	printf("输入的十进制数为:%d\n", num);
-	printf("%d的二进制表示为:\n", num);
-	printf("%9d\r", num % 2);
-	num = num / 2;
-	printf("%8d\r", num % 2);
-	num = num / 2;
-	printf("%7d\r", num % 2);
-	num = num / 2;
-	printf("%6d\r", num % 2);
-	num = num / 2;
-	printf("%4d\r", num % 2);
-	num = num / 2;
-	printf("%3d\r", num % 2);
-	num = num / 2;
-	printf("%2d\r", num % 2);
-	num = num / 2;
-	printf("%1d\n", num % 2);
+    int num;
+    printf("请输入0到255之间的一个数字:");
+    scanf("%d", &num);
+    printf("输入的十进制数为:%d\n", num);
+    printf("%d的二进制表示为:\n", num);
+    printf("%9d\r", num % 2);
+    num = num / 2;
+    printf("%8d\r", num % 2);
+    num = num / 2;
+    printf("%7d\r", num % 2);
+    num = num / 2;
+    printf("%6d\r", num % 2);
+    num = num / 2;
+    printf("%4d\r", num % 2);
+    num = num / 2;
+    printf("%3d\r", num % 2);
+    num = num / 2;
+    printf("%2d\r", num % 2);
+    num = num / 2;
+    printf("%1d\n", num % 2);
 
-	return 0;
+    return 0;
 }
+```
+
+```
 /*
  * 十进制转二进制练习
  * 将0-255的数字转换为二进制
@@ -280,30 +297,33 @@ int main() {
  */
 #include <stdio.h>
 int main() {
-	int num = 0;
-	printf("请输入一个数字:");
-	scanf("%d", &num);
+    int num = 0;
+    printf("请输入一个数字:");
+    scanf("%d", &num);
 
-	printf("%d", num / 128);
-	num = num % 128;
-	printf("%d", num / 64);
-	num = num % 64;
-	printf("%d", num / 32);
-	num = num % 32;
-	printf("%d ", num / 16);
-	num = num % 16;
-	printf("%d", num / 8);
-	num = num % 8;
-	printf("%d", num / 4);
-	num = num % 4;
-	printf("%d", num / 2);
-	num = num % 2;
-	printf("%d\n", num);
+    printf("%d", num / 128);
+    num = num % 128;
+    printf("%d", num / 64);
+    num = num % 64;
+    printf("%d", num / 32);
+    num = num % 32;
+    printf("%d ", num / 16);
+    num = num % 16;
+    printf("%d", num / 8);
+    num = num % 8;
+    printf("%d", num / 4);
+    num = num % 4;
+    printf("%d", num / 2);
+    num = num % 2;
+    printf("%d\n", num);
 
-	return 0;
+    return 0;
 }
+```
+
 2.编程把一个用户给定的秒数转换成以下格式
   hh:mm:ss(hh表示小时数,mm表示分钟数,ss表示秒数)
+```
 /*
  * 编程把一个用户给定的秒数转换成以下格式:
  * hh:mm:ss
@@ -311,19 +331,20 @@ int main() {
  * */
 #include <stdio.h>
 int main() {
-	int input_val, hh, mm, ss;
-	printf("请输入秒数:");
-	scanf("%d", &input_val);
-	printf("输入的秒数为:%d\n", input_val);
+    int input_val, hh, mm, ss;
+    printf("请输入秒数:");
+    scanf("%d", &input_val);
+    printf("输入的秒数为:%d\n", input_val);
 
-	ss = input_val % 60;
-	input_val = input_val / 60;
-	mm = input_val % 60;
-	hh = input_val / 60;
+    ss = input_val % 60;
+    input_val = input_val / 60;
+    mm = input_val % 60;
+    hh = input_val / 60;
 
-	printf("转换后的时间为:");
-	printf("%02d:%02d:%02d\n", hh, mm, ss);
+    printf("转换后的时间为:");
+    printf("%02d:%02d:%02d\n", hh, mm, ss);
 
-	return 0;
+    return 0;
 }
+```
 
