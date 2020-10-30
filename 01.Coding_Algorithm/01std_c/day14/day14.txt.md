@@ -11,9 +11,9 @@ ftell()标准函数可以得到位置指针的数值;
 rewind()标准函数可以把文件位置指针调整到文件开头;
 fseek()标准函数可以把文件位置指针移动到文件中任何一个位置;
 fseek()的第三个参数是一个宏
-	SEEK_SET	0	文件头作为基准位置
-	SEEK_CUR	1	当前位置作为基准位置
-	SEEK_END	2	文件尾作为基准位置
+    SEEK_SET    0    文件头作为基准位置
+    SEEK_CUR    1    当前位置作为基准位置
+    SEEK_END    2    文件尾作为基准位置
 fseek()有三个参数(文件指针, 移动距离, 基准位置)
 fseek(p_file, 2, SEEK_SET);
 /*
@@ -21,63 +21,63 @@ fseek(p_file, 2, SEEK_SET);
  */
 #include <stdio.h>
 int main() {
-	int id = 0;
-	FILE *p_file = fopen("test.txt", "rb");
-	if (p_file == NULL) {
-		printf("fopen(): %m\n");
-		return -1;
-	} else {
-		printf("位置指针在%ld\n", ftell(p_file));	//0
-		fread(&id, sizeof(int), 1, p_file);
-		printf("位置指针在%ld\n", ftell(p_file));	//4
-		rewind(p_file);
-		printf("位置指针在%ld\n", ftell(p_file));	//0
-		fclose(p_file);
-		p_file = NULL;
-	}
-	return 0;
+    int id = 0;
+    FILE *p_file = fopen("test.txt", "rb");
+    if (p_file == NULL) {
+        printf("fopen(): %m\n");
+        return -1;
+    } else {
+        printf("位置指针在%ld\n", ftell(p_file));    //0
+        fread(&id, sizeof(int), 1, p_file);
+        printf("位置指针在%ld\n", ftell(p_file));    //4
+        rewind(p_file);
+        printf("位置指针在%ld\n", ftell(p_file));    //0
+        fclose(p_file);
+        p_file = NULL;
+    }
+    return 0;
 }
 /*
  * fseek() display
  */
 #include <stdio.h>
 int main() {
-	char ch = 0;
-	FILE *p_file = fopen("test.txt", "rb");	//abcdefghijklmn
-	if (p_file == NULL) {
-		printf("fopen(): %m\n");
-		return -1;
-	} else {
-		fseek(p_file, 2, SEEK_SET);	//文件头做基准,移动2字节
-		fread(&ch, sizeof(char), 1, p_file);
-		printf("ch is %c\n", ch);	//c
-		fseek(p_file, -2, SEEK_CUR);
-		fread(&ch, sizeof(char), 1, p_file);
-		printf("ch is %c\n", ch);	//b
-		fseek(p_file, -4, SEEK_END);	//文件结束标志占一位
-		fread(&ch, sizeof(char), 1, p_file);
-		printf("ch is %c\n", ch);	//l
-		fclose(p_file);
-		p_file = NULL;
-	}
-	return 0;
+    char ch = 0;
+    FILE *p_file = fopen("test.txt", "rb");    //abcdefghijklmn
+    if (p_file == NULL) {
+        printf("fopen(): %m\n");
+        return -1;
+    } else {
+        fseek(p_file, 2, SEEK_SET);    //文件头做基准,移动2字节
+        fread(&ch, sizeof(char), 1, p_file);
+        printf("ch is %c\n", ch);    //c
+        fseek(p_file, -2, SEEK_CUR);
+        fread(&ch, sizeof(char), 1, p_file);
+        printf("ch is %c\n", ch);    //b
+        fseek(p_file, -4, SEEK_END);    //文件结束标志占一位
+        fread(&ch, sizeof(char), 1, p_file);
+        printf("ch is %c\n", ch);    //l
+        fclose(p_file);
+        p_file = NULL;
+    }
+    return 0;
 }
 /*
  * fseek() practice
  */
 #include <stdio.h>
 int main() {
-	char c = 0;
-	FILE *p_file = fopen("test.txt", "rb"); //abcdefghijklmn
-	if (p_file) {
-		while (fread(&c, sizeof(char), 1, p_file)) {
-			printf("c is %c\n", c);
-			fseek(p_file, 4, SEEK_CUR);
-		}
-		fclose(p_file);
-		p_file = NULL;
-	}
-	return 0;
+    char c = 0;
+    FILE *p_file = fopen("test.txt", "rb"); //abcdefghijklmn
+    if (p_file) {
+        while (fread(&c, sizeof(char), 1, p_file)) {
+            printf("c is %c\n", c);
+            fseek(p_file, 4, SEEK_CUR);
+        }
+        fclose(p_file);
+        p_file = NULL;
+    }
+    return 0;
 }
 
 
@@ -103,16 +103,16 @@ int main() {
 //#define       SIZE     10
 //gcc -DSIZE=10
 int main() {
-	int arr[SIZE] = { }, num = 0;
-	srand(time(0));
-	for (num = 0; num <= SIZE - 1; num++) {
-		arr[num] = rand() % 36 + 1;
-	}
-	for (num = 0; num <= SIZE - 1; num++) {
-		printf("%d ", arr[num]);
-	}
-	printf("\n");
-	return 0;
+    int arr[SIZE] = { }, num = 0;
+    srand(time(0));
+    for (num = 0; num <= SIZE - 1; num++) {
+        arr[num] = rand() % 36 + 1;
+    }
+    for (num = 0; num <= SIZE - 1; num++) {
+        printf("%d ", arr[num]);
+    }
+    printf("\n");
+    return 0;
 }
 
 使用gcc -E可以查看预处理之后的结果;
@@ -126,17 +126,17 @@ int main() {
  * 宏macro演示
  */
 #include <stdio.h>
-#define	PI		3.14f	//定义一个PI的宏,即给3.14起一个名字PI
-#define	CIRCLE(r)		2 * PI * (r)
-#define	AREAR(r)		PI * (r) * (r)
+#define    PI        3.14f    //定义一个PI的宏,即给3.14起一个名字PI
+#define    CIRCLE(r)        2 * PI * (r)
+#define    AREAR(r)        PI * (r) * (r)
 int main() {
-	int radius = 0;
-	printf("请输入半径: ");
-	scanf("%d", &radius);
-	printf("周长是:%g\n", 2 * PI * radius);
-	printf("周长是:%g\n", CIRCLE(radius));
-	printf("面积是:%g\n", AREAR(radius));
-	return 0;
+    int radius = 0;
+    printf("请输入半径: ");
+    scanf("%d", &radius);
+    printf("周长是:%g\n", 2 * PI * radius);
+    printf("周长是:%g\n", CIRCLE(radius));
+    printf("面积是:%g\n", AREAR(radius));
+    return 0;
 }
 
 宏没有返回值变量,所以不能保证先完成宏内部的计算;
@@ -147,24 +147,24 @@ int main() {
  * macro display
  */
 #include <stdio.h>
-#define	SUB1(x, y)	(x)- (y)
-#define	SUB2(x, y)	((x)- (y))
+#define    SUB1(x, y)    (x)- (y)
+#define    SUB2(x, y)    ((x)- (y))
 int main() {
-	printf("SUB1(8, 3) is %d\n", SUB1(8, 3));
-	printf("21 - SUB1(5, 3) is %d\n", 21 - SUB1(5, 2));
-	printf("21 - SUB2(5, 3) is %d\n", 21 - SUB2(5, 2));
-	printf("SUB2(10, 5-2) is %d\n", SUB2(10, 5 - 2));
-	return 0;
+    printf("SUB1(8, 3) is %d\n", SUB1(8, 3));
+    printf("21 - SUB1(5, 3) is %d\n", 21 - SUB1(5, 2));
+    printf("21 - SUB2(5, 3) is %d\n", 21 - SUB2(5, 2));
+    printf("SUB2(10, 5-2) is %d\n", SUB2(10, 5 - 2));
+    return 0;
 }
 /*
  * macro
  */
 #include <stdio.h>
-#define	MUL(x,y)	((x) * (y))
+#define    MUL(x,y)    ((x) * (y))
 int main() {
-	printf("MUL(8-2, 9+1)结果是:%d\n", MUL(8 - 2, 9 + 1));
-	printf("60 / MUL(8-2, 9+1)结果是:%d\n", 60 / MUL(8 - 2, 9 + 1));
-	return 0;
+    printf("MUL(8-2, 9+1)结果是:%d\n", MUL(8 - 2, 9 + 1));
+    printf("60 / MUL(8-2, 9+1)结果是:%d\n", 60 / MUL(8 - 2, 9 + 1));
+    return 0;
 }
 
 宏只是在编译的预处理阶段进行简单的替换;
@@ -175,15 +175,15 @@ int main() {
  * macro display
  */
 #include <stdio.h>
-#define	SQUARE(n)	((n) * (n))
+#define    SQUARE(n)    ((n) * (n))
 int main() {
-	int num = 4;
-	printf("SQUARE(num+1) = %d\n", SQUARE(num + 1)); //25
-	num = 4;
-	printf("SQUARE(++num) = %d\n", SQUARE(++num));	//36?
-	num = 4;
-	printf("SQUARE(num++) = %d\n", SQUARE(num++));	//16?
-	return 0;
+    int num = 4;
+    printf("SQUARE(num+1) = %d\n", SQUARE(num + 1)); //25
+    num = 4;
+    printf("SQUARE(++num) = %d\n", SQUARE(++num));    //36?
+    num = 4;
+    printf("SQUARE(num++) = %d\n", SQUARE(num++));    //16?
+    return 0;
 }
 
 宏操作符包括#和##
@@ -193,23 +193,23 @@ int main() {
  * macro 操作符演示
  */
 #include <stdio.h>
-#define	STR(n)		#n
-#define LOCAL(n)	prefix_##n
+#define    STR(n)        #n
+#define LOCAL(n)    prefix_##n
 int main() {
-	printf("STR(123) is %s\n", STR(123)); //123
-	int prefix_num = 10;
-	int LOCAL(num1) = 20;	//与上一句等效,可以方便书写
-	printf("%d\n", prefix_num);
-	printf("%d\n", LOCAL(num1)); //prefix_num1 = 20
-	return 0;
+    printf("STR(123) is %s\n", STR(123)); //123
+    int prefix_num = 10;
+    int LOCAL(num1) = 20;    //与上一句等效,可以方便书写
+    printf("%d\n", prefix_num);
+    printf("%d\n", LOCAL(num1)); //prefix_num1 = 20
+    return 0;
 }
 
 条件编译可以在编译时只编译某些语句而忽略另外一些语句;
 条件编译形式1
 #ifdef(#ifndef) <宏名称> 
-	... 
+    ... 
 #else 
-	... 
+    ... 
 #endif
 以上语句可以根据某个宏是否被定义过而从两组语句中选择一组编译;
 /*
@@ -219,47 +219,47 @@ int main() {
 int main() {
 //#ifdef ONE
 #ifndef TWO
-	printf("1\n");
+    printf("1\n");
 #else
-	printf("2\n");
+    printf("2\n");
 #endif
-	return 0;
+    return 0;
 }
 
 练习 
-	产品A
-	产品B
+    产品A
+    产品B
 /*
  * 点菜练习
  */
 #include <stdio.h>
 int main() {
-	int order = 0;
-	printf("请点菜: ");
-	scanf("%d", &order);
+    int order = 0;
+    printf("请点菜: ");
+    scanf("%d", &order);
 #ifdef ZHAOBENSHAN
-	if (order == 1) {
-		printf("小鸡炖蘑菇真没有\n");
-	} else {
-		printf("龙虾没有\n");
-	}
+    if (order == 1) {
+        printf("小鸡炖蘑菇真没有\n");
+    } else {
+        printf("龙虾没有\n");
+    }
 #else
-	if (order == 1) {
-		printf("小鸡炖蘑菇没有\n");
-	} else {
-		printf("龙虾有\n");
-	}
+    if (order == 1) {
+        printf("小鸡炖蘑菇没有\n");
+    } else {
+        printf("龙虾有\n");
+    }
 #endif
-	return 0;
+    return 0;
 }
 
 条件编译形式2
-#if	逻辑表达式
-	...
-#elif	逻辑表达式(多个)
-	...
+#if    逻辑表达式
+    ...
+#elif    逻辑表达式(多个)
+    ...
 #else
-	...
+    ...
 #endif
 以上结构可以根据任何逻辑表达式从多组语句中选择一组编译;
 条件编译于if分支的区别是前者是有条件的编译,后者是有条件的执行;
@@ -269,14 +269,14 @@ int main() {
  */
 #include <stdio.h>
 int main() {
-#if		defined(FACTORY)	//工厂
-	printf("80%\n");
-#elif	!defined(FACTORY) && !defined(ELITE)	//普通商店
-	printf("100%\n");
+#if        defined(FACTORY)    //工厂
+    printf("80%\n");
+#elif    !defined(FACTORY) && !defined(ELITE)    //普通商店
+    printf("100%\n");
 #else
-	printf("120%\n"); //精品店
+    printf("120%\n"); //精品店
 #endif
-	return 0;
+    return 0;
 }
 
 
@@ -285,14 +285,14 @@ int main() {
 多文件程序编写时,某个函数必须完整的属于某个文件;一个文件中可以包含多个函数;
 
 多文件程序编写步骤: 
-	1->把所有函数分散在多个不同的.c源文件中(通常主函数单独写在一个源文件中),即编写每个单独的.c源文件;
-	2->为每个.c源文件编写对应的.h头文件;
-		头文件中只包含对应.c文件中用到的变量和函数的声明;
-		如果.c源文件中只包含main()函数则不需要编写对应头文件,头文件中应该包含对应源文件中所有函数的声明;有存储位置的东西不能写在头文件中(如变量的定义(赋值));
-	3->为每个.c源文件添加所有需要的头文件;
-		如果一个.c源文件使用了某个.h头文件中声明的变量或函数,那么这个.h头文件就需要被包含进来;
-	4->采用gcc命令完成编译,要把所有以.c命名的源文件名称都写在命令中;
-		编译的时候其实是先单独编译每个文件,然后再链接到一起的;
+    1->把所有函数分散在多个不同的.c源文件中(通常主函数单独写在一个源文件中),即编写每个单独的.c源文件;
+    2->为每个.c源文件编写对应的.h头文件;
+        头文件中只包含对应.c文件中用到的变量和函数的声明;
+        如果.c源文件中只包含main()函数则不需要编写对应头文件,头文件中应该包含对应源文件中所有函数的声明;有存储位置的东西不能写在头文件中(如变量的定义(赋值));
+    3->为每个.c源文件添加所有需要的头文件;
+        如果一个.c源文件使用了某个.h头文件中声明的变量或函数,那么这个.h头文件就需要被包含进来;
+    4->采用gcc命令完成编译,要把所有以.c命名的源文件名称都写在命令中;
+        编译的时候其实是先单独编译每个文件,然后再链接到一起的;
 
 头文件中要采用条件编译以避免重复包含的问题;
 
@@ -306,7 +306,7 @@ static静态函数只能在本文件中使用,不可以被其他源文件使用;
  * 14add.h
  */
 #ifndef __14ADD_H__
-#define	__14ADD_H__
+#define    __14ADD_H__
 //头文件使用条件编译,避免被重复包含
 void add(int, int);
 #endif // __14ADD_H__
@@ -319,7 +319,7 @@ void add(int, int);
 int res;
 //如果res声明为static变量将被限定在本源文件内使用
 void add(int x, int y) {
-	res = x + y; 
+    res = x + y; 
 }
 
 /*
@@ -330,13 +330,13 @@ void add(int x, int y) {
 extern int res;//使用其他文件声明的变量
 //如果使用int res; 编译器将重新申请一个全新的变量;
 int main() {
-	add(3, 6);
-	printf("res = %d\n", res);
-	return 0;
+    add(3, 6);
+    printf("res = %d\n", res);
+    return 0;
 }
 
 练习
-	从键盘得到一个整数,在主函数中打印出来,用多文件编程;
+    从键盘得到一个整数,在主函数中打印出来,用多文件编程;
 /*
  * 15read.h
  */
@@ -356,8 +356,8 @@ void read_num();
 #include "15read.h"
 int num; //声明全局变量num;
 void read_num() {
-	printf("Please input a number: ");
-	scanf("%d", &num);
+    printf("Please input a number: ");
+    scanf("%d", &num);
 }
 /*
  * 从键盘得到一个整数,在主函数中打印出来15main.c
@@ -366,36 +366,36 @@ void read_num() {
 #include "15read.h"
 //extern int num; //不必再声明,在15read.h中已声明
 int main() {
-	read_num();
-	printf("num =%d\n", num);
-	return 0;
+    read_num();
+    printf("num =%d\n", num);
+    return 0;
 }
 
 
 作业
-	编写一个宏,这个宏可以根据一个十六进制数位计算出对应的十进制数字;
+    编写一个宏,这个宏可以根据一个十六进制数位计算出对应的十进制数字;
 /*
  * 宏练习,十六进制转十进制
  */
 #include <stdio.h>
-#define	HEX_2_INT(n)	('0'<(n) && (n) <= '9' ? (n)-'0': 'a' <= (n) && (n)<='f'? (n)-'a'+10:(n)-'A'+10)
+#define    HEX_2_INT(n)    ('0'<(n) && (n) <= '9' ? (n)-'0': 'a' <= (n) && (n)<='f'? (n)-'a'+10:(n)-'A'+10)
 int main() {
-	char ch = 0;
-	printf("请输入一个十六进制数位: ");
-	scanf("%c", &ch);
-	printf("对应十进制数字是 %d\n", HEX_2_INT(ch));
-	return 0;
+    char ch = 0;
+    printf("请输入一个十六进制数位: ");
+    scanf("%c", &ch);
+    printf("对应十进制数字是 %d\n", HEX_2_INT(ch));
+    return 0;
 }
 
-	采用多文件编程方式编写程序生成一张彩票,彩票数据记录在全局数组中;
+    采用多文件编程方式编写程序生成一张彩票,彩票数据记录在全局数组中;
 /*
  * 02lottery.h
  */
-#ifndef	__02LOTTERY_H__
-#define	__02LOTTERY_H__
+#ifndef    __02LOTTERY_H__
+#define    __02LOTTERY_H__
 extern int lottery[];//全局数组,声明为外部变量
 void create();//函数声明
-#endif	// __02LOTTERY_H__
+#endif    // __02LOTTERY_H__
 
 /*
  * 02lottery.c
@@ -404,10 +404,10 @@ void create();//函数声明
 #include "02lottery.h"
 int lottery[7];
 void create() {
-	int num = 0;
-	for (num = 0; num <= 6; num++) {
-		lottery[num] = rand() % 36 + 1;
-	}
+    int num = 0;
+    for (num = 0; num <= 6; num++) {
+        lottery[num] = rand() % 36 + 1;
+    }
 }
 
 /*
@@ -418,13 +418,13 @@ void create() {
 #include <time.h>
 #include "02lottery.h"
 int main() {
-	int num = 0;
-	srand(time(0));
-	create();
-	for (num = 0; num <= 6; num++) {
-		printf("%d ", lottery[num]);
-	}
-	printf("\n");
-	return 0;
+    int num = 0;
+    srand(time(0));
+    create();
+    for (num = 0; num <= 6; num++) {
+        printf("%d ", lottery[num]);
+    }
+    printf("\n");
+    return 0;
 }
 

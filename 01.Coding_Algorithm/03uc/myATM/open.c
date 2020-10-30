@@ -5,6 +5,7 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include "bank.h"
+#include "dao.h"
 int main(){
 	int msgid1 = msgget(key1,0);
 	if(msgid1 == -1){

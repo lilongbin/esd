@@ -26,9 +26,9 @@ char* const p;//const修饰char*;p为常指针
 
 3 algorithm      3.algorithm.txt
 
-4 string类       4.string.txt
+4 string         4.string.txt
 
-5 stringstream类 5.stringstream.txt
+5 stringstream   5.stringstream.txt
 
 6 string.buff.vector-convert.txt
 

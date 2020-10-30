@@ -4,76 +4,75 @@
 
 异常
 
-	1.C语言的异常处理
-	1.1 编程入口条件检查
-		assert()函数使用 
-		assert()一般用于debug下异常检测的功能函数，例如文件打开是否成功，函数形参传入是否理想，变量定义是否正确等;
-		总的来说其作用是如果它的条件返回错误，则终止程序执行，原型定义：
-		
-		#include <assert.h>
-		void assert( int expression );
-		
-		assert的作用就是计算表达式expression,如果其值为假(即为0),那么它先向stderr打印一条出错信息,
-		然后通过调用abort来终止程序运行;
-		用法总结与注意事项:
-		1 在函数开始处检验传入参数的合法性
-		2 每个assert只检验一个条件,因为同时检验多个条件时,如果断言失败,无法直观的判断是哪个条件失败;
-		3 不能使用改变环境的语句,因为assert只在DEBUG生效,如果这么做,会使程序在真正运行时遇到问题,如assert(i++ < 100);
-		4 assert和后面的语句应空一行,以形成逻辑和视觉上的一致感;
-		5 有的地方assert不能代替条件过滤;一般在函数开始使用,因为我们常见异常在函数的开头容易出现,而如果在方法的中间使用则需要慎重考虑是否是应该的;
+    1.C语言的异常处理
+    1.1 编程入口条件检查
+        assert()函数使用 
+        assert()一般用于debug下异常检测的功能函数，例如文件打开是否成功，函数形参传入是否理想，变量定义是否正确等;
+        总的来说其作用是如果它的条件返回错误，则终止程序执行，原型定义：
 
-	1.2 使用函数的返回值标识错误状态;
-	2.C++异常处理方式
-		C++使用对象代表一种错误状态
-		/*抛出异常对象*/
-		throw 对象;
-		如果一个函数没有指明抛出什么异常,则代表可能抛出任何异常;
-		如果一个程序抛出了异常,系统不去处理,程序就会崩溃,则最终会调用terminate函数;
-	3.异常的捕获
-		try {
-			//可能会发生异常的代码
-		} catch (异常对象的类型 &e/*一般是引用*/) {
-			
-		} catch (异常对象的类型 &e) {//两个e不会冲突,属于局部变量
-			
-		} catch (...) {//...代表可以捕获任何异常,一定要出现在最后
-			//一般用来处理未知的异常			
-		}
-	4.指明可能抛出的异常
-		void foo()throw(){}//代表不抛出任何异常
-		如果一个函数用throw()代表不抛出任何异常,如果函数中抛出了异常代表不可捕获;
-	5.int double const char* 表达的信息有限
-		系统提供的标准异常
-		#include <stdexcet>
-	6.自定义异常
-		/*子类不能抛出比父类更宽泛的异常*/
-		class Myexception:public exception{
-		
-		};
-		class A{
-			public:
-			void show();
-			void run()shrow(int){}
-		};
-		class B:public A{
-			public:
-			void show()throw(int,double){}
-			void run()throw(int,double){}//error
-		};
-	自定义异常的步骤:
-		1.定义异常;
-		2.根据条件抛出异常;
-		3.调用时捕获异常;
-		4.处理异常;
+        #include <assert.h>
+        void assert( int expression );
 
-		class DmsClientException{
-			string msg;
-			public:
-			DmsClientException(string msg="dms client exception"){
-				this->msg = msg;
-			}
-			virtual const char* what()const throw(){
-				return msg.c_str();
-			} 
-		};	
+        assert的作用就是计算表达式expression,如果其值为假(即为0),那么它先向stderr打印一条出错信息,
+        然后通过调用abort来终止程序运行;
+        用法总结与注意事项:
+        1 在函数开始处检验传入参数的合法性
+        2 每个assert只检验一个条件,因为同时检验多个条件时,如果断言失败,无法直观的判断是哪个条件失败;
+        3 不能使用改变环境的语句,因为assert只在DEBUG生效,如果这么做,会使程序在真正运行时遇到问题,如assert(i++ < 100);
+        4 assert和后面的语句应空一行,以形成逻辑和视觉上的一致感;
+        5 有的地方assert不能代替条件过滤;一般在函数开始使用,因为我们常见异常在函数的开头容易出现,而如果在方法的中间使用则需要慎重考虑是否是应该的;
+
+    1.2 使用函数的返回值标识错误状态;
+    2.C++异常处理方式
+        C++使用对象代表一种错误状态
+        /*抛出异常对象*/
+        throw 对象;
+        如果一个函数没有指明抛出什么异常,则代表可能抛出任何异常;
+        如果一个程序抛出了异常,系统不去处理,程序就会崩溃,则最终会调用terminate函数;
+    3.异常的捕获
+        try {
+            //可能会发生异常的代码
+        } catch (异常对象的类型 &e/*一般是引用*/) {
+            
+        } catch (异常对象的类型 &e) {//两个e不会冲突,属于局部变量
+            
+        } catch (...) {//...代表可以捕获任何异常,一定要出现在最后
+            //一般用来处理未知的异常            
+        }
+    4.指明可能抛出的异常
+        void foo()throw(){}//代表不抛出任何异常
+        如果一个函数用throw()代表不抛出任何异常,如果函数中抛出了异常代表不可捕获;
+    5.int double const char* 表达的信息有限
+        系统提供的标准异常
+        #include <stdexcet>
+    6.自定义异常
+        /*子类不能抛出比父类更宽泛的异常*/
+        class Myexception:public exception{
+        };
+        class A{
+            public:
+            void show();
+            void run()shrow(int){}
+        };
+        class B:public A{
+            public:
+            void show()throw(int,double){}
+            void run()throw(int,double){}//error
+        };
+    自定义异常的步骤:
+        1.定义异常;
+        2.根据条件抛出异常;
+        3.调用时捕获异常;
+        4.处理异常;
+
+        class DmsClientException{
+            string msg;
+            public:
+            DmsClientException(string msg="dms client exception"){
+                this->msg = msg;
+            }
+            virtual const char* what()const throw(){
+                return msg.c_str();
+            } 
+        };    
 

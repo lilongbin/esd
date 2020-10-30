@@ -1,6 +1,7 @@
 //ATM的服务器端
 #include "bank.h"
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <stdio.h>
@@ -19,13 +20,13 @@ void init(){
 	//0666是给此消息队列对象添加一些权限设置，类似文件系统
 	//创建消息队列1
 	msgid1 = msgget(key1,IPC_CREAT|IPC_EXCL|0666);
-	if(msgid1 == -1){
+	if (msgid1 == -1) {
 		perror("消息队列1创建失败"),exit(-1);
 	}
 	printf("消息队列1创建成功\n");
 	//创建消息队列2
 	msgid2 = msgget(key2,IPC_CREAT|IPC_EXCL|0666);
-	if(msgid2 == -1){
+	if (msgid2 == -1) {
 		perror("消息队列2创建失败");
 		exit(-1);
 	}
@@ -37,36 +38,32 @@ void start(){
 	sleep(2);
 	//创建子进程
 	pid_t open_pid = vfork();
-	if(open_pid == -1){
+	if (open_pid == -1) {
 		perror("vfork failed");
 		exit(-1);
-	}
-	else if(open_pid == 0){//进入子进程
+	} else if (open_pid == 0) { //进入子进程
 		//printf("in child process\n");
 		execl("open","open",NULL);//不再和父进程共用代码段
-	}
-	else{
+	} else {
 		printf("正在等待客户端选择..\n");
-		waitpid(open_pid,0,0);//阻塞，等待子进程结束
+		waitpid(open_pid,NULL,0);//阻塞，等待子进程结束
 		//printf("in parent process\n");
 	}
 }
 
-void sig_exit(int signo){
+void sig_exit(int signo) {
 	printf("服务器正在关闭..\n");
 	sleep(2);
-	if(msgctl(msgid1,IPC_RMID,NULL) == -1){
+	if (msgctl(msgid1,IPC_RMID,NULL) == -1) {
 		perror("消息队列1删除失败\n");
 		exit(-1);
-	}
-	else{
+	} else {
 		printf("消息队列1删除成功\n");
 	}
-	if(msgctl(msgid2,IPC_RMID,NULL) == -1){
+	if (msgctl(msgid2,IPC_RMID,NULL) == -1) {
 		perror("消息队列2删除失败\n");
 		exit(-1);
-	}
-	else{
+	} else {
 		printf("消息队列2删除成功\n");
 	}
 	printf("服务器成功关闭\n");
@@ -85,7 +82,4 @@ int main(){
 	start();
 	return 0;
 }
-
-
-
 

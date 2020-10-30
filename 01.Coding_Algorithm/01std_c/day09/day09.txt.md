@@ -8,10 +8,10 @@
 在大规模的程序中需要对语句进行分组管理,把相互之间联系比较紧密的语句合并成一组;
 分组可以在多个不同层次上进行,最低一级分组的结果叫代码块,代码块由{}大括号包括;
 在大括号前面添加
-	类型名 函数名()的就是函数;
+    类型名 函数名()的就是函数;
 函数的形式如
 void func() {
-	do something;
+    do something;
 }
 任何函数一定包含若干条语句;
 任何C语言程序都是由一个或多个函数构成的;
@@ -58,57 +58,57 @@ void func() {
 #include <stdio.h>
 
 int add() {
-	return 2 + 4;
+    return 2 + 4;
 }
 
 int main() {
-	int num = 0;
-	num = add();
-	printf("return %d\n", num);
-	return 0;
+    int num = 0;
+    num = add();
+    printf("return %d\n", num);
+    return 0;
 }
 
 练习
-	编写一个多函数程序,用一个函数从键盘得到数字;
-	主函数得到这个数字并打印在屏幕上;
+    编写一个多函数程序,用一个函数从键盘得到数字;
+    主函数得到这个数字并打印在屏幕上;
 /*
  * 用一个函数从键盘得到数字,主函数得到数字并打印在屏幕上
  */
 #include <stdio.h>
 /* 返回一个int型的值 */
 int read() {
-	int num;
-	printf("请输入一个数字: ");
-	scanf("%d", &num);
-	return num;
+    int num;
+    printf("请输入一个数字: ");
+    scanf("%d", &num);
+    return num;
 }
 
 /* 不返回任何值 */
 void show() {
-	printf("I am show()\n");
+    printf("I am show()\n");
 }
 
 int show1() {
-	printf("I am show1()\n");
-	// printf("1\n");
-	// return 0;
-	// 应该返回int型的值,但函数没有明确指定,结果不确定
+    printf("I am show1()\n");
+    // printf("1\n");
+    // return 0;
+    // 应该返回int型的值,但函数没有明确指定,结果不确定
 }
 
 int main() {
-	int num = read(); //调用一次
-	int num1;
-	printf("步骤1>\n");
-	printf("输入的数字是:%d\n", num); //直接适用num的值
-	printf("步骤2>>\n");
-	printf("输入的数字是:%d\n", read()); //调用一次read()
-	printf("步骤3>>>\n");
-	printf("输入的数字是:%d\n", num);	//不再调用read()
-	printf("步骤4>>>\n");
-	show();
-	num1 = show1();		//结果不确定
-	printf("show1 is %d\n", num1);
-	return 0;
+    int num = read(); //调用一次
+    int num1;
+    printf("步骤1>\n");
+    printf("输入的数字是:%d\n", num); //直接适用num的值
+    printf("步骤2>>\n");
+    printf("输入的数字是:%d\n", read()); //调用一次read()
+    printf("步骤3>>>\n");
+    printf("输入的数字是:%d\n", num);    //不再调用read()
+    printf("步骤4>>>\n");
+    show();
+    num1 = show1();        //结果不确定
+    printf("show1 is %d\n", num1);
+    return 0;
 }
 
 
@@ -126,70 +126,70 @@ exit()标准函数可以立刻结束整个进程的运行,需要包含文件stdl
 #include <stdio.h>
 #include <stdlib.h>
 void func() {
-	printf("我在func中2\n");
-	return;
-	printf("3\n");
+    printf("我在func中2\n");
+    return;
+    printf("3\n");
 }
 
 void func1() {
-	printf("我在func1中5\n");
-	exit(0);		//0与return的0是一样的含义
-	printf("6\n");
+    printf("我在func1中5\n");
+    exit(0);        //0与return的0是一样的含义
+    printf("6\n");
 }
 
 int main() {
-	printf("我在main中1\n");
-	func();
-	func1();
-	printf("4\n");
-	return 0;
+    printf("我在main中1\n");
+    func();
+    func1();
+    printf("4\n");
+    return 0;
 }
 
 练习
-	从键盘得到两个数,计算二者和,主函数打印出求和结果;
+    从键盘得到两个数,计算二者和,主函数打印出求和结果;
 /*
  * 返回值练习
  */
 #include <stdio.h>
 int add() {
-	int i = 0, j = 0;
-	printf("请输入两个数字: ");
-	scanf("%d%d", &i, &j);
-	return i + j;
+    int i = 0, j = 0;
+    printf("请输入两个数字: ");
+    scanf("%d%d", &i, &j);
+    return i + j;
 }
 
 int main() {
-	printf("sum is %d\n", add());
-	return 0;
+    printf("sum is %d\n", add());
+    return 0;
 }
 
 
 形参与实参
 
-	为了实现从调用函数向被调用函数传递数据,被调用函数需要准备一组变量,这组变量叫形式参数;
-	他们只能在被调函数中使用;只靠这些数据是不能完成整个数据的传递的,还需要更原始的数据;
-	为了实现数据的传递,需要调用函数提供这些数据,调用函数提供的这些数据叫实际参数;
-	实际参数既可以是变量也可以是其他方式表示;
-	传递的是数据而不是存储位置,值传递;不能通过函数改变实参本身;
-	函数的形参类型和个数没有限制,但返回值最多只能有一个;
+    为了实现从调用函数向被调用函数传递数据,被调用函数需要准备一组变量,这组变量叫形式参数;
+    他们只能在被调函数中使用;只靠这些数据是不能完成整个数据的传递的,还需要更原始的数据;
+    为了实现数据的传递,需要调用函数提供这些数据,调用函数提供的这些数据叫实际参数;
+    实际参数既可以是变量也可以是其他方式表示;
+    传递的是数据而不是存储位置,值传递;不能通过函数改变实参本身;
+    函数的形参类型和个数没有限制,但返回值最多只能有一个;
 /*
  * 参数演示
  */
 #include <stdio.h>
 void show(int num) {
-	printf("show(%d)\n", num);
+    printf("show(%d)\n", num);
 }
 
 void sum(int num, int num1) {
-	printf("sum is %d\n", num + num1);
+    printf("sum is %d\n", num + num1);
 }
 
 int main() {
-	int num = 10;
-	show(5);
-	show(num);
-	sum(13, 7);
-	return 0;
+    int num = 10;
+    show(5);
+    show(num);
+    sum(13, 7);
+    return 0;
 }
 
 /*
@@ -197,25 +197,25 @@ int main() {
  */
 #include <stdio.h>
 void show(int num) {
-	printf("show(%d)\n", num);
+    printf("show(%d)\n", num);
 }
 
 int sum(int num, int num1) {
-	return num + num1;
+    return num + num1;
 }
 
 int main() {
-	int num = 10;
-	show(5);
-	show(num);
+    int num = 10;
+    show(5);
+    show(num);
 
-	int sum = show1(13, 7);
-	printf("sum is %d\n", sum);
-	return 0;
+    int sum = show1(13, 7);
+    printf("sum is %d\n", sum);
+    return 0;
 }
 
 作业
-	1.编写程序在屏幕上打印如下内容:
+    1.编写程序在屏幕上打印如下内容:
 1 x 9 = 9
 2 x 8 = 16
 ...
@@ -232,50 +232,50 @@ int main() {
  */
 #include <stdio.h>
 void show(int x, int y) {
-	printf("%d x %d = %2d\n", x, y, x * y);
+    printf("%d x %d = %2d\n", x, y, x * y);
 }
 
 int main() {
-	int i = 0;
-	for (i = 1; i <= 5; i++) {
-		show(i, 10 - i);
-	}
-	return 0;
+    int i = 0;
+    for (i = 1; i <= 5; i++) {
+        show(i, 10 - i);
+    }
+    return 0;
 }
 
-	2.编程判断某个给定数字是否素数;
+    2.编程判断某个给定数字是否素数;
 /*
  * 编程判断一个数是否素数
  */
 #include <stdio.h>
 int is_su(int num) {
-	int num1 = 0;
-	for (num1 = 2; num1 < num; num1++) {
-		if (!(num % num1)) {
-			return 0;	// 0表示不是素数
-		}
-	}
-	return 1;
+    int num1 = 0;
+    for (num1 = 2; num1 < num; num1++) {
+        if (!(num % num1)) {
+            return 0;    // 0表示不是素数
+        }
+    }
+    return 1;
 }
 
 int main() {
-	int i = 0;
-	printf("请输入一个数字");
-	scanf("%d", &i);
-	scanf("%*[^\n]");
-	scanf("%*c");
+    int i = 0;
+    printf("请输入一个数字");
+    scanf("%d", &i);
+    scanf("%*[^\n]");
+    scanf("%*c");
 
-	if (is_su(i)) {
-		printf("是素数\n");
-	} else {
-		printf("不是素数\n");
-	}
+    if (is_su(i)) {
+        printf("是素数\n");
+    } else {
+        printf("不是素数\n");
+    }
 
-	return 0;
+    return 0;
 }
 
-	3.编写函数生成一张彩票并打印在屏幕上;
-	可以出现重复数字,彩票中的数字个数由主函数指定;
+    3.编写函数生成一张彩票并打印在屏幕上;
+    可以出现重复数字,彩票中的数字个数由主函数指定;
 /*
  * 编写函数生成一张彩票并打印在屏幕上;
  * 可以出现重复数字,彩票中的数字个数由主函数指定
@@ -284,27 +284,27 @@ int main() {
 #include <time.h>
 #include <stdlib.h>
 void lottory(int num) {
-	int arr[num], i = 0;
-	for (i = 0; i < num; i++) {
-		//生成随机数
-		arr[i] = rand() % 36 + 1;
-	}
-	for (i = 0; i < num; i++) {
-		//循环打印
-		printf("%d ", arr[i]);
-	}
-	printf("\n");
+    int arr[num], i = 0;
+    for (i = 0; i < num; i++) {
+        //生成随机数
+        arr[i] = rand() % 36 + 1;
+    }
+    for (i = 0; i < num; i++) {
+        //循环打印
+        printf("%d ", arr[i]);
+    }
+    printf("\n");
 }
 
 int main() {
-	int num = 0;
-	srand(time(0));
-	printf("请输入彩票的位数: ");
-	scanf("%d", &num);
-	scanf("%*[^\n]");
-	scanf("%*c");
+    int num = 0;
+    srand(time(0));
+    printf("请输入彩票的位数: ");
+    scanf("%d", &num);
+    scanf("%*[^\n]");
+    scanf("%*c");
 
-	lottory(num);
-	return 0;
+    lottory(num);
+    return 0;
 }
 

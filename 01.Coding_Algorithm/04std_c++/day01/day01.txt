@@ -5,27 +5,27 @@ C++简介
 
 1. C++简介
 1.1 C++历史
-	80年代初由贝尔实验室的Bjarne Stroustrup本贾尼·斯特劳斯特卢普设计和实现;
+    80年代初由贝尔实验室的Bjarne Stroustrup本贾尼·斯特劳斯特卢普设计和实现;
     在C语言的基础上增加了面向对象的机制;增加了使用与面向对象程序设计的类class;
-	1983年被正式命名为C++;
-	1987年GNU制定了C++标准;
-	1992年Microsoft的C++标准发布,IBM的C++标准发布
-	1998年ANSI/ISO制定了C++国际标准,-std=c++98
-	2003年ISO修定了C++版本 ISO/IEC 14882:2003, -std=c++03
-	2011年ISO发布ISO/IEC 14882:2011,-std=c++11
-	2014年ISO发布ISO/IEC 14882:2014,-std=c++14
-	2017年ISO发布ISO/IEC 14882:2017,-std=c++17
+    1983年被正式命名为C++;
+    1987年GNU制定了C++标准;
+    1992年Microsoft的C++标准发布,IBM的C++标准发布
+    1998年ANSI/ISO制定了C++国际标准,-std=c++98
+    2003年ISO修定了C++版本 ISO/IEC 14882:2003, -std=c++03
+    2011年ISO发布ISO/IEC 14882:2011,-std=c++11
+    2014年ISO发布ISO/IEC 14882:2014,-std=c++14
+    2017年ISO发布ISO/IEC 14882:2017,-std=c++17
 
 1.2 C++与C语言的关系
-	最初的C++包含整个C,基本上完全兼容C,是对C语言的扩展,以前的C程序可以直接拿来用;
+    最初的C++包含整个C,基本上完全兼容C,是对C语言的扩展,以前的C程序可以直接拿来用;
     现在的C++正逐渐发展为一门独立的语言,因此学习C++时要转换思想,当作一门全新的语言来学习;
-	C++是强类型语言,对类型检查更严格;脚本语言是弱类型语言如shell/javascript
-	C++扩展了C语言
-		支持面向对象	//以类的方式组织代码
-		支持运算符重载等	//特殊的函数表现
-		支持异常机制	//新的错误处理方式
-		支持泛型编程	//类型通用编程
-	学习C++关键是学习C++中的面向对象编程的思想,用C语言也可以模拟出面向对象的编程,因为思想是一种抽象的思维方式;
+    C++是强类型语言,对类型检查更严格;脚本语言是弱类型语言如shell/javascript
+    C++扩展了C语言
+        支持面向对象    //以类的方式组织代码
+        支持运算符重载等    //特殊的函数表现
+        支持异常机制    //新的错误处理方式
+        支持泛型编程    //类型通用编程
+    学习C++关键是学习C++中的面向对象编程的思想,用C语言也可以模拟出面向对象的编程,因为思想是一种抽象的思维方式;
 
 1.3 面向对象OO的三大特点
     C++面向对象三大特性分别是封装,继承,多态；
@@ -33,19 +33,19 @@ C++简介
 继承 使子类可以使用基类的属性和方法,增加了代码的可复用性;
 多态 使基类对象可以使用子类对象的功能,实现了解耦;使之前的代码可以执行后来人写的代码,增加了程序的可拓展性和可维护性;
 1.3.1 封装
-	封装意味着把对象的属性和方法结合成一个独立的系统单位,并尽可能隐藏对象的内部细节;封装思想是面向对象思想描述的基础,从此程序员面对的就不再是许多复杂的函数和过程实现,而是少数具有行为能力的个体实例;
-	封装可以实现大帅对将军直接下达任务和指标,着眼于全局而不必关注细节,细节由每个对象具体实现;
-	类是抽象的,不占用内存;
-	对象是具体的,是类的实例化,占用存储空间;
-	类是广义的数据类型,对象是广义的变量;
+    封装意味着把对象的属性和方法结合成一个独立的系统单位,并尽可能隐藏对象的内部细节;封装思想是面向对象思想描述的基础,从此程序员面对的就不再是许多复杂的函数和过程实现,而是少数具有行为能力的个体实例;
+    封装可以实现大帅对将军直接下达任务和指标,着眼于全局而不必关注细节,细节由每个对象具体实现;
+    类是抽象的,不占用内存;
+    对象是具体的,是类的实例化,占用存储空间;
+    类是广义的数据类型,对象是广义的变量;
 1.3.2 继承
-	子类对象拥有与基类相同的全部非私有的属性和方法,称为继承;
-	如人都有一些共同的属性:鼻子眼睛嘴巴...;方法有吃饭睡觉...;可以由此再分出黄种人白种人...;
+    子类对象拥有与基类相同的全部非私有的属性和方法,称为继承;
+    如人都有一些共同的属性:鼻子眼睛嘴巴...;方法有吃饭睡觉...;可以由此再分出黄种人白种人...;
 1.3.2 多态
-	多态是指在基类中定义的属性和方法被子类继承后,子类可以重写为不同的数据类型或者表现行为等特性;
-	如动物是一个基类,他的子类有老虎,小鸟,鱼等;作为动物类有一个定义为virtual Move();的虚方法,那么这些子类继承下来后会根据自己的特性实现不同的Move()方式如爬,飞,游;实现方式是子类中重写父类的虚函数;
+    多态是指在基类中定义的属性和方法被子类继承后,子类可以重写为不同的数据类型或者表现行为等特性;
+    如动物是一个基类,他的子类有老虎,小鸟,鱼等;作为动物类有一个定义为virtual Move();的虚方法,那么这些子类继承下来后会根据自己的特性实现不同的Move()方式如爬,飞,游;实现方式是子类中重写父类的虚函数;
 
-	C++是支持面向对象编程的语言,但用C++语言编写的程序不一定就是面向对象的程序,关键在于是否用了面向对象的思想;
+    C++是支持面向对象编程的语言,但用C++语言编写的程序不一定就是面向对象的程序,关键在于是否用了面向对象的思想;
 
 多态的表现(效果):
 一个调用语句可以出现/实现多种形态.
@@ -60,51 +60,51 @@ C++的多态性用一句话概括就是：
 如果对象类型是派生类，就调用派生类的函数；如果对象类型是基类，就调用基类的函数；
 
 2. 第一个C++程序
-	/*
-	 * 第1个C++程序
-	 */
-	#include <iostream>
-	using namespace std;	//可以使用std里面的所有东西(cin/cout/endl);
-	int main() {
-		//目前该大括号折下来的多一些,但不折下来的更牛一些;
-		cout << "hello C++" << endl;	//endline换行
-		int age;
-		cout << "请输入年龄的值:" << endl;
-		cin >> age;		//获取用户输入
-		cout << "age is " << age << endl;	//输出类型可以自动识别
-		//上面的<</>>有没有像shell里面的重定向呢?
-		//cin和cout就是输入输出流对象;
-		return 0;
-	}
+    /*
+     * 第1个C++程序
+     */
+    #include <iostream>
+    using namespace std;    //可以使用std里面的所有东西(cin/cout/endl);
+    int main() {
+        //目前该大括号折下来的多一些,但不折下来的更牛一些;
+        cout << "hello C++" << endl;    //endline换行
+        int age;
+        cout << "请输入年龄的值:" << endl;
+        cin >> age;        //获取用户输入
+        cout << "age is " << age << endl;    //输出类型可以自动识别
+        //上面的<</>>有没有像shell里面的重定向呢?
+        //cin和cout就是输入输出流对象;
+        return 0;
+    }
 2.1 编译器g++和gcc的选项完全相同;
-	g++ -c *.cpp
-		-s //有的系统是S,生成汇编
-		-l 库名 -L 库的路径
-		-E //预处理
-		-o //另起文件名
-		-I //指定头文件路径; 
-		-g //生成调试信息;
-	gcc可以编译c++文件,但是默认的搜索库文件的路径不同,所以要指定库名
-		gcc 01hello.cpp -lstdc++
-	c++源程序文件推荐以.cpp结尾;
+    g++ -c *.cpp
+        -s //有的系统是S,生成汇编
+        -l 库名 -L 库的路径
+        -E //预处理
+        -o //另起文件名
+        -I //指定头文件路径; 
+        -g //生成调试信息;
+    gcc可以编译c++文件,但是默认的搜索库文件的路径不同,所以要指定库名
+        gcc 01hello.cpp -lstdc++
+    c++源程序文件推荐以.cpp结尾;
 2.2 头文件
-	标准的c++头文件不以.h结尾
-	#include <iostream> //相当于C语言的stdio.h
-	#include <string>   //相当于C语言的string.h
-	#include <map>      //C++的map
-	#include <vector>   //C++的vector
-	#include <list>     //C++的链表
-	不带.h的话头文件的名字和类型的名字是一致的;
-	也可以使用C语言的头文件
-	使用标准c的头文件采用这种方式,如#include <cstring>//去尾加头
-		如#include <cstdio>
-	使用非标准c的头文件和c中使用没有任何区别,直接原样引用;
-		如#include <pthread.h>	//unix的库也是原样引用;
+    标准的c++头文件不以.h结尾
+    #include <iostream> //相当于C语言的stdio.h
+    #include <string>   //相当于C语言的string.h
+    #include <map>      //C++的map
+    #include <vector>   //C++的vector
+    #include <list>     //C++的链表
+    不带.h的话头文件的名字和类型的名字是一致的;
+    也可以使用C语言的头文件
+    使用标准c的头文件采用这种方式,如#include <cstring>//去尾加头
+        如#include <cstdio>
+    使用非标准c的头文件和c中使用没有任何区别,直接原样引用;
+        如#include <pthread.h>    //unix的库也是原样引用;
 2.3 输入输出
-	C中使用printf()和scanf()并且要指定输入输出格式,格式化的输入输出
-	C++中使用cin和cout自动识别格式;cin/cout实际上是变量(输入输出流的对象);
+    C中使用printf()和scanf()并且要指定输入输出格式,格式化的输入输出
+    C++中使用cin和cout自动识别格式;cin/cout实际上是变量(输入输出流的对象);
 2.4 auto关键字
-	auto可以自动帮我们推断变量的类型, 比如在定义一些难以确定的变量类型时
+    auto可以自动帮我们推断变量的类型, 比如在定义一些难以确定的变量类型时
     // vector<Student>::iterator it = Students.begin();
     for (auto it = Students.begin(); it != Students.end(); it++) {
         if (id == it->id) {
@@ -114,37 +114,37 @@ C++的多态性用一句话概括就是：
         }
     }
 
-	但是如果直接使用g++命令编译会报错,大概如下
-	vector.cpp: In function ‘void remove(int)’:
-	vector.cpp:37:12: error: ‘it’ does not name a type
-	vector.cpp:37:35: error: expected ‘;’ before ‘it’
-	vector.cpp:37:35: error: ‘it’ was not declared in this scope
-	默认把auto当作声明自动生命周期的关键字(C++98标准)，而不是自动类型的关键字；
-	在C++11标准中auto可以在声明变量的时候根据变量初始值的类型自动为此变量选择匹配的类型;
+    但是如果直接使用g++命令编译会报错,大概如下
+    vector.cpp: In function ‘void remove(int)’:
+    vector.cpp:37:12: error: ‘it’ does not name a type
+    vector.cpp:37:35: error: expected ‘;’ before ‘it’
+    vector.cpp:37:35: error: ‘it’ was not declared in this scope
+    默认把auto当作声明自动生命周期的关键字(C++98标准)，而不是自动类型的关键字；
+    在C++11标准中auto可以在声明变量的时候根据变量初始值的类型自动为此变量选择匹配的类型;
 
-	因此如果要解决此问题需要在编译时添加-std=c++11的编译选项；
-	g++ -std=c++11 vector.cpp -o vector
+    因此如果要解决此问题需要在编译时添加-std=c++11的编译选项；
+    g++ -std=c++11 vector.cpp -o vector
 
 3. 命名空间namespace
-	using namespace std; //使用标准命名空间std下的数据,包含变量函数和对象;
-	C++标准库中的类和函数是在命名空间std中声明的,因此程序中如果需要用到C++标准库(此时就需要用#include),就需要用using namespace std;做声明,表示要用到命名空间std中的内容;
+    using namespace std; //使用标准命名空间std下的数据,包含变量函数和对象;
+    C++标准库中的类和函数是在命名空间std中声明的,因此程序中如果需要用到C++标准库(此时就需要用#include),就需要用using namespace std;做声明,表示要用到命名空间std中的内容;
 3.1 为什么定义命名空间
-	解决命名冲突的问题
+    解决命名冲突的问题
 3.2 如何定义命名空间
-	namespace 空间名 {
-		/* 数据的声明或定义 */
-	} //大括号后面没有分号
-	命名空间只会改变作用域;
-	std命名空间基本包含了C++中的各种常用的部分;
-	命名空间的定义可以分段进行;
-	namespace std {
-		void show();
-	}
-	namespace std {
-		void show() {
-			//...
-		}
-	}
+    namespace 空间名 {
+        /* 数据的声明或定义 */
+    } //大括号后面没有分号
+    命名空间只会改变作用域;
+    std命名空间基本包含了C++中的各种常用的部分;
+    命名空间的定义可以分段进行;
+    namespace std {
+        void show();
+    }
+    namespace std {
+        void show() {
+            //...
+        }
+    }
 3.3 使用命名空间
 /*
  * 命名空间可以分段定义
@@ -152,143 +152,143 @@ C++的多态性用一句话概括就是：
 #include <iostream>
 using namespace std;
 namespace IBM {
-	int age = 100;
-	void show() {
-		cout << "IBM's age is" << age << endl;
-	}
+    int age = 100;
+    void show() {
+        cout << "IBM's age is" << age << endl;
+    }
 }
 namespace school {
-	int age = 12;
-	void show();
+    int age = 12;
+    void show();
 }
 namespace school {
-	void show() {
-		cout << "School's age is" << age << endl;
-	}
+    void show() {
+        cout << "School's age is" << age << endl;
+    }
 }
 int main() {
-	/*使用命名空间IBM下的show() */
-	IBM::age = 60;
-	IBM::show();
-	/*把命名空间school下的age改成13,调用这个空间下的show */
-	school::age = 13;
-	school::show();
+    /*使用命名空间IBM下的show() */
+    IBM::age = 60;
+    IBM::show();
+    /*把命名空间school下的age改成13,调用这个空间下的show */
+    school::age = 13;
+    school::show();
 }
 3.3.1 在数据前加上命名空间名双冒号
-	命名空间名::数据名
+    命名空间名::数据名
 3.3.2 使用using声明
-	using 空间名::数据;
-	using会把这个变量名引入到当前作用域;
-	在不引入冲突的情况下可以直接使用数据名
-	如果引入冲突,请使用第一种方式;
+    using 空间名::数据;
+    using会把这个变量名引入到当前作用域;
+    在不引入冲突的情况下可以直接使用数据名
+    如果引入冲突,请使用第一种方式;
 /*
  * using namespace声明
  */
 #include <iostream>
 using namespace std;
 namespace IBM {
-	int age = 100;
-	void show() {
-		cout << "IBM's age is " << age << endl;
-	}
+    int age = 100;
+    void show() {
+        cout << "IBM's age is " << age << endl;
+    }
 }
 namespace school {
-	int age = 12;
-	void show();
+    int age = 12;
+    void show();
 }
 namespace school {
-	void show() {
-		cout << "School's age is " << age << endl;
-	}
+    void show() {
+        cout << "School's age is " << age << endl;
+    }
 }
 /*使用using声明*/ using IBM::age;
 using IBM::show;
 //using school::age;//冲突了
 //using school::show;
 int main() {
-	IBM::show();		//第1种方式;
-	show();			//第2种方式,有可能会出现冲突;
-	show();
+    IBM::show();        //第1种方式;
+    show();            //第2种方式,有可能会出现冲突;
+    show();
 }
 3.3.3 使用using namepspace 指令
-	using namespace 空间名;
-	比第2种方式引入冲突概率更高;
+    using namespace 空间名;
+    比第2种方式引入冲突概率更高;
 /*
  * 使用using namespace指令
  */
 #include <iostream>
 using namespace std;
 namespace IBM {
-	int age = 100;
-	void show() {
-		cout << "IBM's age is" << age << endl;
-	}
+    int age = 100;
+    void show() {
+        cout << "IBM's age is" << age << endl;
+    }
 }
 namespace school {
-	int age = 12;
-	void show();
-	double salary = 12345;
+    int age = 12;
+    void show();
+    double salary = 12345;
 }
 namespace school {
-	void show() {
-		cout << "School's age is" << age << endl;
-	}
+    void show() {
+        cout << "School's age is" << age << endl;
+    }
 }
 /*使用using namespace指令*/ using namespace IBM;
 using namespace school;
 int main() {
-	//age = 101; //会发生冲突
-	//show();
-	cout << salary << endl;
-	IBM::show();
-	school::show();
+    //age = 101; //会发生冲突
+    //show();
+    cout << salary << endl;
+    IBM::show();
+    school::show();
 }
 3.4 命名空间可以嵌套
-	在命名空间中可以继续定义命名空间;
-	namespace ns1 {
-		int age = 1;
-		namespace ns2 {
-			int age = 2;
-			void show() {
-				cout << age << endl;
-			}
-		}
-	}
-	调用的时候仍然遵循前面的规则;
+    在命名空间中可以继续定义命名空间;
+    namespace ns1 {
+        int age = 1;
+        namespace ns2 {
+            int age = 2;
+            void show() {
+                cout << age << endl;
+            }
+        }
+    }
+    调用的时候仍然遵循前面的规则;
 /*
  * 命名空间的嵌套
  */
 #include <iostream>
 using namespace std;
 namespace ns1 {
-	int age = 1;
-	namespace ns2 {
-		int age = 2;
-		void show() {
-			cout << age << endl;
-		}
-	}
+    int age = 1;
+    namespace ns2 {
+        int age = 2;
+        void show() {
+            cout << age << endl;
+        }
+    }
 }
 namespace ns3 = ns1::ns2; //可以简化嵌套的调用形式;
 int main() {
-	/*调用ns2中的show()函数*/
-	ns1::ns2::show();
-	using ns1::ns2::show;
-	show();
-	ns3::show();
+    /*调用ns2中的show()函数*/
+    ns1::ns2::show();
+    using ns1::ns2::show;
+    show();
+    ns3::show();
 }
 3.5 无名的命名空间;
-	特殊的命名空间,又叫全局命名空间;
-	如果一个数据没有定义在任何一个命名空间中,则会被自动放入无名的命名空间;
-	C语言用static,C++用无名命名空间;
-	C语言中static关键字的作用
-	(1) static 局部变量 延长生命周期,作用域不变;
-	(2) static 全局变量 限定在本文件内使用;
-	(3) static 函数     限定在本文件内访问;
-	namespace {
-		全局变量或函数; 防止被外部文件访问;
-		/* 防止跨文件访问 */
-	} //无名的命名空间,相当于C语言中的static变量;
+    特殊的命名空间,又叫全局命名空间;
+    如果一个数据没有定义在任何一个命名空间中,则会被自动放入无名的命名空间;
+    C语言用static,C++用无名命名空间;
+    C语言中static关键字的作用
+    (1) static 局部变量 延长生命周期,作用域不变;
+    (2) static 全局变量 限定在本文件内使用;
+    (3) static 函数     限定在本文件内访问;
+    namespace {
+        全局变量或函数; 防止被外部文件访问;
+        /* 防止跨文件访问 */
+    } //无名的命名空间,相当于C语言中的static变量;
 /*
  * 无名的命名空间
  */
@@ -296,27 +296,27 @@ int main() {
 using namespace std;
 int age = 100; //全局变量
 namespace { /* 防止跨文件访问 */
-	int count = 1001; //无名的命名空间
+    int count = 1001; //无名的命名空间
 }
 int main() {
-	cout << age << endl;
-	cout << ::age << endl;
-	cout << count << endl;
-	cout << ::count << endl; //可以像全局一样访问
+    cout << age << endl;
+    cout << ::age << endl;
+    cout << count << endl;
+    cout << ::count << endl; //可以像全局一样访问
 }
 
 4. C++中的结构体/联合/枚举
 4.0 变量初始化
-	C++11的统一初始化: T tmp {}; 以前可以写: T tmp = T();
-	在函数体内部,int tmp;的初始值是不确定的,int tmp{};会对tmp进行值初始化,tmp的值为0;这种写法初始化数组很方便,int a[10]{};每个元素被初始化为0,int a[10]{1, 2};前两个元素为1和2,之后的元素初始化为0;
+    C++11的统一初始化: T tmp {}; 以前可以写: T tmp = T();
+    在函数体内部,int tmp;的初始值是不确定的,int tmp{};会对tmp进行值初始化,tmp的值为0;这种写法初始化数组很方便,int a[10]{};每个元素被初始化为0,int a[10]{1, 2};前两个元素为1和2,之后的元素初始化为0;
 
-	一个是不能直接T tmp,因为没有初始化以至于直接使用栈当中的垃圾数据,导致使用其数据时带来不确定的结果;
-	二是不能用memset这种C的方法,因为C++的对象很多时候默认构造会分配内存,如果把指针置零会产生段错误或者内存泄漏;
-	参考 https://segmentfault.com/q/1010000008216506
+    一个是不能直接T tmp,因为没有初始化以至于直接使用栈当中的垃圾数据,导致使用其数据时带来不确定的结果;
+    二是不能用memset这种C的方法,因为C++的对象很多时候默认构造会分配内存,如果把指针置零会产生段错误或者内存泄漏;
+    参考 https://segmentfault.com/q/1010000008216506
 4.1 结构体
-	C++定义结构体时和c完全相同,但定义变量时类型可以省略struct关键字;
-	C++中的结构体中可以定义函数;
-	空结构体在c++中大小是1,在c中是0;
+    C++定义结构体时和c完全相同,但定义变量时类型可以省略struct关键字;
+    C++中的结构体中可以定义函数;
+    空结构体在c++中大小是1,在c中是0;
 
 /*
  * struct.c
@@ -324,12 +324,12 @@ int main() {
 #include <stdio.h>
 struct Emp { };
 int main() {
-	printf("%d\n", sizeof(struct Emp)); //0
-	struct Emp emp;
-	printf("%d\n", sizeof emp); //0 //变量可以省略小括号
+    printf("%d\n", sizeof(struct Emp)); //0
+    struct Emp emp;
+    printf("%d\n", sizeof emp); //0 //变量可以省略小括号
 }
-	分别用gcc和g++编译以上文件将得到不同的结果;
-	C语言中认为结构体封装数据,函数封装代码;
+    分别用gcc和g++编译以上文件将得到不同的结果;
+    C语言中认为结构体封装数据,函数封装代码;
 /*
  * struct.cpp
  */
@@ -338,56 +338,56 @@ using namespace std;
 struct Emp { };
 // 定义一个日期类型的结构体:年月日,在结构体中提供显示日期的函数
 struct Date {
-	//数据
-	int year;
-	int month;
-	int day;
-	//代码在代码区
-	void showDate() { //在同一个作用域,可以省略参数的传递;
-		cout << year << "年" << month << "月" 
-			<< day << "日" << endl;
-	}
-	//结构体和函数形式上是一体的,存储在不同的区;
-	//c++编译器会自动处理
+    //数据
+    int year;
+    int month;
+    int day;
+    //代码在代码区
+    void showDate() { //在同一个作用域,可以省略参数的传递;
+        cout << year << "年" << month << "月" 
+            << day << "日" << endl;
+    }
+    //结构体和函数形式上是一体的,存储在不同的区;
+    //c++编译器会自动处理
 };
 void showDate(Date *date) {
-	cout << date->year << "年"
-		<< date->month << "月" << date->day << "日" << endl;
+    cout << date->year << "年"
+        << date->month << "月" << date->day << "日" << endl;
 }
 int main() {
-	cout << "空结构体大小:" << sizeof(Emp) << endl;
-	Emp emp;//c++中可以省略struct关键字
-	cout << "空结构体对象大小:" << sizeof(emp) << endl;
-	/*构建日期对象,表现日期对象*/
-	Date date = {2015, 07, 12};
-	showDate(&date); //传参的方式;
-	date.year = 2015; //访问成员变量
-	date.showDate(); //调用成员函数;
+    cout << "空结构体大小:" << sizeof(Emp) << endl;
+    Emp emp;//c++中可以省略struct关键字
+    cout << "空结构体对象大小:" << sizeof(emp) << endl;
+    /*构建日期对象,表现日期对象*/
+    Date date = {2015, 07, 12};
+    showDate(&date); //传参的方式;
+    date.year = 2015; //访问成员变量
+    date.showDate(); //调用成员函数;
 }
 
 4.2 联合union
-	C++在定义联合类型的变量时,类型可以省略union关键字;
-	c++中可以定义匿名联合;(可以突破c++编译器的一些限制)
-	//Unix和网络的字节序都是高字节序;linux是低字节序;
-	高字节序又叫大端格式,低字节序又叫小端格式
-	Little endian:将低序字节存储在起始地址
-	Big endian:将高序字节存储在起始地址
-	例子:在内存中整数0x01020304的存储方式
-	内存地址 2003 2002 2001 2000
-	BE        04   03   02   01
-	LE        01   02   03   04
-	例子:如果我们将0x1234abcd写入到以0x0000开始的内存中,则结果为
-			BE	LE
-	0x0000 0x12 0xcd
-	0x0001 0x34 0xab
-	0x0002 0xab 0x34
-	0x0003 0xcd 0x12
-	x86系列CPU都是little-endian的字节序
-	#0102
-	--------------
-	 01		 02
-	高字节 低字节
-	--------------
+    C++在定义联合类型的变量时,类型可以省略union关键字;
+    c++中可以定义匿名联合;(可以突破c++编译器的一些限制)
+    //Unix和网络的字节序都是高字节序;linux是低字节序;
+    高字节序又叫大端格式,低字节序又叫小端格式
+    Little endian:将低序字节存储在起始地址
+    Big endian:将高序字节存储在起始地址
+    例子:在内存中整数0x01020304的存储方式
+    内存地址 2003 2002 2001 2000
+    BE        04   03   02   01
+    LE        01   02   03   04
+    例子:如果我们将0x1234abcd写入到以0x0000开始的内存中,则结果为
+            BE    LE
+    0x0000 0x12 0xcd
+    0x0001 0x34 0xab
+    0x0002 0xab 0x34
+    0x0003 0xcd 0x12
+    x86系列CPU都是little-endian的字节序
+    #0102
+    --------------
+     01      02
+    高字节 低字节
+    --------------
 大小端字节序转换宏定义
 #define ENDIAN_SWAP16(x) ((((uint16_t)(x) & 0xFF00) >> 8) | (((uint16_t)(x) & 0x00FF) << 8))
 #define ENDIAN_SWAP32(x) ((((uint32_t)(x) & 0xFF000000) >> 24) | (((uint32_t)(x) & 0x00FF0000) >> 8) | (((uint32_t)(x) & 0x0000FF00) << 8) | (((uint32_t)(x) & 0x000000FF) << 24))
@@ -398,17 +398,17 @@ int main() {
 #include <iostream>
 using namespace std;
 int main() {
-	union { //可以定义匿名联合
-		int m;
-		char d[4];
-	}; //二者共享相同的内存地址;
-	m = 0x31323334;// 当前系统是低字节序
-	//49->'1',50->'2',51->'3',52->'4'
-	for (int i = 0; i < 4; i++) {
-		cout << d[i] << " ";
-	}
-	//4 3 2 1;
-	cout << endl;
+    union { //可以定义匿名联合
+        int m;
+        char d[4];
+    }; //二者共享相同的内存地址;
+    m = 0x31323334;// 当前系统是低字节序
+    //49->'1',50->'2',51->'3',52->'4'
+    for (int i = 0; i < 4; i++) {
+        cout << d[i] << " ";
+    }
+    //4 3 2 1;
+    cout << endl;
 }
 
 #include <iostream>
@@ -416,52 +416,52 @@ using namespace std;
 
 bool isLittleEndian()
 {
-	/*
-	 * iE and cE has the same memory start addr in union;
-	 * put 0x1 to an integer variable and read the first byte
-	 * will return 1 if litte endian, otherwise return 0;
-	 */
-	union UE {
-		int iE;
-		char cE;
-	};
-	union UE ue {};
-	ue.iE = 0x1;
-	return (ue.cE == 1);
+    /*
+     * iE and cE has the same memory start addr in union;
+     * put 0x1 to an integer variable and read the first byte
+     * will return 1 if litte endian, otherwise return 0;
+     */
+    union UE {
+        int iE;
+        char cE;
+    };
+    union UE ue {};
+    ue.iE = 0x1;
+    return (ue.cE == 1);
 }
 
 int main() {
-	cout << "isLittleEndian: " << isLittleEndian() << endl;
-	return 0;
+    cout << "isLittleEndian: " << isLittleEndian() << endl;
+    return 0;
 }
 
 4.3 枚举enum
-	表达类型时可以省略enum关键字
-	c++中认为枚举是一个单独的类型,这里体现了c++的类型检查严格;
+    表达类型时可以省略enum关键字
+    c++中认为枚举是一个单独的类型,这里体现了c++的类型检查严格;
     C标准规定,枚举常量的类型为int,枚举变量的类型应该与char,有符号或无符号整型兼容,因此C不限于仅从所定义的枚举常量中取值;
     对于C++来说,编译器会禁止给枚举变量赋予枚举成员之外的值;
-	C++的枚举不再是普通的整数类型,而是一个独立的类型,但其本质还是一个整数;
+    C++的枚举不再是普通的整数类型,而是一个独立的类型,但其本质还是一个整数;
 /*
  * enum
  */
 #include <iostream>
 using namespace std;
 enum Direction {
-	D_UP,
-	D_DOWN,
-	D_LEFT,
-	D_RIGHT
+    D_UP,
+    D_DOWN,
+    D_LEFT,
+    D_RIGHT
 };
 int main() {
-	//定义一个变量为Direction类型,取值只能是定义中的;
-	Direction dire = D_UP;
-	cout << dire << endl;
-	dire = D_LEFT;
-	cout << dire << endl;
-	//枚举的本质就是一个整数
-	int x = dire;
-	cout << "x = " << x << endl;
-	//dire = 1;//这里编译出错,不能把一个整数赋值给枚举类型,体现了c++类型检查严格;
+    //定义一个变量为Direction类型,取值只能是定义中的;
+    Direction dire = D_UP;
+    cout << dire << endl;
+    dire = D_LEFT;
+    cout << dire << endl;
+    //枚举的本质就是一个整数
+    int x = dire;
+    cout << "x = " << x << endl;
+    //dire = 1;//这里编译出错,不能把一个整数赋值给枚举类型,体现了c++类型检查严格;
 }
     在大型项目中将可能会出现命名冲突的问题,通常主要有几种解决方法,
     后两种方案用法基本相同,可以根据引用所定义枚举的范围选择使用,不推荐使用第1种方法:
@@ -479,107 +479,107 @@ namespace Direction {
 }
 
 int main() {
-	//定义一个变量为Direction类型,取值只能是定义中的;
+    //定义一个变量为Direction类型,取值只能是定义中的;
     Direction::Direction dire = Direction::D_UP;
-	cout << dire << endl;
-	dire = Direction::D_LEFT;
-	cout << dire << endl;
-	//枚举的本质就是一个整数
-	int x = dire;
-	cout << "x = " << x << endl;
-	//dire = 1;//这里编译出错,不能把一个整数赋值给枚举类型,体现了c++类型检查严格;
+    cout << dire << endl;
+    dire = Direction::D_LEFT;
+    cout << dire << endl;
+    //枚举的本质就是一个整数
+    int x = dire;
+    cout << "x = " << x << endl;
+    //dire = 1;//这里编译出错,不能把一个整数赋值给枚举类型,体现了c++类型检查严格;
 }
 
 5. C++中的bool类型
-	C中使用bool类型需要引入一个头文件,#include <stdbool.h>
-	C++中不需要引入任何头文件,可以直接使用;
-	bool类型的变量可以赋值任何数据;其中false,0,'\0',NULL都代表假;除此之外的任何赋值都为真;在进行判断时直接对变量进行判断;
+    C中使用bool类型需要引入一个头文件,#include <stdbool.h>
+    C++中不需要引入任何头文件,可以直接使用;
+    bool类型的变量可以赋值任何数据;其中false,0,'\0',NULL都代表假;除此之外的任何赋值都为真;在进行判断时直接对变量进行判断;
 
 #include <iostream>
 using namespace std;
 int main() {
-	bool flag = false;
-	//bool类型的4大假:false,0,'\0',NULL;除此之外的任何赋值都为真;
-	flag = "abc";
-	if (flag) {
-		cout << "flag is true" << endl;
-	} else {
-		cout << "flag is false" << endl;
-	}
-	int age = 100;
-	cout << age <<"地址" << &age << endl;
-	cout << age <<"地址" << bitand(age)<<endl;
+    bool flag = false;
+    //bool类型的4大假:false,0,'\0',NULL;除此之外的任何赋值都为真;
+    flag = "abc";
+    if (flag) {
+        cout << "flag is true" << endl;
+    } else {
+        cout << "flag is false" << endl;
+    }
+    int age = 100;
+    cout << age <<"地址" << &age << endl;
+    cout << age <<"地址" << bitand(age)<<endl;
 }
 
 6. C++中的符号替代
-	%:		#
-	<%		{
-	%>		}
-	and		&&
-	bitand	&
+    %:        #
+    <%        {
+    %>        }
+    and       &&
+    bitand    &
 
 7. C++中的函数和c的区别
 7.1 C++中的参数列表严格匹配;
-	C语言中无参代表可以接受任意类型任意个数的参数;
-	C++函数无参代表不能传任何参数,void形参依然可以用;
+    C语言中无参代表可以接受任意类型任意个数的参数;
+    C++函数无参代表不能传任何参数,void形参依然可以用;
 7.2 不再支持C语言中的隐式声明;
 7.3 C++函数不能省略返回值类型;
-	main函数除外,可以省略返回值类型; //c语言默认返回int叫隐式声明;
+    main函数除外,可以省略返回值类型; //c语言默认返回int叫隐式声明;
 
 8. C++中的函数重载overload
 8.1 定义
-	在同一作用域中,函数名相同,参数列表不同的函数构成重载关系;
-	参数列表不同,如参数类型/个数或顺序(形参类型的顺序)不同;
-	函数能不能构成重载与函数返回值类型无关;
+    在同一作用域中,函数名相同,参数列表不同的函数构成重载关系;
+    参数列表不同,如参数类型/个数或顺序(形参类型的顺序)不同;
+    函数能不能构成重载与函数返回值类型无关;
 8.2 举例
-	int getmax(int x, int y)
-	double getmax(int x,double y)
-	double getmax(double x,int y)
-	double getmax(double x,double y)
+    int getmax(int x, int y)
+    double getmax(int x,double y)
+    double getmax(double x,int y)
+    double getmax(double x,double y)
 /*
  * 函数重载
  */
 #include <iostream>
 using namespace std;
 int getmax(int x, int y) {
-	cout <<"getmax(int,int)" <<endl;
-	return x > y ? x : y;
+    cout <<"getmax(int,int)" <<endl;
+    return x > y ? x : y;
 }
 double getmax(int x, double y) {
-	cout <<"getmax(int,double)" <<endl;
-	return x > y ? x : y;
+    cout <<"getmax(int,double)" <<endl;
+    return x > y ? x : y;
 }
 double getmax(double x, int y) {
-	cout <<"getmax(double,int)" <<endl;
-	return x > y ? x : y;
+    cout <<"getmax(double,int)" <<endl;
+    return x > y ? x : y;
 }
 double getmax(double x, double y) {
-	cout <<"getmax(double,double)" <<endl;
-	return x > y ? x : y;
+    cout <<"getmax(double,double)" <<endl;
+    return x > y ? x : y;
 }
 int main() {
-	cout << getmax(10,20) << endl;
-	cout << getmax(10,20.1) << endl;
-	cout << getmax(10.1,20) << endl;
-	cout << getmax(10.1,20.1) << endl;
+    cout << getmax(10,20) << endl;
+    cout << getmax(10,20.1) << endl;
+    cout << getmax(10.1,20) << endl;
+    cout << getmax(10.1,20.1) << endl;
 }
 8.3 函数重载的原理
-	C语言在生成调用的函数名时,只考虑函数的名字不考虑参数列表;
-	查看生成的汇编文件gcc -S *.c
-		getmax(int x, int y) --> getmax
-	C++在生成调用的函数名时,既考虑函数的名字也考虑参数列表;
-	查看汇编文件g++ -S *.cpp
-		getmax(int x, int y)    --> _Z6getmaxii //长度6,参数类型int/int
-		getmax(int x, double y) --> _Z6getmaxid //长度6,参数类型int/double
+    C语言在生成调用的函数名时,只考虑函数的名字不考虑参数列表;
+    查看生成的汇编文件gcc -S *.c
+        getmax(int x, int y) --> getmax
+    C++在生成调用的函数名时,既考虑函数的名字也考虑参数列表;
+    查看汇编文件g++ -S *.cpp
+        getmax(int x, int y)    --> _Z6getmaxii //长度6,参数类型int/int
+        getmax(int x, double y) --> _Z6getmaxid //长度6,参数类型int/double
 8.4 重载引入的问题以及解决方案
-	重载会导致C++与C语言的库相互调用出现问题
-	当程序跨越编译器或由其它语言调用重载函数时,函数名在编译时编译器不能对其改变,否则无法调用;
-	如何让C++程序调用或者生成函数名时按照C的编译方式?
-	在函数名前加extern "C"可以告诉编译器,像C语言那样进行编译处理;
-	但是这样的方式会导致函数不能再重载;
+    重载会导致C++与C语言的库相互调用出现问题
+    当程序跨越编译器或由其它语言调用重载函数时,函数名在编译时编译器不能对其改变,否则无法调用;
+    如何让C++程序调用或者生成函数名时按照C的编译方式?
+    在函数名前加extern "C"可以告诉编译器,像C语言那样进行编译处理;
+    但是这样的方式会导致函数不能再重载;
 
 思考:能不能在不引入C头文件的情况下调用标准C的函数;
-	如memcpy();
+    如memcpy();
 /*
  * extern "C"
  */
@@ -587,10 +587,10 @@ int main() {
 using namespace std;
 extern "C" void *memcpy(void*, void*, size_t);
 int main() {
-	int var_x = 9527;
-	int var_y = 2014;
-	memcpy(&var_y, &var_x, 4);
-	cout << " var_y = " << var_y << endl;
+    int var_x = 9527;
+    int var_y = 2014;
+    memcpy(&var_y, &var_x, 4);
+    cout << " var_y = " << var_y << endl;
 }
 
 8.5 C++符号表
@@ -649,9 +649,9 @@ These days, almost every C++ compiler uses the Itanium C++ ABI’s name mangling
 We’ve been looking at the Itanium C++ ABI style mangled names, and that’s what cpp_demangle supports.
 
 8.6 调试手段
-	1. 使用backtrace()函数获取调用栈,是一个指针数组,返回获取到的调用栈个数,结果放到传入的指针数组里面;
-	2. 调用backtrace_symbols()把获取的指针数组和数组中调用栈个数传递给该函数,会返回一个新的指针数组,里面是已经转换成符号表的调用栈信息;用完后记得需要free返回的指针变量指向的内存空间;
-	使用这两个函数需要包含execinfo.h头文件;
+    1. 使用backtrace()函数获取调用栈,是一个指针数组,返回获取到的调用栈个数,结果放到传入的指针数组里面;
+    2. 调用backtrace_symbols()把获取的指针数组和数组中调用栈个数传递给该函数,会返回一个新的指针数组,里面是已经转换成符号表的调用栈信息;用完后记得需要free返回的指针变量指向的内存空间;
+    使用这两个函数需要包含execinfo.h头文件;
 
 下面把这个过程封装成了一个宏函数方便以后使用;
 
@@ -662,30 +662,30 @@ We’ve been looking at the Itanium C++ ABI style mangled names, and that’s wh
 
 /* include <execinfo.h> to use this macro */
 #define DBG_ASSERT(x) do { \
-	if (x) { break; } \
-	std::cout << "\r\n------ " <<  __FILE__ << " " <<  __LINE__ << " ------" << endl;\
-	void *pptrace_raw[32] = {0}; \
-	char **pptrace_str = NULL; \
-	int  trace_num = 0, i = 0; \
-	trace_num = backtrace(pptrace_raw, 32); \
-	pptrace_str = (char **)backtrace_symbols(pptrace_raw, trace_num); \
-	for (i = 0; i < trace_num; i++) { std::cout << pptrace_str[i] << endl; } \
-	if (pptrace_str) { delete pptrace_str; } \
+    if (x) { break; } \
+    std::cout << "\r\n------ " <<  __FILE__ << " " <<  __LINE__ << " ------" << endl;\
+    void *pptrace_raw[32] = {0}; \
+    char **pptrace_str = NULL; \
+    int  trace_num = 0, i = 0; \
+    trace_num = backtrace(pptrace_raw, 32); \
+    pptrace_str = (char **)backtrace_symbols(pptrace_raw, trace_num); \
+    for (i = 0; i < trace_num; i++) { std::cout << pptrace_str[i] << endl; } \
+    if (pptrace_str) { delete pptrace_str; } \
 } while (0);
 
 #endif
 
 
 如下linux的ps、pstack和strace对程序进行了分析。 
-  ps	查找进程的pid
-  pstack	打印进程或者线程的栈信息
-  strace 	统计每一步系统调用花费的时间
+  ps    查找进程的pid
+  pstack    打印进程或者线程的栈信息
+  strace     统计每一步系统调用花费的时间
 实例分析
     1. ps -aux | grep nws     
         可以看出nws的pid为171211
-	2. pstack   171211    
+    2. pstack   171211    
         打印出nws进程下所有的线程栈信息。可以看出程序好几个线程都卡在pwrite这一步。
-	3. strace -o output.txt -T -tt -e trace=all -p 171264
+    3. strace -o output.txt -T -tt -e trace=all -p 171264
         nws进程中的171264线程进行系统调用跟踪， 将输出的信息保存在output.txt中
 
 When I need to do this, I usually just use system() and pstack
@@ -697,8 +697,7 @@ So something like this:
 #include <sstream>
 #include <cstdlib>
 
-void f()
-{
+void f() {
     std::string pstackCommand = "pstack ";
     std::stringstream ss;
     ss << getpid();
@@ -709,8 +708,7 @@ void f()
 void g() { f(); }
 void h() { g(); }
 
-int main()
-{
+int main() {
    h();
    return 0;
 }
@@ -759,20 +757,20 @@ void closelog(void);
 void vsyslog(int priority, const char *format, va_list ap);
 
 openlog函数（打开日志设备） : 
-	ident - 标记，添加到每行日志前，通常用当前程序名。 
-	option - 选项，常用值为LOG_PID即包含每个消息的PID，更详细信息参考man syslog。 
-	facility - 记录日志的程序的类型，配置文件可根据不同的登录类型来区别处理消息，常用值LOG_DAEMON即其它系统守护进程，一般为自己创建的守护进程。更详细信息参考man syslog。
+    ident - 标记，添加到每行日志前，通常用当前程序名。 
+    option - 选项，常用值为LOG_PID即包含每个消息的PID，更详细信息参考man syslog。 
+    facility - 记录日志的程序的类型，配置文件可根据不同的登录类型来区别处理消息，常用值LOG_DAEMON即其它系统守护进程，一般为自己创建的守护进程。更详细信息参考man syslog。
 
 syslog函数（生成日志） : 
-	priority - 优先级，说明消息的重要性，可取值如下： 
-		LOG_EMERG 系统不可用 
-		LOG_ALERT 消息需立即处理 
-		LOG_CRIT 重要情况 
-		LOG_ERR 错误 
-		LOG_WARNING 警告 
-		LOG_NOTICE 正常情况，但较为重要 
-		LOG_INFO 信息 
-		LOG_DEBUG 调试信息
+    priority - 优先级，说明消息的重要性，可取值如下： 
+        LOG_EMERG 系统不可用 
+        LOG_ALERT 消息需立即处理 
+        LOG_CRIT 重要情况 
+        LOG_ERR 错误 
+        LOG_WARNING 警告 
+        LOG_NOTICE 正常情况，但较为重要 
+        LOG_INFO 信息 
+        LOG_DEBUG 调试信息
 
 closelog函数（关闭日志设备）。
 
@@ -836,10 +834,10 @@ int main(int argc, char **argv)
 日志处理 
 生成的日志将会发送到一个日志处理守护进程，这个守护进程通过其配置信息来决定日志的处理， 
 大致的处理有： 
-	1. 记录到系统日志中 
-	2. 输出到系统控制台上 
-	3. 转发给指定的用户 
-	4. 转发给syslog服务器 
+    1. 记录到系统日志中 
+    2. 输出到系统控制台上 
+    3. 转发给指定的用户 
+    4. 转发给syslog服务器 
 守护进程一般为syslogd，其配置文件为/etc/syslog.conf; 
 或为syslog-ng这个是升级版的日志处理守护进程，其配置文件为/etc/syslog-ng/syslog-ng.conf。 
 /etc/syslog.conf 参考资料 man syslog.conf 

@@ -30,7 +30,7 @@ void createUser(){
 	printf("请输入密码:\n"); 
 	scanf("%s",acc.password);
 	printf("请输入金额:\n");
-	scanf("%d",&acc.balance);
+	scanf("%lf",&acc.balance);
 	struct Msg msg = {M_OPEN,acc};
 	//获取消息队列
 	getID();
