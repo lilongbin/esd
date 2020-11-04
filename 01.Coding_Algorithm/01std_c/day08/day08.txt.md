@@ -167,7 +167,7 @@ int main() {
 
 数组一旦存在,其存储位置及存储位置的个数就不可改变了,数组的大小是不可调的;
 
-# 柔性数组
+## 柔性数组
 柔性数组即数组大小待定的数组;
 >C语言中结构体的最后一个元素可以是大小未知的数组;
 >C语言可以由结构体产生柔性数组;
@@ -323,7 +323,7 @@ int main() {
 }
 ```
 
-# 二维数组
+## 二维数组
 只使用一个下标就可以表示一些连续存储空间的数组叫一维数组;
 使用两个下标表示某些连续存储空间的数组叫二维数组;
 
@@ -549,7 +549,7 @@ mtx[0]|          |          |          |          |
 ```
 
 
-作业
+# 练习
     1.修改彩票程序,避免出现重复数字
 ```
 /*
@@ -587,8 +587,10 @@ int main() {
 ```
 
     2.编写程序检查一个身份证号码是否真实把身份证前17个数字依次和下面17个数字做乘法
-    (7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2),然后把所有乘法结果求和;最后使用求和结果除以11得到余数,根据余数从下面11个数字中找到身份证号码中的最后一个数
-    (1, 0, X, 9, 8, 7, 6, 5, 4, 3, 2)
+    (7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2),
+    然后把所有乘法结果求和;再使用求和结果除以11得到余数,
+    根据余数从下面11个数字中找到身份证号码中的最后一个数
+    ( '1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2');
 ```
 /*
  * 身份证号码验证
@@ -604,57 +606,23 @@ void get_num_str(char *arr, int num) {
 }
 
 char get_last_bit(char *arr, int num) {
-    int id[] = { 7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2 };
-    char res[] = { '1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2' };
-    int i, sum = 0;
-    char idx[4] = { };
+    int id[17] = { 7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2};
+    char res[11] = { '1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2'};
+    int iloop = 0;
+    int sum = 0;
+    char idx[5] = { };
 
-    for (i = 0; i <= 16; i++) {
-        /* strncpy(idx, &arr[i], 1); */
-        idx[0] = arr[i];
-        /* printf("%c, %d, %d\n", arr[i], id[i], atoi(idx)); */
-        id[i] *= atoi(idx);
-        sum += id[i];
-        /* printf("%c, %d, %d\n", arr[i], id[i], atoi(idx)); */
+    for (iloop = 0; iloop <= 16; iloop++) {
+        /* strncpy(idx, &arr[iloop], 1); */
+        idx[0] = arr[iloop];
+        /* printf("%c, %d, %d\n", arr[iloop], id[iloop], atoi(idx)); */
+        id[iloop] *= atoi(idx);
+        sum += id[iloop];
+        /* printf("%c, %d, %d\n", arr[iloop], id[iloop], atoi(idx)); */
     }
 
-    switch (sum % 11) {
-    case 0:
-        idx[0] = res[0];
-        break;
-    case 1:
-        idx[0] = res[1];
-        break;
-    case 2:
-        idx[0] = res[2];
-        break;
-    case 3:
-        idx[0] = res[3];
-        break;
-    case 4:
-        idx[0] = res[4];
-        break;
-    case 5:
-        idx[0] = res[5];
-        break;
-    case 6:
-        idx[0] = res[6];
-        break;
-    case 7:
-        idx[0] = res[7];
-        break;
-    case 8:
-        idx[0] = res[8];
-        break;
-    case 9:
-        idx[0] = res[9];
-        break;
-    case 10:
-        idx[0] = res[10];
-        break;
-    }
-
-    return *idx;
+    idx[0] = res[(sum % 11)];
+    return idx[0];
 }
 
 int main() {
