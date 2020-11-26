@@ -3,11 +3,14 @@
 
 
 
-2.队列
-    采用先进先出的方式管理数据;
-    基本操作:push,pop
-    放置数字和取数字是在两个不同的端点实现的;
-    采用顺序存储结构实现队列时需要记录两个端点的位置;
+# 队列
++ 采用先进先出的方式管理数据;
++ 基本操作:push,pop
++ 放置数字和取数字是在两个不同的端点实现的;
++ 采用顺序存储结构实现队列时需要记录两个端点的位置;
+
+顺序存储方式实现队列的演示
+```
 /*
  * 02queue.h
  */
@@ -22,6 +25,9 @@ int pop();
 int front();
 int size();
 #endif //__02QUEUE_H__
+```
+
+```
 /*
  * 顺序存储方式实现队列的演示
  * 02queue.c
@@ -74,6 +80,9 @@ int front() {
 int size() {
     return tail - head;
 }
+```
+
+```
 /*
  * 队列测试演示
  * 02main.c
@@ -103,7 +112,10 @@ int main() {
     deinit();
     return 0;
 }
+```
 
+顺序存储方式实现队列的演示
+```
 /*
  * 03queue.h
  */
@@ -118,6 +130,9 @@ int pop();
 int front();
 int size();
 #endif //__3QUEUE_H__
+```
+
+```
 /*
  * 顺序存储方式实现队列的演示
  * 03queue.c
@@ -202,7 +217,9 @@ int size() {
     }
     return cnt;
 }
+```
 
+```
 /*
  * 队列测试演示
  */
@@ -231,10 +248,13 @@ int main() {
     deinit();
     return 0;
 }
+```
 
-3.链表
-    包含一个线性链式存储结构和一组相关的操作函数;
-    链表的基本功能包括:插入/删除和遍历;
+# 链表
+包含一个线性链式存储结构和一组相关的操作函数;
+链表的基本功能包括:插入/删除和遍历;
+
+```
 /*
  * 04linklist.h
  */
@@ -256,6 +276,9 @@ int get_tail();
 int size();
 void for_each(int(*)(void*,void*),void*);
 #endif //__04LINKLIST_H__
+```
+
+```
 /*
  * 链表演示
  * 04linklist.c
@@ -374,6 +397,7 @@ int size() {
     }
     printf("\n");
 }*/
+
 /* 遍历函数(用函数指针)回调函数 */
 void for_each(int (*p_func) (void *, void *), void *p_data) {
     node *p_node = NULL;
@@ -383,6 +407,9 @@ void for_each(int (*p_func) (void *, void *), void *p_data) {
         }
     }
 }
+```
+
+```
 /*
  * 链表测试
  * 04main.c
@@ -416,9 +443,12 @@ int main() {
     deinit();
     return 0;
 }
+```
 
-练习
-    编写函数从链表中删除指定数字,用返回值表示操作结果(1表示成功,0表示失败);
+# 练习1
+编写函数从链表中删除指定数字,用返回值表示操作结果(1表示成功,0表示失败);
+
+```
 /*
  * 05linklist.h
  */
@@ -441,6 +471,9 @@ int size();
 void for_each(int(*)(void*,void*),void*);
 int remove_node(int);
 #endif //__05LINKLIST_H__
+```
+
+```
 /*
  * 链表演示
  * 05linklist.c
@@ -559,6 +592,7 @@ int size() {
     }
     printf("\n");
 }*/
+
 /* 遍历函数(用函数指针)回调函数 */
 void for_each(int (*p_func) (void *, void *), void *p_data) {
     node *p_node = NULL;
@@ -583,6 +617,7 @@ void for_each(int (*p_func) (void *, void *), void *p_data) {
     }
     return 0;
 }*/
+
 /* 删除指定数字callback */
 typedef struct rdata {
     int num, ret;
@@ -607,6 +642,9 @@ int remove_node(int num) {
     for_each(remove_cb, &rd);
     return rd.ret;
 }
+```
+
+```
 /*
  * 链表测试
  * 05main.c
@@ -642,7 +680,10 @@ int main() {
     deinit();
     return 0;
 }
+```
 
+# 练习2
+```
 /*
  * data.h
  */
@@ -660,6 +701,9 @@ node *ll_locate(ll_head, int); /* return if the node exists */
 void ll_free(ll_head); /* free memory */
 void ll_traversal(ll_head); /* traversal the linked list */
 #endif /* __DATA_H__*/
+```
+
+```
 /*
  * data.c
  */
@@ -762,6 +806,9 @@ void ll_traversal(ll_head head) {
         printf("%d\n", this->id);
     }
 }
+```
+
+```
 /*
  * 按顺序插入用户输入的数据不超过10000个
  * 直到用户输入0时结束;
@@ -789,10 +836,12 @@ int main() {
     ll_free(ll_head);    //释放空间
     return 0;
 }
+```
 
-作业
-    给链表增加按顺序插入的函数;
-    使用遍历函数加返回值;
+# 练习
+给链表增加按顺序插入的函数;
+使用遍历函数加返回值;
+```
 /*
  * 07linklist.h
  */
@@ -815,6 +864,9 @@ int size();
 void for_each(int (*)(void *, void *), void *);
 int insert_in_order(int);
 #endif //__07LINKLIST_H__
+```
+
+```
 /*
  * 链表演示
  * 07linklist.c
@@ -933,6 +985,7 @@ int size() {
     }
     printf("\n");
 }*/
+
 /* 遍历函数(用函数指针)回调函数 */
 void for_each(int (*p_func) (void *, void *), void *p_data) {
     node *p_node = NULL;
@@ -961,6 +1014,7 @@ void for_each(int (*p_func) (void *, void *), void *p_data) {
     }
     return 0;
 }*/
+
 typedef struct rdata {
     int num, ret;
 } rdata;
@@ -986,6 +1040,9 @@ int insert_in_order(int num) {
     for_each(insert_cb, &idt);
     return idt.ret;
 }
+```
+
+```
 /*
  * 链表测试
  * 07main.c
@@ -1016,4 +1073,4 @@ int main() {
     deinit();
     return 0;
 }
-
+```
