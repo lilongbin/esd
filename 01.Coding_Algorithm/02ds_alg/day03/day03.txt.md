@@ -3,31 +3,36 @@
 
 
 
-+--------+
-| 二叉树 |
-+--------+
+# 二叉树
+
 树也是一种链式存储结构,从树中的每个节点可以走到另外多个节点;
 如果树中的所有节点都最多只能走到另外两个节点则这个树叫二叉树;
-所有的树都可以转换成二叉树;
-所有树都从一个起点节点开始,这个起点节点叫做根节点;
-通常使用一个记录根节点地址的指针记录整棵树,这个指针叫根指针;
-两个直接相连的节点间有父子关系,靠近根节点的叫父节点;另外一个叫子节点;
-树中任何节点都有且只能有一个父节点(根节点除外),一个父节点可以有二个子节点;
-在二叉树中任何一个节点最多有两个子节点,我们用左右来区分他们;
-树中任何一个节点都可以被看成一棵树的根,这颗树由它自身及它下面的节点构成;
-如果某个节点B是另一个节点A的左子节点,那么以节点B为根的树叫节点A的左子树;
++ 所有的树都可以转换成二叉树;
++ 所有树都从一个起点节点开始,这个起点节点叫做根节点;
++ 通常使用一个记录根节点地址的指针记录整棵树,这个指针叫根指针;
++ 两个直接相连的节点间有父子关系,靠近根节点的叫父节点;另外一个叫子节点;
++ 树中任何节点都有且只能有一个父节点(根节点除外),一个父节点可以有二个子节点;
++ 在二叉树中任何一个节点最多有两个子节点,我们用左右来区分他们;
++ 树中任何一个节点都可以被看成一棵树的根,这颗树由它自身及它下面的节点构成;
++ 如果某个节点B是另一个节点A的左子节点,那么以节点B为根的树叫节点A的左子树;
 
+声明tree树结构体
+```
 struct tree;//先声明有tree结构体,否则编译无法通过
+
 typedef struct node {//node节点结构体(圆圈)
     int num;
     struct tree *p_left;
     struct tree *p_right;
 } node;
+
 typedef struct tree {//tree树结构体(方块)
     node *p_root;
 } tree;
+```
 
 对树中的所有节点依次进行处理必须要使用递归;
+```
 /*
  * 02tree.h
  */
@@ -43,6 +48,9 @@ typedef struct tree {
     node *p_root;
 } tree;
 #endif //__02TREE_H__
+```
+
+```
 /*
  * 二叉树演示
  * 02tree.c
@@ -65,7 +73,9 @@ void print(tree *p_tree) {
     print(p_tree->p_root->p_right);
     /* printf("After the sequence traversal: %d\n", p_tree->p_root->num); //后序遍历 */
 }
+```
 
+```
 /*
  * 静态树的模拟
  * 02main.c
@@ -86,14 +96,14 @@ int main() {
     print(&tr1);
     return 0;
 }
+```
 
-根据对根节点处理的顺序是在左右子节点前/中/后;
-将对树的处理分为3种
-    前序遍历; //首先处理根节点,再处理左右子节点;
-    中序遍历; //首先处理左/右节点,再处理根节点,再处理另一个;
-    后序遍历; //首先处理左右节点,再处理根节点;
+根据对根节点处理的顺序是在左右子节点前/中/后,对树的遍历处理分为3种:
++ 前序遍历; //首先处理根节点,再处理左右子节点;
++ 中序遍历; //首先处理左/右节点,再处理根节点,再处理另一个;
++ 后序遍历; //首先处理左右节点,再处理根节点;
 
-
+```
 /*
  * 03tree.h
  */
@@ -109,6 +119,9 @@ typedef struct node {
     tree right; //将tree的定义挪到前面,否则报错incomplete type 
 } node;
 #endif //__03TREE_H__
+```
+
+```
 /*
  * 二叉树演示
  * 03tree.c
@@ -127,7 +140,9 @@ void print(tree *p_tree) {
     print(&(p_tree->p_root->left));
     print(&(p_tree->p_root->right));
 }
+```
 
+```
 /*
  * 树的模拟
  * 03main.c
@@ -149,7 +164,9 @@ int main() {
     print(&tr1);
     return 0;
 }
+```
 
+```
 /*
  * 04tree.h
  */
@@ -167,6 +184,9 @@ typedef struct node {
 void print(tree *);
 void deinit(tree *);
 #endif //__04TREE_H__
+```
+
+```
 /*
  * 二叉树演示
  * 04tree.c
@@ -201,7 +221,9 @@ void deinit(tree *p_tree) {
     free(p_tree->p_root);
     p_tree->p_root = NULL;
 }
+```
 
+```
 /*
  * 树的模拟
  * 04main.c
@@ -253,7 +275,9 @@ int main() {
     deinit(&root);
     return 0;
 }
+```
 
+```
 /*
  * 05tree.h
  */
@@ -273,6 +297,9 @@ void print(tree *);
 void deinit(tree *);
 tree *search(tree *, int);
 #endif //__05TREE_H__
+```
+
+```
 /*
  * 二叉树演示
  * 05tree.c
@@ -331,6 +358,9 @@ tree *search(tree *p_tree, int num) {
     /* 可以直接返回右子树的查找结果 */
     return search(&(p_tree->p_root->right), num);
 }
+```
+
+```
 /*
  * 树的模拟
  * 05main.c
@@ -383,8 +413,13 @@ int main() {
     deinit(&root);
     return 0;
 }
+```
 
+## 有序二叉树
 有序二叉树中任何一个节点左子树上的数字都比它小,而右子树上的所有数字都比它大. 
+
+有序二叉树演示1
+```
 /*
  * 06tree.h
  */
@@ -405,6 +440,9 @@ void deinit(tree *);
 tree *search(tree *, int);
 tree *search_in_order(tree *, int);
 #endif //__06TREE_H__
+```
+
+```
 /*
  * 有序二叉树演示
  * 06tree.c
@@ -481,7 +519,9 @@ tree *search_in_order(tree *p_tree, int num) {
         return search_in_order(&(p_tree->p_root->right), num);
     }
 }
+```
 
+```
 /*
  * 有序二叉树
  * 06main.c
@@ -530,7 +570,10 @@ int main() {
     deinit(&root);
     return 0;
 }
+```
 
+有序二叉树演示2
+```
 /*
  * 07tree.h
  */
@@ -552,6 +595,9 @@ tree *search(tree *, int);
 tree *search_in_order(tree *, int);
 void insert_in_order(tree *, int);
 #endif //__07TREE_H__
+```
+
+```
 /*
  * 有序二叉树演示
  * 07tree.c
@@ -644,6 +690,9 @@ void insert_in_order(tree *p_tree, int num) {
         }
     }
 }
+```
+
+```
 /*
  * 有序二叉树
  * 07main.c
@@ -673,8 +722,10 @@ int main() {
     deinit(&root);
     return 0;
 }
+```
 
 统计二叉树的节点数及高度;
+```
 /*
  * binary_tree.h
  */
@@ -697,6 +748,9 @@ void insert_in_order(tree *, int);
 int count(tree *);
 int height(tree *);
 #endif //__BINARY_TREE_H___
+```
+
+```
 /*
  * 二叉树演示
  * binary_tree.c
@@ -816,7 +870,9 @@ int height(tree *p_tree) {
     rheight = height(&(p_tree->p_root->right));
     return (lheight > rheight ? lheight : rheight) + 1;
 }
+```
 
+```
 /*
  * 树的测试
  * main.c
@@ -847,12 +903,13 @@ int main() {
     deinit(&root);
     return 0;
 }
+```
 
 重点及难点
-    处理二叉树的递归方法;
-    有序二叉树的查找和顺序插入;
-    统计二叉树的节点数及高度;
++ 处理二叉树的递归方法;
++ 有序二叉树的查找和顺序插入;
++ 统计二叉树的节点数及高度;
 
-作业
-    给树的数据结构增加统计节点个数及统计树的高度的函数(层);见上例;
+# 练习
+给树的数据结构增加统计节点个数及统计树的高度的函数(层);见上例;
 
