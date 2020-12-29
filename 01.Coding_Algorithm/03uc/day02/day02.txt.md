@@ -1,11 +1,14 @@
-库 错误处理 环境变量 内存管理
+库 错误处理
 
 
 # 回顾
-PATH用于配置可执行文件; 每个环境变量有他自己的适用场合;
-//对齐和补齐的作用是便于寻址
+* PATH用于配置可执行文件; 每个环境变量有他自己的适用场合;
+* 对齐和补齐的作用是便于寻址
+* 对于计算机底层来说一切皆01; 对于C语言来说一切皆整数;
+```
 unsigned int i = -1;//本赋值没有问题,类型是标识给我们看到
 printf("%u, %d\n", i, i);//打印出来的会不同,因为解析不同,但面对的是同一个东西;
+```
 
 # 静态库和共享库;
 windows下的dll即是动态链接库dinamic linked library;Linux中叫共享库shared object;
@@ -38,11 +41,13 @@ gcc的-static选项可以强制使用静态库连接到可执行文件;
     (.text+0x11): undefined reference to `__libc_csu_init'
     collect2: ld returned 1 exit status
 然后拷贝了libc.so到/lib目录;/lib/libc.so的内容如下
+
 /* GNU ld script
    Use the shared library, but some functions are only in
    the static library, so try that secondarily.  */
 OUTPUT_FORMAT(elf32-littlearm)
 GROUP ( /lib/libc.so.6 /usr/lib/libc_nonshared.a  AS_NEEDED ( /lib/ld-linux.so.3 ) )
+
 结果还是无法编译;于是又执行yum install glibc*和yum reinstall glibc*
 问题得以解决;
 在设置系统环境的时候一定要小心谨慎,先做好备份,不要轻易删除文件;
@@ -88,6 +93,10 @@ GROUP ( /lib/libc.so.6 /usr/lib/libc_nonshared.a  AS_NEEDED ( /lib/ld-linux.so.3
     共享库不可以直接运行但可以参与运行;
     在运行时必须配置环境变量LD_LIBRARY_PATH;export LD_LIBRARY_PATH=. //配置运行时的环境变量;
 
+共享库在使用时必须要保证能查找得到;
+如果找不到,需要配置LD_LIBRARY_PATH然后就可以查找的到;
+
+ldd命令可以查看依赖哪些库;
 ldd a.out命令可以查看相关的共享库文件
 
 # 动态链接加载器接口
@@ -136,11 +145,12 @@ gcc test.c -ldl #编译成功,连接库参数要放在后面
 
 主流的编程语言(除了C语言外)基本都使用异常机制处理错误,C语言中没有异常机制;
 
-C语言是用返回值代表是否出错,主要有以下4种情况
-1. 如果返回类型是 int(如主函数/随机数等),并且正常值不可能是负数,则正常数据直接返回,返回-1代表出错(如返回数组下标>=0);
-2. 如果返回类型是 int,并且返回值有可能是负数(如返回两个负数中的大者),此时正常数据结果用指针传出,返回-1代表出错,0代表正确;
-3. 如果返回类型是指针,返回 NULL 代表出错,其他代表正常;
-4. 如果函数不需要考虑出错问题,用 void 型函数,无返回值;
+C程序员用返回值代表是否出错,如果出错了,可以借助errno和perror()/strerror()进行错误的识别和处理. 
+返回值有4种情况:
+1. 如果返回int,并且返回的正常数据非负数;可以返回-1代表出错,正常数据直接返回;
+2. 如果返回int,并且返回的正常数据可能是负数;可以返回-1代表出错,0代表没错,正常数据用指针传递;
+3. 如果返回指针,用 NULL 代表出错, 其他代表正常;
+4. 如果不需要考虑错误问题,可以用 void 型函数,无返回值;
 > 注意
     以上4种情况只是经验之谈,大多如此;但不是绝对的;
     如有时返回指针不用NULL而用-1表示出错((void*)-1))也是可以的;
@@ -321,20 +331,7 @@ The standard sections of the manual include
    8   System Administration tools and Deamons //系统管理工具
 ```
 
-
-# C程序员的环境变量和环境表
-C语言中环境存储在字符指针数组中,就是环境表;
-环境表可以看成是二级指针,用来指定环境变量;
-```
-char *s[5];  //字符指针数组,元素是字符指针;
-char **s;    //二级指针
-```
-
-环境表的使用只需要写上 extern char**  environ;    //外部全局变量
-environ就是环境表的首地址;
-
-
-指针的回顾
+# 指针的回顾
 ```
 指针就是一个存储另一个变量地址的变量;
     int i = 10;
@@ -361,39 +358,23 @@ char (*str)[5]; //数组指针,指向数组的指针;
 
 一定要多练
 
-```
-/*
- * C程序员的环境变量与环境表练习
- */
-#include <stdio.h>
-#include <string.h>
-int main() {
-    extern char **environ;    //全局变量,改变了有影响
-    char **p = environ;    //p是局部变量,改变了无影响
-    //p是字符指针数组;
 
-    //练习:写一个循环打印所有环境变量(数组元素),数组以NULL结束
-    while (*p /* != NULL */ ) {    //可以省略,C程序效率十分重要
-        printf("%s\n", *p);
-        /* printf("\t%p\n", p); */
-        p++;
-    }
+# 总结
+1. 如何创建共享库
+    * 编写代码;
+    * 编译代码,获得目标文件(-fpic);
+    *  gcc -shared -o 对目标文件进行连接,得到库文件;
 
-    //写一个循环,把LANG的值取出来,存入value中
-    //提示:比较字符串的前n个字符strncmp();
-    p = environ;    //指针回到开始;
-    char value[100] = { };
-    while (*p) {
-        if (!strncmp(*p, "LANG=", 5)){
-            /* printf("%s\n", *p); */
-            strcpy(value, (*p) + 5);
-            break;
-        }
-        p++;
-    }
-    printf("value = %s\n", value);
+2. 如何调用共享库
+    * 编写代码;
+    * 编译测试代码,得到目标文件;
+    * 连接代码和共享库; 双L连接法: gcc src.c -l库名 -L库目录
 
-    return 0;
-}
-```
+3. C语言错误处理
+C程序员用返回值代表是否出错,如果出错了,可以借助errno和perror()/strerror()进行错误的识别和处理. 
+    返回值有4种情况:
+    1. 如果返回int,并且返回的正常数据非负数;可以返回-1代表出错,正常数据直接返回;
+    2. 如果返回int,并且返回的正常数据可能是负数;可以返回-1代表出错,0代表没错,正常数据用指针传递;
+    3. 如果返回指针,用 NULL 代表出错, 其他代表正常;
+    4. 如果不需要考虑错误问题,可以用 void 型函数,无返回值;
 
