@@ -14,7 +14,7 @@
     3. semctl(semid,index,SETVAL,value);
     4. semop();
     5. semctl(semid,0,IPC_RMID)
-    
+
     网络常识
     IP地址和端口
         网络编程其实就是网络版的进程间通信(IPC);
@@ -79,6 +79,7 @@ socket(套接字)编程步骤
     但bind()中提供的是服务器的IP和端口,connect()提供的是服务器端的IP和端口;自己的IP和端口封装在数据中发给服务器端,连接服务器时自己是不设防的;
     如果服务器在读,客户端应该写;如果服务器端在写,客户端应该读;
     //读写交互;
+```
 /*
  * 本地通信服务器端
  */
@@ -119,7 +120,10 @@ int main() {
     printf("读取结束\n");
     return 0;
 }
+```
 
+
+```
 /*
  * 本地通信客户端
  */
@@ -159,6 +163,305 @@ int main() {
     printf("发送完毕\n");
     return 0;
 }
+```
+
+
+另一个示例
+
+```
+/*****************************************
+ * Copyright (C) 2021 * Ltd. All rights reserved.
+ *******************************************/
+//#pragma once
+#ifndef __DOMAIN_SOCKET_H__
+#define __DOMAIN_SOCKET_H__
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+#include <stdint.h>
+#include <sys/types.h>
+
+#define socket_path "/tmp/domain_server.socket"
+
+    enum {
+        eCmd_PreferredScanOutPlaneId = 1,
+        eCmd_ScanOutPlaneDisplayEnable,
+        eCmd_Invalid,
+    };
+
+    typedef struct DmSockMsgHeader_T {
+        uint16_t seqId;
+        uint16_t cmdId;
+        uint32_t plLen;
+    } DmSockMsgHeader_T;
+
+#ifdef __cplusplus
+}
+#endif
+#endif //__DOMAIN_SOCKET_H__
+```
+
+
+```
+/*
+ * domain socket server
+ */
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <string.h>
+#include <signal.h>
+
+#include "domain_socket.h"
+
+int socket_read(int fd, char buf[], const int size) {
+    fd_set rset;
+    struct timeval tval;
+    int ready = 0;
+    int readLen = 0;
+    int readRet = 0;
+
+    do {
+        FD_ZERO(&rset);
+        FD_SET(fd, &rset);
+
+        tval.tv_sec = 30;
+        tval.tv_usec = 0;
+
+        ready = select(fd+1, &rset, NULL, NULL, &tval);
+        if (ready < 0) {
+            //select error
+            perror("select");
+            break;
+        } else if (ready == 0) {
+            //timeout
+            break;
+        } else {
+            if (!FD_ISSET(fd, &rset)) {
+                continue;
+            }
+        }
+
+        readRet = read(fd, buf+readLen, size);
+        printf("read %d bytes\n", readRet);
+        if (readRet > 0) {
+            readLen += readRet;
+        } else {
+            if (readRet < 0 && (errno == EAGAIN || errno == EINTR)) {
+                printf("%s readRet %d with EAGAIN or EINTR, try again\n", __func__, readRet);
+                continue; /* can try again */
+            }
+            if (readRet == 0) {
+                readLen = 0;
+                break; /* peer shutdown, to close socket */
+            } else {
+                readLen = -1;
+                break; /* read error, to close socket */
+            }
+        }
+
+    } while (readLen < size);
+
+    printf("read return %d\n", readLen);
+    return readLen;
+}
+
+int main() {
+    int ret = 0;
+    printf("server socket pid = %d\n", getpid());
+
+    //1 socket
+    int sockfd = socket(AF_UNIX, SOCK_STREAM, 0); //用SOCK_STREAM//TCP
+    if (sockfd == -1) {
+        perror("socket"), exit(-1);
+    }
+
+    //2 add addr
+    struct sockaddr_un addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    strcpy(addr.sun_path, socket_path);
+
+    //3 bind()
+    unlink(socket_path);
+    ret = bind(sockfd, (struct sockaddr *)&addr, sizeof(addr));
+    if (ret == -1) {
+        perror("bind"), exit(-1);
+    }
+    printf("bind ok\n");
+
+    //4 listen()
+    ret = listen(sockfd, 3);
+    if (ret == -1) {
+        perror("listen"); exit(-1);
+    }
+
+    while (1) {
+        //5 accept()
+        struct sockaddr_un from;
+        socklen_t len = sizeof(from);
+
+        int fd = accept(sockfd, (struct sockaddr *)&from, &len);
+        if (fd == -1) {
+            perror("accept");
+            continue;
+        }
+        printf("%s connected\n", from.sun_path);
+
+        //6 read/write
+        char buf[100] = { };
+        DmSockMsgHeader_T header;
+        int readLen = 0;
+        int value = 0;
+
+        do {
+            memset(&header, 0, sizeof(header));
+            memset(buf, 0, sizeof(buf));
+            //read header
+            readLen = socket_read(fd, buf, sizeof(DmSockMsgHeader_T));
+            if (readLen == 0) {
+                printf("the peer is shutdown\n");
+                break;
+            }
+
+            if (readLen != sizeof(DmSockMsgHeader_T)) {
+                printf("read header error\n");
+                break;
+            }
+
+            memcpy(&header, buf, sizeof(header));
+            if ((header.cmdId == 0)
+                    && (header.seqId == 0)) {
+                printf("read error, invalid header\n");
+                break;
+            }
+
+            //read payload
+            readLen = socket_read(fd, buf+sizeof(header), header.plLen);
+            if (readLen != header.plLen) {
+                printf("read data error, expect len:%d, actually:%d\n", header.plLen, readLen);
+                break;
+            }
+            memcpy(&value, buf+sizeof(header), sizeof(value));
+            printf("received client:%s> cmd:%d, data:0x%x\n", from.sun_path, header.cmdId, value);
+
+            sprintf(buf, "received %d bytes", readLen);
+            write(fd, buf, strlen(buf));
+        } while (1);
+
+        //7 close
+        close(fd);
+    }
+
+    close(sockfd);
+    unlink(socket_path);
+    return 0;
+}
+```
+
+
+```
+/*
+ * domain socket client
+ */
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+
+#include "domain_socket.h"
+
+int main() {
+    int ret = 0;
+
+    //1 socket
+    int sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (sockfd == -1) {
+        perror("socket"), exit(-1);
+    }
+
+    // bind
+    struct sockaddr_un addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    sprintf(addr.sun_path, "/tmp/domain_client-%05d.socket", getpid());
+    unlink(addr.sun_path);
+    ret = bind(sockfd, (struct sockaddr *)&addr, sizeof(addr));
+    if (ret < 0) {
+        perror("bind");
+        exit(-1);
+    }
+
+    //2 add addr
+    struct sockaddr_un srv;
+    memset(&srv, 0, sizeof(srv));
+    srv.sun_family = AF_UNIX;
+    strcpy(srv.sun_path, socket_path);
+
+    //3 connect
+    ret = connect(sockfd, (struct sockaddr *)&srv, sizeof(srv));
+    if(ret == -1) {
+        perror("connect");
+        exit(-1);
+    }
+
+    //4 read/write
+    char buf[100];
+    memset(buf, 0, sizeof(buf));
+    DmSockMsgHeader_T header;
+    int cmdId = 0;
+    int value = 0;
+    memset(&header, 0, sizeof(header));
+
+    header.seqId = 1;
+    printf("please type your cmd id:\n");
+    scanf("%d", &cmdId);
+    printf("please type cmd value:\n");
+    scanf("%d", &value);
+    header.cmdId = cmdId;
+    header.plLen = sizeof(value);
+    memcpy(buf, &header, sizeof(header));
+    memcpy(buf+sizeof(header), &value, sizeof(value));
+
+    //write
+    write(sockfd, buf, sizeof(header)+sizeof(value));
+    printf("send: cmdid:%d, value:0x%x\n", cmdId, value);
+
+    memset(buf, 0, sizeof(buf));
+    read(sockfd, buf, sizeof(buf));
+    printf("server:%s\n", buf);
+
+    //5 close
+    close(sockfd);
+    unlink(addr.sun_path);
+    return 0;
+}
+```
+
+
+```
+#target: prerequisites 
+#	command
+####################################################
+# Author      : longbin
+# Created date: 2020-02-19 15:25:14
+####################################################
+
+all:
+	gcc domain-server.c -o server
+	gcc domain-client.c -o client
+
+clean:
+	-rm -v server client
+```
 
 注使用网络编程时,网络通信地址中的IP和端口都需要使用转换函数
     需要包含sys/socket.h和arpa/inet.h与netinet/in.h
