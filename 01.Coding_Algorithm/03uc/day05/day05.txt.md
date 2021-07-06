@@ -365,17 +365,17 @@ int main(int argc, char *argv[]) {
 #include <string.h>
 #include <fcntl.h>
 typedef struct Employee {
-    char name[256];
+    char name[16];
     int age;
-    double salary;
+    double energy;
 } EMP;
 
 /* 以二进制的方式写test.bin */
 void bin_write(void) {
-    char name[256] = "张飞";
+    char name[16] = "zhangfei";
     int age = 30;
-    double salary = 20000.5;
-    EMP emp = { "赵云", 20, 10000.5 };
+    double energy = 12000.5;
+    EMP emp = { "zhaoyun", 20, 10000.5 };
     int fd = open("test.bin", O_WRONLY | O_CREAT | O_TRUNC, 0666);
     if (fd == -1) {
         perror("open");
@@ -383,7 +383,7 @@ void bin_write(void) {
     }
     if (write(fd, name, sizeof(name)) == -1
         || write(fd, &age, sizeof(age)) == -1
-        || write(fd, &salary, sizeof(salary)) == -1
+        || write(fd, &energy, sizeof(energy)) == -1
         || write(fd, &emp, sizeof(emp)) == -1) {
         perror("write");
         close(fd);
@@ -394,9 +394,9 @@ void bin_write(void) {
 
 /* 以二进制的方式读test.bin */
 void bin_read(void) {
-    char name[256];
+    char name[16];
     int age;
-    double salary;
+    double energy;
     EMP emp;
     int fd = open("test.bin", O_RDONLY);
     if (fd == -1) {
@@ -405,35 +405,35 @@ void bin_read(void) {
     }
     if (read(fd, name, sizeof(name)) == -1
         || read(fd, &age, sizeof(age)) == -1
-        || read(fd, &salary, sizeof(salary)) == -1
+        || read(fd, &energy, sizeof(energy)) == -1
         || read(fd, &emp, sizeof(emp)) == -1) {
         perror("read");
         close(fd);
         exit(-1);
     }
     close(fd);
-    printf("%s %d %lg\n", name, age, salary);
-    printf("%s %d %lg\n", emp.name, emp.age, emp.salary);
+    printf("%s %d %lg\n", name, age, energy);
+    printf("%s %d %lg\n", emp.name, emp.age, emp.energy);
 }
 
 /* 在标准C语言中可以直接使用fprintf()实现以文本方式写文件; */
 /* 在UC中需要使用函数进行转换; */
 /* 以纯文本方式写test.txt */
 void txt_write(void) {
-    char name[256] = "张飞";
+    char name[16] = "zhangfei";
     int age = 30;
-    double salary = 20000.5;
-    EMP emp = { "赵云", 20, 10000.5 };
+    double energy = 12000.5;
+    EMP emp = { "zhaoyun", 20, 10000.5 };
     char text[1024];
     /* 以二进制形式写文本,就会显示出文本 */
     /* 实际会写入文本的ASCII码 */
     snprintf(text, sizeof(text), "%s %d %lg\n%s %d %lg",
-           name, age, salary,
-           emp.name, emp.age, emp.salary);    //防止数据溢出
+           name, age, energy,
+           emp.name, emp.age, emp.energy);    //防止数据溢出
     /* 在内存中格式化字符串 */
     /* sprintf(text, "%s %d %lg\n%s %d %lg",
-     *        name, age, salary,
-     *        emp.name, emp.age, emp.salary); */
+     *        name, age, energy,
+     *        emp.name, emp.age, emp.energy); */
     int fd = open("test.txt", O_WRONLY | O_CREAT | O_TRUNC, 0666);
     if (fd == -1) {
         perror("open");
@@ -449,9 +449,9 @@ void txt_write(void) {
 
 /* 以纯文本方式读test.txt */
 void txt_read(void) {
-    char name[256];
+    char name[16];
     int age;
-    double salary;
+    double energy;
     EMP emp;
     int fd = open("test.txt", O_RDONLY);
     if (fd == -1) {
@@ -468,11 +468,11 @@ void txt_read(void) {
     /* text就是读取到的文本 */
     /* 用sscanf()提取字符串 */
     sscanf(text, "%s%d%lf%s%d%lf",
-           name, &age, &salary,
-           emp.name, &emp.age, &emp.salary);
+           name, &age, &energy,
+           emp.name, &emp.age, &emp.energy);
     printf("%s %d %lg\n%s %d %lg\n",
-           name, age, salary,
-           emp.name, emp.age, emp.salary);
+           name, age, energy,
+           emp.name, emp.age, emp.energy);
 }
 
 int main(void) {
@@ -495,14 +495,14 @@ int main(void) {
 #include <stdlib.h>
 #include <string.h>
 typedef struct Employee {
-    char name[256];
+    char name[16];
     int age;
     double salary;
 } EMP;
 
 /* 以二进制的方式写test.bin */
 void bin_write(void) {
-    char name[256] = "张飞";
+    char name[16] = "张飞";
     int age = 30;
     double salary = 20000.5;
     EMP emp = { "赵云", 20, 10000.5 };
@@ -520,7 +520,7 @@ void bin_write(void) {
 
 /* 以二进制的方式读test.bin */
 void bin_read(void) {
-    char name[256];
+    char name[16];
     int age;
     double salary;
     EMP emp;
@@ -543,7 +543,7 @@ void bin_read(void) {
 /* 以纯文本方式写test.txt */
 /* fprintf() */
 void txt_write(void) {
-    char name[256] = "张飞";
+    char name[16] = "张飞";
     int age = 30;
     double salary = 20000.5;
     EMP emp = { "赵云", 20, 10000.5 };
@@ -564,7 +564,7 @@ void txt_write(void) {
 /* 以纯文本方式读test.txt */
 /* fgets() + feof() */
 void txt_read(void) {
-    char name[256];
+    char name[16];
     int age;
     double salary;
     EMP emp;

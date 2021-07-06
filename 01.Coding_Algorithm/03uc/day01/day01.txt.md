@@ -2,7 +2,7 @@
 
 
 # 回顾标准C语言的内容
-    变量/类型/运算符/表达式/流程控制语句(for/if/while)
+    变量/类型/运算符/表达式/流程控制语句(if-else/switch-case/for/while)
 
 ## 数组
     用于存储多个相同类型数据的容器
@@ -34,7 +34,7 @@
 ```
 
 ## 字符串
-    C语言对字符串的类型有两种:
+    C语言字符串的类型有两种:
 ```
     char *str;    //字符指针代表字符串
     char str[100];    //字符数组代表字符串
@@ -270,29 +270,32 @@ gcc sort.c -o sort
 
 Unix/Linux操作系统下C的开发主要讲述Unix系统的原理和机制/提供的系统函数
 # 概要
-    Unix/Linux的静态库和共享库
-    标C的错误处理(UC也适用)
-    Unix/Linux的内存管理
-    Unix/Linux的文件/目录操作
-    Unix/Linux的进程管理
-    Unix/Linux的信号机制
-    Unix的IPC(进程间通信)
-    网络编程
-    Unix/Linux的多线程编程 
++ Unix/Linux的静态库和共享库
++ 标C的错误处理(UC也适用)
++ Unix/Linux的内存管理
++ Unix/Linux的文件/目录操作
++ Unix/Linux的进程管理
++ Unix/Linux的信号机制
++ Unix/Linux的进程间通信(IPC)
++ Unix/Linux的网络编程
++ Unix/Linux的多线程编程 
 
-标准 行业的准则,所有的公司必须遵守; 
-产品 产品是以质量为主的软件,按照大多数用户的需求设计,而不是迎合某些特定客户的; 
-项目 针对特定的客户,受特定客户的控制; 
-
-Unix操作系统是美国AT&T公司于1971年在PDP-11上运行的操作系统;具有多用户多任务的特点,支持多种处理器架构,最早与1969年在AT&T的贝尔实验室开发;
+Unix操作系统是美国AT&T公司于1971年在PDP-11上运行的操作系统;具有多用户多任务的特点,支持多种处理器架构,最早于1969年在AT&T的贝尔实验室开发;
 贝尔实验室还研发了C语言;
 
-# Unix的三大派生版本
-    System V: AIX / Solaris / HP-UX / IRIX
-    Berkley:  FreeBSD / NetBSD / OpenBSD / Mac OS X
-    Hybrid:   Minix(Mini Unix迷你版类Unix) / Linux
+> 1. 标准 行业的准则,所有的公司必须遵守; 
+> 2. 产品 产品是以质量为主的软件,按照大多数用户的需求设计,而不是迎合某些特定客户的; 
+> 3. 项目 针对特定的客户,受特定客户的控制;
 
-+ Linux是一种自由和开放源代码的类Unix系统; Tux(一只企鹅,全程为tuxedo)是Linux的标志;
+# Unix的三大派生版本
+1. System V: AIX / Solaris / HP-UX / IRIX
+2. Berkley:  FreeBSD / NetBSD / OpenBSD / Mac OS X
+3. Hybrid:   Minix(Mini Unix迷你版类Unix) / Linux
+
+# Linux版本
++ Linux,全称GNU/Linux,是一种免费使用和自由传播的类UNIX操作系统;内核由 Linus Benedict Torvalds 于1991年10月5日首次发布;
++ Linux操作系统的诞生/发展和成长过程始终依赖着五个重要支柱:Unix操作系统,MINIX操作系统,GNU计划,POSIX标准和Internet网络;
++ Linux是一种自由和开放源代码的类Unix系统; Tux(一只企鹅,全称为tuxedo)是Linux的标志;
 + Linux和GNU结合做成了完整的操作系统,通过POSIX规范(标准)实现了和Unix系统的完美兼容,通过GNU通用许可协议GPL解决了版权的问题; 
 + GNU发起开始于1984年,由自由软件基金支持;GNU的基本原则是共享;
 + GNU的主旨在于发展一个类Unix,并且为自由软件的完整操作系统,GNU系统;
@@ -300,56 +303,55 @@ Unix操作系统是美国AT&T公司于1971年在PDP-11上运行的操作系统;�
 + POSIX是由IEEE和ISO/IEC开发的一簇标准;该标准是基于现有的Unix实践和经验,描述了操作系统的调用服务接口,用于保证编制的应用程序可以在源代码一级上在多个操作系统上移植运行;
 + 非版权copyleft,带有标准的copyleft声明,确认作者的所有权和标志;它声明,任何人不但可以自由分发该成果,还可以自由地修改它,但你不能声明你做了原始的工作,或声明是由他人做的;最终,所有派生的成果必须遵循这一条款;
 
-## 版本命名
-    旧计划(1.0到2.6版之间): A.B.C
-    新计划2.6.0(2003年10月之后): A.B.C.D
-
 ## Linux特点
-    遵循GNU/GPL协议;
-    开放性;
-    多用户;
-    多任务;
-    设备独立性;
-    提供了丰富的网络功能;
-    可靠的系统安全;
-    良好的可移植性;
++ 遵循GNU/GPL协议;
++ 开放性;
++ 多用户;
++ 多任务;
++ 设备独立性;
++ 提供了丰富的网络功能;
++ 可靠的系统安全;
++ 良好的可移植性;
 
 ## Linux常用发行版
-    大众的Ubuntu
-    锐意的Fedora
-    老牌的RedHat/CentOS
-    优雅的LinuxMint
-    华丽的OpenSUSE
-    稳健的OpenEuler
-    自由的Debian
-    简洁的Slackware
-    本土化的RedFlag-Linux
++ 大众的Ubuntu
++ 锐意的Fedora
++ 老牌的RedHat/CentOS(Rocky)
++ 优雅的LinuxMint
++ 华丽的OpenSUSE
++ 稳健的OpenEuler
++ 自由的Debian
++ 简洁的Slackware
++ 本土化的RedFlag-Linux
 
 # GCC的选项和用法
-    -E 预处理,把预处理指令(以#开头的指令)处理掉
-    -S 生成汇编文件(.s文件)
-    -c 只编译不进行连接(不生成a.out)
-    -o 改变目标文件的名称
-    -O 可以优化
-    -g 生成调试信息
-    -v 查看gcc的版本
-    -Wall (Warning all)可以生成更多的警告信息,代码更规范; 
-    -Werror 在所有产生警告的地方作为错误处理,停止编译;
-    -L 指定连接库目录
-    -l 指定连接库名
-    -I 指定头文件路径
++ -E 预处理,把预处理指令(以#开头的指令)处理掉
++ -S 生成汇编文件(.s文件)
++ -c 只编译不进行连接(不生成a.out)
++ -o 改变目标文件的名称
++ -O 可以优化
++ -g 生成调试信息
++ -v 查看gcc的版本
++ -Wall (Warning all)可以生成更多的警告信息,代码更规范; 
++ -Werror 在所有产生警告的地方作为错误处理,停止编译;
++ -L 指定连接库目录
++ -l 指定连接库名
++ -I 指定头文件路径
 
 计算机语言分为 机器语言,汇编语言和高级语言; 
 
 ## GCC编译过程可以细分为4个阶段
-    1. 预处理Pre-Processing;宏展开等,可以生成.i文件
-         gcc -E hello.c -o hello.i //带-o选项可以把输出到屏幕改为文件;
-    2. 编译Compiling(狭义的编译);进行语法分析,转换成汇编语言,生成.s文件
-         gcc -S hello.i //生成hello.s
-    3. 汇编Assembling;把汇编语言代码转换成目标代码,生成.o文件
-         gcc -c hello.s //生成hello.o
-    4. 连接Linking;连接器ld将as创建的目标文件转换为可执行文件,生成a.out文件
-         gcc hello.o
+1. 预处理Pre-Processing;宏展开等,可以生成.i文件
+> gcc -E hello.c -o hello.i
+>> 带-o选项可以把输出到屏幕改为文件;
+2. 编译Compiling(狭义的编译);进行语法分析,转换成汇编语言,生成.s文件
+> gcc -S hello.i
+>> 生成hello.s
+3. 汇编Assembling;把汇编语言代码转换成目标代码,生成.o文件
+> gcc -c hello.s
+>> 生成hello.o
+4. 连接Linking;连接器ld将as创建的目标文件转换为可执行文件,生成a.out文件
+> gcc hello.o
 
 参考代码
 ```

@@ -127,7 +127,7 @@ int main() {
         perror("lseek");
         return -1;
     }
-    printf("文件的大小是: %d字节\n", size);
+    printf("文件的大小是: %ld字节\n", size);
     close(fd);
     return 0;
 }
