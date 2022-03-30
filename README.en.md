@@ -1,10 +1,10 @@
 # esd
 
-#### 介绍
+#### Description
 embedded software development manual
 
-#### 软件架构
-软件架构说明
+#### Software Architecture
+Software architecture description
 1. coding_algorithm
 + std C
 + data structure and algorithm
@@ -22,9 +22,11 @@ embedded software development manual
 3. services
 
 
-#### 参与贡献
+#### Contribution
 
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
+1.  Fork the repository
+2.  Create Feat_xxx branch
+3.  Commit your code
+4.  Create Pull Request
+
+
